@@ -1,0 +1,25 @@
+{
+  "name": "pace-crm",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "npm@10.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:admin": "turbo run dev --filter=web",
+    "dev:sales": "turbo run dev --filter=sales",
+    "build": "turbo run build",
+    "build:admin": "turbo run build --filter=web",
+    "build:sales": "turbo run build --filter=sales",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.3.3"
+  }
+}
