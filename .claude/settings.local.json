@@ -49,7 +49,8 @@
       "Bash(if exist .cursorrules dir /b .cursorrules 2)",
       "Bash(del \"C:\\pace-crm-main\\apps\\web\\src\\contexts\\auth-context.tsx\")",
       "Bash(if exist \"C:\\pace-crm-main\\apps\\web\\src\\contexts\\auth-context.tsx\" del \"C:\\pace-crm-main\\apps\\web\\src\\contexts\\auth-context.tsx\")",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git pull:*)"
     ],
     "deny": [],
     "ask": []
