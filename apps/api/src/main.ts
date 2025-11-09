@@ -13,7 +13,7 @@ const app = express()
 // Middleware
 app.use(helmet())
 app.use(cors({
-  origin: ['http://localhost:2500', 'http://localhost:3003'], // Allow both dashboards
+  origin: ['http://localhost:2005', 'http://localhost:2010'], // Allow both dashboards
   credentials: true
 }))
 app.use(compression())

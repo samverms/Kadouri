@@ -32,7 +32,7 @@ npm run clean              # Clean all build artifacts and node_modules
 
 ### Backend-Specific Commands (from apps/api)
 ```bash
-npm run dev                    # Start API server with nodemon + ts-node on port 3001
+npm run dev                    # Start API server with nodemon + ts-node on port 2000
 npm run build                  # Compile TypeScript to dist/
 npm run start                  # Run production build
 npm run lint                   # ESLint TypeScript files
@@ -51,16 +51,16 @@ npx tsx src/db/migrate.ts     # Run migrations directly
 
 ### Frontend-Specific Commands
 ```bash
-# From apps/web (Admin Dashboard - port 3000)
-npm run dev          # Start Next.js dev server on port 3000
+# From apps/web (Admin Dashboard - port 2005)
+npm run dev          # Start Next.js dev server on port 2005
 npm run build        # Build production Next.js app
 npm run start        # Start production server
 npm run lint         # Next.js linting
 
-# From apps/sales (Sales Dashboard - port 3003)
-npm run dev          # Start Next.js dev server on port 3003
+# From apps/sales (Sales Dashboard - port 2010)
+npm run dev          # Start Next.js dev server on port 2010
 npm run build        # Build production Next.js app
-npm run start        # Start production server on port 3003
+npm run start        # Start production server on port 2010
 npm run lint         # Next.js linting
 ```
 
@@ -70,8 +70,8 @@ npm run lint         # Next.js linting
 ```
 apps/
   ├── api/           # Express backend - API server with DB access
-  ├── web/           # Next.js admin dashboard (port 3000) - Simple UI
-  ├── sales/         # Next.js sales dashboard (port 3003) - Modern/redesigned UI
+  ├── web/           # Next.js admin dashboard (port 2005) - Simple UI
+  ├── sales/         # Next.js sales dashboard (port 2010) - Modern/redesigned UI
 packages/
   └── shared/        # Shared TypeScript types, Zod schemas, constants
 ```
@@ -220,11 +220,11 @@ npm run dev:sales              # Start api + sales dashboard only
 ```
 
 **Access URLs**:
-- Backend API: http://localhost:3001
-- Web Dashboard: http://localhost:3000
-- Sales Dashboard: http://localhost:3003
+- Backend API: http://localhost:2000
+- Web Dashboard: http://localhost:2005
+- Sales Dashboard: http://localhost:2010
 
-**Health Check**: Visit http://localhost:3001/health to verify API is running
+**Health Check**: Visit http://localhost:2000/health to verify API is running
 
 ## Key Workflows
 
@@ -279,7 +279,7 @@ Order PDFs are generated using Puppeteer with custom HTML templates:
 - **Transaction Handling**: Critical operations (order creation, QBO sync) should use DB transactions for data consistency
 - **Error Handling**: Use `AppError` class from `middleware/error-handler.ts` for consistent error responses with proper HTTP status codes
 - **Logging**: Use Winston logger from `utils/logger.ts` for structured logging (automatically logs errors, requests)
-- **CORS Configuration**: Backend CORS is set to `http://localhost:3000` by default. Update `apps/api/src/main.ts` if needed for different origins.
+- **CORS Configuration**: Backend CORS is set to `http://localhost:2005` by default. Update `apps/api/src/main.ts` if needed for different origins.
 - **Clerk Auth**: All API routes except `/health` require authentication. Use `authenticate` middleware from `@clerk/express`.
 
 ## Debugging

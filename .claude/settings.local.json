@@ -52,7 +52,8 @@
       "Bash(rm:*)",
       "Bash(git pull:*)",
       "Bash(npx create-docusaurus@latest docs classic --typescript)",
-      "Bash(nslookup:*)"
+      "Bash(nslookup:*)",
+      "Bash(if exist .nextdevlock del .nextdevlock)"
     ],
     "deny": [],
     "ask": []
