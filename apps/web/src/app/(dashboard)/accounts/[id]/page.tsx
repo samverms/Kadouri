@@ -1,6 +1,6 @@
 'use client'
-
-import { useState } from 'react'
+// Updated with expandable invoice cards
+import { useState, useEffect, Fragment } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -23,112 +23,250 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  ChevronRight,
+  ChevronDown,
+  Calendar,
+  DollarSign,
+  Package,
 } from 'lucide-react'
 
 export default function AccountDetailPage() {
   const params = useParams()
+  const accountId = params.id as string
   const [activeTab, setActiveTab] = useState<'overview' | 'addresses' | 'contacts'>('overview')
   const [showAddressForm, setShowAddressForm] = useState(false)
   const [showContactForm, setShowContactForm] = useState(false)
   const [transactionSearch, setTransactionSearch] = useState('')
   const [sortColumn, setSortColumn] = useState<string>('')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [expandedTransactionIds, setExpandedTransactionIds] = useState<Set<string>>(new Set())
 
-  // Mock data - will be replaced with API call
-  const account = {
-    id: params.id,
-    code: 'ACC-001',
-    name: 'Fresh Valley Farms',
-    qboCustomerId: 'QBO-123',
-    active: true,
-    createdAt: '2025-01-15',
+  const [account, setAccount] = useState<any>(null)
+  const [transactions, setTransactions] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [addressFormData, setAddressFormData] = useState({
+    type: 'billing',
+    line1: '',
+    line2: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    isPrimary: false,
+  })
+  const [contactFormData, setContactFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    isPrimary: false,
+  })
+  const [formSubmitting, setFormSubmitting] = useState(false)
+  const [editingAccount, setEditingAccount] = useState(false)
+  const [editAccountName, setEditAccountName] = useState('')
+  const [editingAddress, setEditingAddress] = useState<any>(null)
+  const [editingContact, setEditingContact] = useState<any>(null)
+
+  useEffect(() => {
+    fetchAccountData()
+  }, [accountId])
+
+  const fetchAccountData = async () => {
+    setIsLoading(true)
+    setError('')
+    try {
+      // Fetch account details
+      const accountResponse = await fetch(`http://localhost:2000/api/accounts/${accountId}`, {
+        credentials: 'include',
+      })
+
+      if (!accountResponse.ok) {
+        throw new Error('Failed to fetch account')
+      }
+
+      const accountData = await accountResponse.json()
+      setAccount(accountData)
+
+      // Fetch transactions for this account
+      const transactionsResponse = await fetch(`http://localhost:2000/api/invoices?accountId=${accountId}`, {
+        credentials: 'include',
+      })
+
+      if (transactionsResponse.ok) {
+        const transactionsData = await transactionsResponse.json()
+        setTransactions(transactionsData)
+      }
+    } catch (err) {
+      console.error('Fetch error:', err)
+      setError('Failed to load account data')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const transactions = [
-    {
-      id: '1',
-      orderNo: '2510-0025',
-      type: 'seller',
-      date: '2025-10-07',
-      buyer: 'Fresh Valley Farms',
-      seller: 'Western Mixers',
-      products: 'LA NOGALERA',
-      items: 'PECANS + 1 more',
-      total: '$132,930.00',
-      agent: 'Agent User',
-      commission: '$2.00',
-      status: 'confirmed',
-    },
-    {
-      id: '2',
-      orderNo: '2510-001',
-      type: 'buyer',
-      date: '2025-10-06',
-      buyer: 'Fresh Valley Farms',
-      seller: 'TORA & GLASSER',
-      products: 'NIC...',
-      items: 'PRUNES',
-      total: '$378,000.00',
-      agent: 'Agent User',
-      commission: '$2.50',
-      status: 'confirmed',
-    },
-    {
-      id: '3',
-      orderNo: '2510-004',
-      type: 'seller',
-      date: '2025-10-05',
-      buyer: 'Medium Farms',
-      seller: 'Fresh Valley Farms',
-      products: 'Tools Impex',
-      items: 'CORNUT',
-      total: '$53,280.00',
-      agent: 'Agent User',
-      commission: '$2.00',
-      status: 'confirmed',
-    },
-  ]
+  const handleAddAddress = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setFormSubmitting(true)
+    try {
+      const response = await fetch(`http://localhost:2000/api/accounts/${accountId}/addresses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(addressFormData),
+      })
 
-  const addresses = [
-    {
-      id: '1',
-      type: 'billing',
-      line1: '123 Farm Road',
-      line2: 'Suite 100',
-      city: 'Sacramento',
-      state: 'CA',
-      postalCode: '95814',
-      country: 'US',
-      isPrimary: true,
-    },
-    {
-      id: '2',
-      type: 'shipping',
-      line1: '456 Warehouse Ave',
-      city: 'Sacramento',
-      state: 'CA',
-      postalCode: '95816',
-      country: 'US',
-      isPrimary: false,
-    },
-  ]
+      if (!response.ok) {
+        throw new Error('Failed to add address')
+      }
 
-  const contacts = [
-    {
-      id: '1',
-      name: 'John Smith',
-      email: 'john@freshvalley.com',
-      phone: '(916) 555-0123',
-      isPrimary: true,
-    },
-    {
-      id: '2',
-      name: 'Sarah Johnson',
-      email: 'sarah@freshvalley.com',
-      phone: '(916) 555-0124',
-      isPrimary: false,
-    },
-  ]
+      // Refresh account data
+      await fetchAccountData()
+
+      // Reset form and close
+      setAddressFormData({
+        type: 'billing',
+        line1: '',
+        line2: '',
+        city: '',
+        state: '',
+        postalCode: '',
+        isPrimary: false,
+      })
+      setShowAddressForm(false)
+    } catch (err) {
+      console.error('Add address error:', err)
+      alert('Failed to add address')
+    } finally {
+      setFormSubmitting(false)
+    }
+  }
+
+  const handleAddContact = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setFormSubmitting(true)
+    try {
+      const response = await fetch(`http://localhost:2000/api/accounts/${accountId}/contacts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(contactFormData),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to add contact')
+      }
+
+      // Refresh account data
+      await fetchAccountData()
+
+      // Reset form and close
+      setContactFormData({
+        name: '',
+        email: '',
+        phone: '',
+        isPrimary: false,
+      })
+      setShowContactForm(false)
+    } catch (err) {
+      console.error('Add contact error:', err)
+      alert('Failed to add contact')
+    } finally {
+      setFormSubmitting(false)
+    }
+  }
+
+  const handleEditAccount = async () => {
+    setFormSubmitting(true)
+    try {
+      const response = await fetch(`http://localhost:2000/api/accounts/${accountId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name: editAccountName }),
+      })
+      if (!response.ok) throw new Error('Failed to update account')
+      await fetchAccountData()
+      setEditingAccount(false)
+    } catch (err) {
+      alert('Failed to update account')
+    } finally {
+      setFormSubmitting(false)
+    }
+  }
+
+  const handleUpdateAddress = async () => {
+    if (!editingAddress) return
+    setFormSubmitting(true)
+    try {
+      const response = await fetch(`http://localhost:2000/api/accounts/addresses/${editingAddress.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(editingAddress),
+      })
+      if (!response.ok) throw new Error('Failed to update address')
+      await fetchAccountData()
+      setEditingAddress(null)
+    } catch (err) {
+      alert('Failed to update address')
+    } finally {
+      setFormSubmitting(false)
+    }
+  }
+
+  const handleDeleteAddress = async (addressId: string) => {
+    if (!confirm('Are you sure you want to delete this address?')) return
+    try {
+      const response = await fetch(`http://localhost:2000/api/accounts/addresses/${addressId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (!response.ok) throw new Error('Failed to delete address')
+      await fetchAccountData()
+    } catch (err) {
+      alert('Failed to delete address')
+    }
+  }
+
+  const handleUpdateContact = async () => {
+    if (!editingContact) return
+    setFormSubmitting(true)
+    try {
+      const response = await fetch(`http://localhost:2000/api/accounts/contacts/${editingContact.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(editingContact),
+      })
+      if (!response.ok) throw new Error('Failed to update contact')
+      await fetchAccountData()
+      setEditingContact(null)
+    } catch (err) {
+      alert('Failed to update contact')
+    } finally {
+      setFormSubmitting(false)
+    }
+  }
+
+  const handleDeleteContact = async (contactId: string) => {
+    if (!confirm('Are you sure you want to delete this contact?')) return
+    try {
+      const response = await fetch(`http://localhost:2000/api/accounts/contacts/${contactId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (!response.ok) throw new Error('Failed to delete contact')
+      await fetchAccountData()
+    } catch (err) {
+      alert('Failed to delete contact')
+    }
+  }
+
+  const addresses = account?.addresses || []
+  const contacts = account?.contacts || []
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
@@ -156,16 +294,56 @@ export default function AccountDetailPage() {
     )
   }
 
+  const toggleExpanded = (transactionId: string) => {
+    const newExpanded = new Set(expandedTransactionIds)
+    if (newExpanded.has(transactionId)) {
+      newExpanded.delete(transactionId)
+    } else {
+      newExpanded.add(transactionId)
+    }
+    setExpandedTransactionIds(newExpanded)
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount)
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'paid':
+        return 'bg-green-100 text-green-800'
+      case 'posted_to_qb':
+        return 'bg-blue-100 text-blue-800'
+      case 'confirmed':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'draft':
+        return 'bg-gray-100 text-gray-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+
   // Filter and sort transactions
   const filteredTransactions = transactions
     .filter((txn) => {
       const searchLower = transactionSearch.toLowerCase()
       return (
-        txn.orderNo.toLowerCase().includes(searchLower) ||
-        txn.seller.toLowerCase().includes(searchLower) ||
-        txn.buyer.toLowerCase().includes(searchLower) ||
-        txn.products.toLowerCase().includes(searchLower) ||
-        txn.agent.toLowerCase().includes(searchLower)
+        txn.orderNo?.toLowerCase().includes(searchLower) ||
+        txn.sellerAccountName?.toLowerCase().includes(searchLower) ||
+        txn.buyerAccountName?.toLowerCase().includes(searchLower) ||
+        txn.lines?.[0]?.productDescription?.toLowerCase().includes(searchLower) ||
+        txn.agentName?.toLowerCase().includes(searchLower)
       )
     })
     .sort((a, b) => {
@@ -190,6 +368,40 @@ export default function AccountDetailPage() {
       if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
       return 0
     })
+
+  if (isLoading) {
+    return (
+      <div>
+        <Link
+          href="/accounts"
+          className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Accounts
+        </Link>
+        <div className="text-center py-12">
+          <p className="text-gray-600">Loading account details...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !account) {
+    return (
+      <div>
+        <Link
+          href="/accounts"
+          className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Accounts
+        </Link>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-sm text-red-800">{error || 'Account not found'}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -221,7 +433,7 @@ export default function AccountDetailPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => { setEditAccountName(account.name); setEditingAccount(true); }}>
               <Edit2 className="mr-2 h-4 w-4" />
               Edit Account
             </Button>
@@ -231,6 +443,38 @@ export default function AccountDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Edit Account Modal */}
+      {editingAccount && (
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle>Edit Account Name</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Account Name <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={editAccountName}
+                  onChange={(e) => setEditAccountName(e.target.value)}
+                  placeholder="Enter account name"
+                  required
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleEditAccount} className="bg-blue-600 hover:bg-blue-700" disabled={formSubmitting}>
+                  {formSubmitting ? 'Saving...' : 'Save Changes'}
+                </Button>
+                <Button variant="outline" onClick={() => setEditingAccount(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-6">
@@ -374,6 +618,7 @@ export default function AccountDetailPage() {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
+                      <th className="w-12"></th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         Order #
                       </th>
@@ -423,7 +668,20 @@ export default function AccountDetailPage() {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredTransactions.map((txn) => (
-                      <tr key={txn.id} className="hover:bg-gray-50">
+                      <Fragment key={txn.id}>
+                      <tr className="hover:bg-gray-50">
+                        <td className="px-4 py-4">
+                          <button
+                            onClick={() => toggleExpanded(txn.id)}
+                            className="text-gray-400 hover:text-gray-600"
+                          >
+                            {expandedTransactionIds.has(txn.id) ? (
+                              <ChevronDown className="h-5 w-5" />
+                            ) : (
+                              <ChevronRight className="h-5 w-5" />
+                            )}
+                          </button>
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <FileText className="h-4 w-4 text-gray-400" />
@@ -440,35 +698,45 @@ export default function AccountDetailPage() {
                             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                               txn.type === 'seller'
                                 ? 'bg-blue-100 text-blue-800'
-                                : 'bg-purple-100 text-purple-800'
+                                : 'bg-green-100 text-green-800'
                             }`}
                           >
                             {txn.type === 'seller' ? 'Seller' : 'Buyer'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-900">{txn.seller}</span>
+                          <Link href={`/accounts/${txn.sellerAccountId}`} className="text-sm text-blue-600 hover:text-blue-800 hover:underline">
+                            {txn.sellerAccountName}
+                          </Link>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-900">{txn.buyer}</span>
+                          <Link href={`/accounts/${txn.buyerAccountId}`} className="text-sm text-blue-600 hover:text-blue-800 hover:underline">
+                            {txn.buyerAccountName}
+                          </Link>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">{txn.products}</div>
-                          <div className="text-xs text-gray-500">{txn.items}</div>
+                          <div className="text-sm text-gray-900">
+                            {txn.lines?.[0]?.productDescription || 'Multiple Products'}
+                          </div>
+                          <div className="text-xs text-gray-500">{txn.lines?.length || 0} items</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm font-medium text-gray-900">{txn.total}</span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-500">
-                            {new Date(txn.date).toLocaleDateString()}
+                          <span className="text-sm font-medium text-gray-900">
+                            ${txn.totalAmount?.toLocaleString() || '0'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-600">{txn.agent}</span>
+                          <span className="text-sm text-gray-500">
+                            {new Date(txn.orderDate).toLocaleDateString()}
+                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-900">{txn.commission}</span>
+                          <span className="text-sm text-gray-600">{txn.agentName || 'N/A'}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-900">
+                            ${txn.lines?.reduce((sum, line) => sum + (parseFloat(line.commissionAmt) || 0), 0).toFixed(2) || '0'}
+                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -481,6 +749,100 @@ export default function AccountDetailPage() {
                           </div>
                         </td>
                       </tr>
+                      {expandedTransactionIds.has(txn.id) && (
+                        <tr className="bg-white border-b border-gray-200">
+                          <td colSpan={11} className="px-6 py-4">
+                            <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
+                              {/* Header Row with Invoice, Date, and Status */}
+                              <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-center gap-4">
+                                  <div>
+                                    <span className="text-sm text-gray-600">Invoice: </span>
+                                    <Link
+                                      href={`/orders/${txn.id}`}
+                                      className="text-base font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                                    >
+                                      {txn.orderNo}
+                                    </Link>
+                                  </div>
+                                  <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${getStatusColor(txn.status)}`}>
+                                    {txn.status?.replace(/_/g, ' ').toUpperCase() || 'DRAFT'}
+                                  </span>
+                                </div>
+                                <div className="text-right text-sm text-gray-600">
+                                  {formatDate(txn.orderDate)}
+                                </div>
+                              </div>
+
+                              {/* Buyer/Seller Row */}
+                              <div className="flex items-start justify-between mb-4">
+                                <div>
+                                  <span className="text-sm text-gray-600">Buyer: </span>
+                                  <Link
+                                    href={`/accounts/${txn.buyerAccountId}`}
+                                    className="text-sm font-medium text-gray-900 hover:text-blue-600 hover:underline"
+                                  >
+                                    {txn.buyerAccountName}
+                                  </Link>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-sm text-gray-600">Seller: </span>
+                                  <Link
+                                    href={`/accounts/${txn.sellerAccountId}`}
+                                    className="text-sm font-medium text-gray-900 hover:text-blue-600 hover:underline"
+                                  >
+                                    {txn.sellerAccountName}
+                                  </Link>
+                                </div>
+                              </div>
+
+                              {/* Items Table */}
+                              <div className="mb-4">
+                                <div className="text-sm font-semibold text-gray-700 mb-2">ITEMS:</div>
+                                <div className="bg-white rounded border border-gray-200">
+                                  <table className="min-w-full">
+                                    <thead className="border-b border-gray-200">
+                                      <tr className="text-xs text-gray-600">
+                                        <th className="px-3 py-2 text-left font-medium">Product</th>
+                                        <th className="px-3 py-2 text-center font-medium">Qty</th>
+                                        <th className="px-3 py-2 text-center font-medium">Commission</th>
+                                        <th className="px-3 py-2 text-right font-medium">Amount</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {txn.lines?.map((line: any, index: number) => (
+                                        <tr key={line.id || index} className={index !== (txn.lines?.length || 0) - 1 ? 'border-b border-gray-100' : ''}>
+                                          <td className="px-3 py-2 text-sm text-gray-900">
+                                            {line.productCode || line.productDescription || 'Unknown Product'}
+                                          </td>
+                                          <td className="px-3 py-2 text-sm text-center text-gray-900">
+                                            {line.quantity?.toLocaleString() || 0} lbs
+                                          </td>
+                                          <td className="px-3 py-2 text-sm text-center text-gray-900">
+                                            {line.commissionPct > 0 ? `${line.commissionPct}%` : '-'}
+                                          </td>
+                                          <td className="px-3 py-2 text-sm text-right text-gray-900">
+                                            {line.total?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+
+                              {/* Total */}
+                              <div className="flex justify-between items-center pt-3 border-t border-gray-300">
+                                <div className="text-lg font-semibold text-gray-900">Total:</div>
+                                <div className="text-xl font-bold text-gray-900">
+                                  ${txn.totalAmount?.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                     ))}
                   </tbody>
                 </table>
@@ -512,13 +874,17 @@ export default function AccountDetailPage() {
                 <CardTitle>Add New Address</CardTitle>
               </CardHeader>
               <CardContent>
-                <form className="space-y-4">
+                <form className="space-y-4" onSubmit={handleAddAddress}>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Address Type <span className="text-red-500">*</span>
                       </label>
-                      <select className="w-full rounded-md border border-gray-300 px-3 py-2">
+                      <select
+                        className="w-full rounded-md border border-gray-300 px-3 py-2"
+                        value={addressFormData.type}
+                        onChange={(e) => setAddressFormData({...addressFormData, type: e.target.value})}
+                      >
                         <option value="billing">Billing</option>
                         <option value="shipping">Shipping</option>
                         <option value="warehouse">Warehouse</option>
@@ -527,7 +893,12 @@ export default function AccountDetailPage() {
                     </div>
                     <div className="flex items-end">
                       <label className="flex items-center">
-                        <input type="checkbox" className="rounded border-gray-300" />
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300"
+                          checked={addressFormData.isPrimary}
+                          onChange={(e) => setAddressFormData({...addressFormData, isPrimary: e.target.checked})}
+                        />
                         <span className="ml-2 text-sm text-gray-700">Set as primary</span>
                       </label>
                     </div>
@@ -536,37 +907,61 @@ export default function AccountDetailPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Address Line 1 <span className="text-red-500">*</span>
                     </label>
-                    <Input placeholder="Street address" />
+                    <Input
+                      placeholder="Street address"
+                      value={addressFormData.line1}
+                      onChange={(e) => setAddressFormData({...addressFormData, line1: e.target.value})}
+                      required
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Address Line 2
                     </label>
-                    <Input placeholder="Suite, unit, building, floor, etc." />
+                    <Input
+                      placeholder="Suite, unit, building, floor, etc."
+                      value={addressFormData.line2}
+                      onChange={(e) => setAddressFormData({...addressFormData, line2: e.target.value})}
+                    />
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         City <span className="text-red-500">*</span>
                       </label>
-                      <Input />
+                      <Input
+                        value={addressFormData.city}
+                        onChange={(e) => setAddressFormData({...addressFormData, city: e.target.value})}
+                        required
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         State <span className="text-red-500">*</span>
                       </label>
-                      <Input maxLength={2} placeholder="CA" />
+                      <Input
+                        maxLength={2}
+                        placeholder="CA"
+                        value={addressFormData.state}
+                        onChange={(e) => setAddressFormData({...addressFormData, state: e.target.value})}
+                        required
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Postal Code <span className="text-red-500">*</span>
                       </label>
-                      <Input placeholder="95814" />
+                      <Input
+                        placeholder="95814"
+                        value={addressFormData.postalCode}
+                        onChange={(e) => setAddressFormData({...addressFormData, postalCode: e.target.value})}
+                        required
+                      />
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                      Add Address
+                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={formSubmitting}>
+                      {formSubmitting ? 'Adding...' : 'Add Address'}
                     </Button>
                     <Button
                       type="button"
@@ -577,6 +972,107 @@ export default function AccountDetailPage() {
                     </Button>
                   </div>
                 </form>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Edit Address Form */}
+          {editingAddress && (
+            <Card className="mb-6 border-blue-200 bg-blue-50">
+              <CardHeader>
+                <CardTitle>Edit Address</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Address Type <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        className="w-full rounded-md border border-gray-300 px-3 py-2"
+                        value={editingAddress.type}
+                        onChange={(e) => setEditingAddress({...editingAddress, type: e.target.value})}
+                      >
+                        <option value="billing">Billing</option>
+                        <option value="shipping">Shipping</option>
+                        <option value="warehouse">Warehouse</option>
+                        <option value="pickup">Pickup</option>
+                      </select>
+                    </div>
+                    <div className="flex items-end">
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300"
+                          checked={editingAddress.isPrimary}
+                          onChange={(e) => setEditingAddress({...editingAddress, isPrimary: e.target.checked})}
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Set as primary</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Address Line 1 <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={editingAddress.line1}
+                      onChange={(e) => setEditingAddress({...editingAddress, line1: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Address Line 2
+                    </label>
+                    <Input
+                      value={editingAddress.line2 || ''}
+                      onChange={(e) => setEditingAddress({...editingAddress, line2: e.target.value})}
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        City <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        value={editingAddress.city}
+                        onChange={(e) => setEditingAddress({...editingAddress, city: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        State <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        maxLength={2}
+                        value={editingAddress.state}
+                        onChange={(e) => setEditingAddress({...editingAddress, state: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Postal Code <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        value={editingAddress.postalCode}
+                        onChange={(e) => setEditingAddress({...editingAddress, postalCode: e.target.value})}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleUpdateAddress} className="bg-blue-600 hover:bg-blue-700" disabled={formSubmitting}>
+                      {formSubmitting ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                    <Button variant="outline" onClick={() => setEditingAddress(null)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -607,10 +1103,10 @@ export default function AccountDetailPage() {
                     <p>{address.country}</p>
                   </div>
                   <div className="flex gap-2 mt-4">
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => setEditingAddress(address)}>
                       <Edit2 className="h-3 w-3" />
                     </Button>
-                    <Button size="sm" variant="outline" className="text-red-600">
+                    <Button size="sm" variant="outline" className="text-red-600" onClick={() => handleDeleteAddress(address.id)}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
@@ -643,17 +1139,27 @@ export default function AccountDetailPage() {
                 <CardTitle>Add New Contact</CardTitle>
               </CardHeader>
               <CardContent>
-                <form className="space-y-4">
+                <form className="space-y-4" onSubmit={handleAddContact}>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Full Name <span className="text-red-500">*</span>
                       </label>
-                      <Input placeholder="John Smith" />
+                      <Input
+                        placeholder="John Smith"
+                        value={contactFormData.name}
+                        onChange={(e) => setContactFormData({...contactFormData, name: e.target.value})}
+                        required
+                      />
                     </div>
                     <div className="flex items-end">
                       <label className="flex items-center">
-                        <input type="checkbox" className="rounded border-gray-300" />
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300"
+                          checked={contactFormData.isPrimary}
+                          onChange={(e) => setContactFormData({...contactFormData, isPrimary: e.target.checked})}
+                        />
                         <span className="ml-2 text-sm text-gray-700">Set as primary</span>
                       </label>
                     </div>
@@ -662,17 +1168,28 @@ export default function AccountDetailPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Email <span className="text-red-500">*</span>
                     </label>
-                    <Input type="email" placeholder="john@example.com" />
+                    <Input
+                      type="email"
+                      placeholder="john@example.com"
+                      value={contactFormData.email}
+                      onChange={(e) => setContactFormData({...contactFormData, email: e.target.value})}
+                      required
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Phone
                     </label>
-                    <Input type="tel" placeholder="(916) 555-0123" />
+                    <Input
+                      type="tel"
+                      placeholder="(916) 555-0123"
+                      value={contactFormData.phone}
+                      onChange={(e) => setContactFormData({...contactFormData, phone: e.target.value})}
+                    />
                   </div>
                   <div className="flex gap-2">
-                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                      Add Contact
+                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={formSubmitting}>
+                      {formSubmitting ? 'Adding...' : 'Add Contact'}
                     </Button>
                     <Button
                       type="button"
@@ -683,6 +1200,71 @@ export default function AccountDetailPage() {
                     </Button>
                   </div>
                 </form>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Edit Contact Form */}
+          {editingContact && (
+            <Card className="mb-6 border-blue-200 bg-blue-50">
+              <CardHeader>
+                <CardTitle>Edit Contact</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Full Name <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        value={editingContact.name}
+                        onChange={(e) => setEditingContact({...editingContact, name: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300"
+                          checked={editingContact.isPrimary}
+                          onChange={(e) => setEditingContact({...editingContact, isPrimary: e.target.checked})}
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Set as primary</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="email"
+                      value={editingContact.email}
+                      onChange={(e) => setEditingContact({...editingContact, email: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Phone
+                    </label>
+                    <Input
+                      type="tel"
+                      value={editingContact.phone || ''}
+                      onChange={(e) => setEditingContact({...editingContact, phone: e.target.value})}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleUpdateContact} className="bg-blue-600 hover:bg-blue-700" disabled={formSubmitting}>
+                      {formSubmitting ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                    <Button variant="outline" onClick={() => setEditingContact(null)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -723,10 +1305,10 @@ export default function AccountDetailPage() {
                     </div>
                   </div>
                   <div className="flex gap-2 mt-4">
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => setEditingContact(contact)}>
                       <Edit2 className="h-3 w-3" />
                     </Button>
-                    <Button size="sm" variant="outline" className="text-red-600">
+                    <Button size="sm" variant="outline" className="text-red-600" onClick={() => handleDeleteContact(contact.id)}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>

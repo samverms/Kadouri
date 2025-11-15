@@ -13,5 +13,9 @@ router.post('/:id/addresses', controller.addAddress)
 router.post('/:id/contacts', controller.addContact)
 router.get('/:id/addresses', controller.getAddresses)
 router.get('/:id/contacts', controller.getContacts)
+router.patch('/addresses/:addressId', controller.updateAddress)
+router.delete('/addresses/:addressId', controller.deleteAddress)
+router.patch('/contacts/:contactId', controller.updateContact)
+router.delete('/contacts/:contactId', controller.deleteContact)
 
 export { router as accountsRouter }

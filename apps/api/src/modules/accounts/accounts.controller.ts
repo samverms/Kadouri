@@ -31,10 +31,11 @@ export class AccountsController {
 
   searchAccounts = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { search, limit } = req.query
+      const { search, limit, offset } = req.query
       const accounts = await this.accountsService.searchAccounts(
         search as string,
-        limit ? parseInt(limit as string) : undefined
+        limit ? parseInt(limit as string) : undefined,
+        offset ? parseInt(offset as string) : undefined
       )
       res.json(accounts)
     } catch (error) {
@@ -103,6 +104,42 @@ export class AccountsController {
     try {
       const contacts = await this.accountsService.getContacts(req.params.id)
       res.json(contacts)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  updateAddress = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const address = await this.accountsService.updateAddress(req.params.addressId, req.body)
+      res.json(address)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  deleteAddress = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.accountsService.deleteAddress(req.params.addressId)
+      res.json(result)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  updateContact = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const contact = await this.accountsService.updateContact(req.params.contactId, req.body)
+      res.json(contact)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  deleteContact = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.accountsService.deleteContact(req.params.contactId)
+      res.json(result)
     } catch (error) {
       next(error)
     }
