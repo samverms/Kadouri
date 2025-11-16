@@ -1,422 +1,851 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   ArrowLeft,
-  FileText,
-  Building2,
-  Package,
-  User,
-  Calendar,
-  DollarSign,
-  Download,
-  Edit,
+  Save,
+  X,
+  Edit2,
+  Plus,
   Trash2,
+  AlertCircle,
+  Copy,
+  Trash
 } from 'lucide-react'
+import { useToast } from '@/components/ui/toast'
+
+interface OrderLine {
+  id?: string
+  lineNo: number
+  productId: string
+  productCode?: string
+  productDescription?: string
+  sizeGrade: string
+  quantity: number
+  unitSize: number
+  uom: string
+  totalWeight: number
+  unitPrice: number
+  lineTotal?: number
+  commissionPct: number
+  commissionAmt?: number
+}
 
 interface Order {
   id: string
   orderNo: string
-  date: string
-  seller: string
   sellerId: string
-  buyer: string
   buyerId: string
-  product: string
-  productId: string
-  quantity: number
-  unit: string
-  price: number
-  total: number
-  agent: string
-  agentId: string
-  commissionRate?: number
-  commissionAmount?: number
-  status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled'
-  createdAt: string
+  status: string
+  contractNo?: string
+  terms?: string
+  notes?: string
+  lines: OrderLine[]
+  seller?: {
+    name: string
+    code?: string
+  }
+  buyer?: {
+    name: string
+    code?: string
+  }
+}
+
+interface Account {
+  id: string
+  name: string
+  code?: string
+}
+
+interface Product {
+  id: string
+  name: string
+  variety?: string
+  grade?: string
 }
 
 export default function OrderDetailPage() {
   const params = useParams()
   const router = useRouter()
   const orderId = params.id as string
+  const { showToast } = useToast()
 
-  // Mock data - replace with API call
-  const [order] = useState<Order>({
-    id: orderId,
-    orderNo: 'ORD-2024-001',
-    date: '2024-12-15',
-    seller: 'Guerra Nut Shelling',
-    sellerId: '4',
-    buyer: 'C&G ENTERPRISES',
-    buyerId: '2',
-    product: 'Almonds - Nonpareil - Premium',
-    productId: '1',
-    quantity: 1000,
-    unit: 'lbs',
-    price: 4.5,
-    total: 4500,
-    agent: 'John Smith',
-    agentId: 'agent1',
-    commissionRate: 2.5,
-    commissionAmount: 112.5,
-    status: 'delivered',
-    createdAt: '2024-12-15',
-  })
+  console.log('OrderDetailPage mounted, orderId:', orderId)
 
-  const [generatingPdf, setGeneratingPdf] = useState<string | null>(null)
+  // Mode: 'view', 'edit', or 'duplicate'
+  const [mode, setMode] = useState<'view' | 'edit' | 'duplicate'>('view')
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleGeneratePDF = async (type: 'seller' | 'buyer' | 'both') => {
-    setGeneratingPdf(type)
+  // Order data
+  const [order, setOrder] = useState<Order | null>(null)
+  const [sellerId, setSellerId] = useState('')
+  const [buyerId, setBuyerId] = useState('')
+  const [contractNo, setContractNo] = useState('')
+  const [terms, setTerms] = useState('')
+  const [notes, setNotes] = useState('')
+  const [status, setStatus] = useState('draft')
+  const [lines, setLines] = useState<OrderLine[]>([])
+
+  // Reference data
+  const [accounts, setAccounts] = useState<Account[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+
+  // Autocomplete state
+  const [sellerSearch, setSellerSearch] = useState('')
+  const [buyerSearch, setBuyerSearch] = useState('')
+  const [showSellerDropdown, setShowSellerDropdown] = useState(false)
+  const [showBuyerDropdown, setShowBuyerDropdown] = useState(false)
+
+  // Fetch order data
+  useEffect(() => {
+    fetchOrder()
+    fetchAccounts()
+    fetchProducts()
+  }, [orderId])
+
+  const fetchOrder = async () => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+      const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
+        credentials: 'include',
+      })
+
+      if (!response.ok) throw new Error('Failed to fetch order')
+
+      const data = await response.json()
+      setOrder(data)
+      setSellerId(data.sellerId)
+      setBuyerId(data.buyerId)
+      setContractNo(data.contractNo || '')
+      setTerms(data.terms || '')
+      setNotes(data.notes || '')
+      setStatus(data.status)
+      setLines(data.lines || [])
+      setIsLoading(false)
+    } catch (err: any) {
+      console.error('Error fetching order:', err)
+      setError(err.message)
+      setIsLoading(false)
+    }
+  }
+
+  const fetchAccounts = async () => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+      const response = await fetch(`${apiUrl}/api/accounts?limit=10000`, {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Fetched accounts:', data.length)
+        setAccounts(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch accounts:', err)
+    }
+  }
+
+  const fetchProducts = async () => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+      const response = await fetch(`${apiUrl}/api/products`, {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setProducts(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch products:', err)
+    }
+  }
+
+  // Filter accounts based on search (memoized for performance)
+  const filteredSellers = useMemo(() => {
+    if (!sellerSearch || sellerSearch.length < 3) return []
+    const searchLower = sellerSearch.toLowerCase()
+    return accounts
+      .filter(account =>
+        account.name.toLowerCase().includes(searchLower) ||
+        (account.code && account.code.toLowerCase().includes(searchLower))
+      )
+      .slice(0, 10)
+  }, [accounts, sellerSearch])
+
+  const filteredBuyers = useMemo(() => {
+    if (!buyerSearch || buyerSearch.length < 3) return []
+    const searchLower = buyerSearch.toLowerCase()
+    return accounts
+      .filter(account =>
+        account.name.toLowerCase().includes(searchLower) ||
+        (account.code && account.code.toLowerCase().includes(searchLower))
+      )
+      .slice(0, 10)
+  }, [accounts, buyerSearch])
+
+  const handleEdit = () => {
+    // Temporarily allow editing all orders for testing
+    // if (order?.status === 'posted_to_qb' || order?.status === 'paid') {
+    //   alert('Cannot edit orders that have been posted to QuickBooks or paid')
+    //   return
+    // }
+    setMode('edit')
+  }
+
+  const handleDuplicateMode = () => {
+    console.log('Duplicate mode - Current sellerId:', sellerId, 'buyerId:', buyerId)
+    console.log('Accounts loaded:', accounts.length)
+    setMode('duplicate')
+    setStatus('draft') // Reset status to draft for new order
+
+    // Initialize search fields with current seller/buyer names
+    const seller = accounts.find(a => a.id === sellerId)
+    const buyer = accounts.find(a => a.id === buyerId)
+    if (seller) setSellerSearch(seller.name)
+    if (buyer) setBuyerSearch(buyer.name)
+  }
+
+  const handleCancel = () => {
+    setMode('view')
+    // Reset to original values
+    if (order) {
+      setSellerId(order.sellerId)
+      setBuyerId(order.buyerId)
+      setContractNo(order.contractNo || '')
+      setTerms(order.terms || '')
+      setNotes(order.notes || '')
+      setStatus(order.status)
+      setLines(order.lines || [])
+    }
+  }
+
+  const handleSave = async () => {
+    console.log('Saving - sellerId:', sellerId, 'buyerId:', buyerId, 'lines:', lines.length)
+
+    if (!sellerId || !buyerId || lines.length === 0) {
+      showToast('Please fill in all required fields and add at least one line item', 'info')
+      return
+    }
+
+    setIsSaving(true)
+    setError('')
 
     try {
-      if (!process.env.NEXT_PUBLIC_API_URL) {
-        alert('API URL not configured. Please set NEXT_PUBLIC_API_URL in .env.local')
-        return
-      }
-
       const orderData = {
-        orderNo: order.orderNo,
-        date: order.date,
-        seller: {
-          code: order.sellerId,
-          name: order.seller,
-        },
-        buyer: {
-          code: order.buyerId,
-          name: order.buyer,
-        },
-        product: {
-          code: order.productId,
-          name: order.product,
-        },
-        quantity: order.quantity,
-        unit: order.unit,
-        price: order.price,
-        total: order.total,
-        agent: {
-          code: order.agentId,
-          name: order.agent,
-        },
+        sellerId,
+        buyerId,
+        contractNo: contractNo || undefined,
+        terms: terms || undefined,
+        notes: notes || undefined,
+        status,
+        lines: lines.map((line) => ({
+          productId: line.productId,
+          sizeGrade: line.sizeGrade,
+          quantity: line.quantity,
+          unitSize: line.unitSize,
+          uom: line.uom,
+          totalWeight: line.totalWeight,
+          unitPrice: line.unitPrice,
+          commissionPct: line.commissionPct,
+        })),
       }
 
-      if (type === 'both') {
-        await Promise.all([
-          generateSinglePDF(orderData, 'seller'),
-          generateSinglePDF(orderData, 'buyer'),
-        ])
-      } else {
-        await generateSinglePDF(orderData, type)
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+
+      if (mode === 'edit') {
+        // Update existing order
+        const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(orderData),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+          throw new Error(errorData.error || 'Failed to update order')
+        }
+
+        await fetchOrder()
+        setMode('view')
+        showToast('Order updated successfully', 'success')
+      } else if (mode === 'duplicate') {
+        // Create new order
+        const response = await fetch(`${apiUrl}/api/orders`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(orderData),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+          throw new Error(errorData.error || 'Failed to create order')
+        }
+
+        const newOrder = await response.json()
+        showToast('Order duplicated successfully', 'success')
+        setTimeout(() => router.push(`/orders/${newOrder.id}`), 500)
       }
-    } catch (error: any) {
-      console.error('Error generating PDF:', error)
-      alert(`Error generating PDF: ${error.message || 'Network error or API not available'}`)
+    } catch (err: any) {
+      setError(err.message)
+      showToast(`Error: ${err.message}`, 'error')
     } finally {
-      setGeneratingPdf(null)
+      setIsSaving(false)
     }
   }
 
-  const generateSinglePDF = async (orderData: any, type: 'seller' | 'buyer') => {
-    const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/pdf/order/${type}`
-
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(orderData),
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-      console.error('PDF generation failed:', errorData)
-      throw new Error(errorData.error || errorData.message || 'Unknown error')
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this order?')) {
+      return
     }
 
-    const blob = await response.blob()
-    const blobUrl = URL.createObjectURL(blob)
-    window.open(blobUrl, '_blank')
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 100)
-  }
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+      const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
 
-  const getStatusColor = (status: Order['status']) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'confirmed':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'shipped':
-        return 'bg-purple-100 text-purple-800 border-purple-200'
-      case 'delivered':
-        return 'bg-green-100 text-green-800 border-green-200'
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-200'
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+      if (!response.ok) {
+        throw new Error('Failed to delete order')
+      }
+
+      showToast('Order deleted successfully', 'warning')
+      setTimeout(() => router.push('/orders'), 500)
+    } catch (err: any) {
+      showToast(`Error deleting order: ${err.message}`, 'error')
     }
   }
+
+  const handleAddLine = () => {
+    const newLine: OrderLine = {
+      lineNo: lines.length + 1,
+      productId: '',
+      sizeGrade: '',
+      quantity: 0,
+      unitSize: 0,
+      uom: 'CASE',
+      totalWeight: 0,
+      unitPrice: 0,
+      commissionPct: 0,
+    }
+    setLines([...lines, newLine])
+  }
+
+  const handleRemoveLine = (index: number) => {
+    setLines(lines.filter((_, i) => i !== index))
+  }
+
+  const handleLineChange = (index: number, field: keyof OrderLine, value: any) => {
+    const updated = [...lines]
+    updated[index] = { ...updated[index], [field]: value }
+
+    // Auto-calculate totalWeight if quantity, unitSize, or uom changes
+    if (field === 'quantity' || field === 'unitSize') {
+      const qty = field === 'quantity' ? value : updated[index].quantity
+      const size = field === 'unitSize' ? value : updated[index].unitSize
+      updated[index].totalWeight = qty * size
+    }
+
+    setLines(updated)
+  }
+
+  const calculateTotal = () => {
+    return lines.reduce((sum, line) => sum + (line.quantity * line.unitSize * line.unitPrice), 0)
+  }
+
+  const calculateCommissionTotal = () => {
+    return lines.reduce((sum, line) => {
+      const lineTotal = line.quantity * line.unitSize * line.unitPrice
+      return sum + (lineTotal * line.commissionPct)
+    }, 0)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-gray-500">Loading order...</div>
+      </div>
+    )
+  }
+
+  if (error && !order) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+          <div>
+            <h3 className="font-semibold text-red-900">Error Loading Order</h3>
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const isEditing = mode === 'edit' || mode === 'duplicate'
 
   return (
-    <div className="-mt-4">
+    <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push('/orders')}
-            className="gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Orders
-          </Button>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <Link href="/orders">
+            <Button variant="outline" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Orders
+            </Button>
+          </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{order.orderNo}</h1>
-            <p className="text-sm text-gray-600">Order Details</p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {mode === 'duplicate' ? 'New Order (Duplicate)' : `Order ${order?.orderNo}`}
+            </h1>
+            <p className="text-sm text-gray-500">
+              Status: <span className="capitalize">{mode === 'duplicate' ? status : order?.status}</span>
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
-          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
-          </Button>
+
+        <div className="flex gap-2">
+          {mode === 'view' && (
+            <>
+              <Button onClick={handleEdit}>
+                <Edit2 className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button variant="outline" onClick={handleDuplicateMode}>
+                <Copy className="h-4 w-4 mr-2" />
+                Duplicate
+              </Button>
+              <Button variant="destructive" onClick={handleDelete}>
+                <Trash className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </>
+          )}
+          {isEditing && (
+            <>
+              <Button variant="outline" onClick={handleCancel}>
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving}>
+                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? 'Saving...' : mode === 'duplicate' ? 'Save as New' : 'Save Changes'}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Status Badge */}
-      <div className="mb-4">
-        <span
-          className={`inline-flex items-center rounded-full border px-4 py-2 text-sm font-semibold capitalize ${getStatusColor(
-            order.status
-          )}`}
-        >
-          {order.status}
-        </span>
+      {/* Order Details */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* Seller */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Seller</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {mode === 'duplicate' ? (
+              <div className="relative">
+                <Label>Select Seller *</Label>
+                <Input
+                  type="text"
+                  placeholder="Type to search seller..."
+                  value={sellerSearch}
+                  onChange={(e) => {
+                    setSellerSearch(e.target.value)
+                    setShowSellerDropdown(true)
+                  }}
+                  onFocus={() => setShowSellerDropdown(true)}
+                  className="mt-1"
+                />
+                {showSellerDropdown && sellerSearch && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+                    {sellerSearch.length < 3 ? (
+                      <div className="px-3 py-2 text-gray-500">Type at least 3 characters to search</div>
+                    ) : filteredSellers.length > 0 ? (
+                      filteredSellers.map((account) => (
+                        <div
+                          key={account.id}
+                          className="px-3 py-2 cursor-pointer hover:bg-gray-100"
+                          onClick={() => {
+                            setSellerId(account.id)
+                            setSellerSearch(account.name)
+                            setShowSellerDropdown(false)
+                          }}
+                        >
+                          <div className="font-medium">{account.name}</div>
+                          {account.code && <div className="text-sm text-gray-500">{account.code}</div>}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-gray-500">No accounts found</div>
+                    )}
+                  </div>
+                )}
+                {sellerId && !sellerSearch && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Selected: {accounts.find(a => a.id === sellerId)?.name}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <p className="font-semibold">{order?.seller?.name || 'Unknown'}</p>
+                {order?.seller?.code && (
+                  <p className="text-sm text-gray-500">Code: {order.seller.code}</p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Buyer */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Buyer</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {mode === 'duplicate' ? (
+              <div className="relative">
+                <Label>Select Buyer *</Label>
+                <Input
+                  type="text"
+                  placeholder="Type to search buyer..."
+                  value={buyerSearch}
+                  onChange={(e) => {
+                    setBuyerSearch(e.target.value)
+                    setShowBuyerDropdown(true)
+                  }}
+                  onFocus={() => setShowBuyerDropdown(true)}
+                  className="mt-1"
+                />
+                {showBuyerDropdown && buyerSearch && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+                    {buyerSearch.length < 3 ? (
+                      <div className="px-3 py-2 text-gray-500">Type at least 3 characters to search</div>
+                    ) : filteredBuyers.length > 0 ? (
+                      filteredBuyers.map((account) => (
+                        <div
+                          key={account.id}
+                          className="px-3 py-2 cursor-pointer hover:bg-gray-100"
+                          onClick={() => {
+                            setBuyerId(account.id)
+                            setBuyerSearch(account.name)
+                            setShowBuyerDropdown(false)
+                          }}
+                        >
+                          <div className="font-medium">{account.name}</div>
+                          {account.code && <div className="text-sm text-gray-500">{account.code}</div>}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-gray-500">No accounts found</div>
+                    )}
+                  </div>
+                )}
+                {buyerId && !buyerSearch && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Selected: {accounts.find(a => a.id === buyerId)?.name}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <p className="font-semibold">{order?.buyer?.name || 'Unknown'}</p>
+                {order?.buyer?.code && (
+                  <p className="text-sm text-gray-500">Code: {order.buyer.code}</p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* PDF Generation Buttons */}
-      <Card className="mb-4">
+      {/* Additional Details */}
+      <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="text-base">Generate Documents</CardTitle>
+          <CardTitle>Additional Details</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleGeneratePDF('seller')}
-              disabled={generatingPdf !== null}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              {generatingPdf === 'seller' ? 'Generating...' : 'Seller PDF'}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleGeneratePDF('buyer')}
-              disabled={generatingPdf !== null}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              {generatingPdf === 'buyer' ? 'Generating...' : 'Buyer PDF'}
-            </Button>
-            <Button
-              size="sm"
-              className="bg-blue-600 hover:bg-blue-700"
-              onClick={() => handleGeneratePDF('both')}
-              disabled={generatingPdf !== null}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              {generatingPdf === 'both' ? 'Generating...' : 'Generate Both PDFs'}
-            </Button>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Contract Number</Label>
+            {isEditing ? (
+              <Input
+                value={contractNo}
+                onChange={(e) => setContractNo(e.target.value)}
+                placeholder="Enter contract number"
+              />
+            ) : (
+              <p className="text-sm text-gray-900">{contractNo || '-'}</p>
+            )}
           </div>
+
+          <div>
+            <Label>Terms</Label>
+            {isEditing ? (
+              <Textarea
+                value={terms}
+                onChange={(e) => setTerms(e.target.value)}
+                placeholder="Enter terms"
+                rows={3}
+              />
+            ) : (
+              <p className="text-sm text-gray-900 whitespace-pre-wrap">{terms || '-'}</p>
+            )}
+          </div>
+
+          <div>
+            <Label>Notes</Label>
+            {isEditing ? (
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Enter notes"
+                rows={3}
+              />
+            ) : (
+              <p className="text-sm text-gray-900 whitespace-pre-wrap">{notes || '-'}</p>
+            )}
+          </div>
+
+          {isEditing && (
+            <div>
+              <Label>Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="shipped">Shipped</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Order Information Grid */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Order Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <FileText className="h-5 w-5" />
-              Order Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-xs font-medium text-gray-500 uppercase">Order Number</label>
-              <p className="text-sm text-gray-900 font-mono mt-1">{order.orderNo}</p>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-gray-500 uppercase">Order Date</label>
-              <div className="flex items-center gap-2 mt-1">
-                <Calendar className="h-4 w-4 text-gray-400" />
-                <p className="text-sm text-gray-900">
-                  {new Date(order.date).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </p>
-              </div>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-gray-500 uppercase">Agent</label>
-              <div className="flex items-center gap-2 mt-1">
-                <User className="h-4 w-4 text-gray-400" />
-                <p className="text-sm text-gray-900">{order.agent}</p>
-              </div>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-gray-500 uppercase">Commission</label>
-              <p className="text-sm text-gray-900 mt-1">
-                {order.commissionAmount ? (
-                  <>
-                    <span className="text-lg font-bold">${order.commissionAmount.toFixed(2)}</span>
-                    {order.commissionRate && (
-                      <span className="text-xs text-gray-500 ml-2">({order.commissionRate}%)</span>
-                    )}
-                  </>
-                ) : (
-                  '-'
-                )}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Product & Pricing */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Package className="h-5 w-5" />
-              Product & Pricing
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-xs font-medium text-gray-500 uppercase">Product</label>
-              <Link
-                href={`/products/${order.productId}`}
-                className="text-sm text-blue-600 hover:text-blue-800 hover:underline mt-1 block"
-              >
-                {order.product}
-              </Link>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-gray-500 uppercase">Quantity</label>
-              <p className="text-sm text-gray-900 mt-1">
-                <span className="text-lg font-semibold">{order.quantity.toLocaleString()}</span>{' '}
-                {order.unit}
-              </p>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-gray-500 uppercase">Price per Unit</label>
-              <p className="text-sm text-gray-900 mt-1">
-                <span className="text-lg font-semibold">${order.price.toFixed(2)}</span>/{order.unit}
-              </p>
-            </div>
-            <div className="pt-2 border-t border-gray-200">
-              <label className="text-xs font-medium text-gray-500 uppercase">Total Amount</label>
-              <div className="flex items-center gap-2 mt-1">
-                <DollarSign className="h-5 w-5 text-green-600" />
-                <p className="text-2xl font-bold text-green-900">
-                  ${order.total.toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Parties */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Building2 className="h-5 w-5" />
-              Parties
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <label className="text-xs font-medium text-blue-700 uppercase flex items-center gap-1 mb-2">
-                <User className="h-3 w-3" />
-                Seller
-              </label>
-              <Link
-                href={`/accounts/${order.sellerId}`}
-                className="text-base font-semibold text-blue-600 hover:text-blue-800 hover:underline"
-              >
-                {order.seller}
-              </Link>
-            </div>
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <label className="text-xs font-medium text-green-700 uppercase flex items-center gap-1 mb-2">
-                <User className="h-3 w-3" />
-                Buyer
-              </label>
-              <Link
-                href={`/accounts/${order.buyerId}`}
-                className="text-base font-semibold text-green-600 hover:text-green-800 hover:underline"
-              >
-                {order.buyer}
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Order Timeline / History (placeholder) */}
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle className="text-base">Order History</CardTitle>
+      {/* Line Items */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Line Items</CardTitle>
+          {isEditing && (
+            <Button onClick={handleAddLine} size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Line
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-start gap-3 border-l-2 border-green-500 pl-4 py-2">
-              <div className="flex-shrink-0 w-2 h-2 bg-green-500 rounded-full mt-1.5"></div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">Order Delivered</p>
-                <p className="text-xs text-gray-500">
-                  {new Date(order.date).toLocaleDateString()} at 2:30 PM
-                </p>
+          {lines.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">No line items</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Memo</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Unit Size</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">UOM</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Price/lb</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Comm %</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Comm Amt</th>
+                    {isEditing && (
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {lines.map((line, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-3 py-3">
+                        {isEditing ? (
+                          <Select
+                            value={line.productId}
+                            onValueChange={(value) => {
+                              const product = products.find(p => p.id === value)
+                              handleLineChange(index, 'productId', value)
+                              if (product) {
+                                handleLineChange(index, 'productCode', product.name)
+                                handleLineChange(index, 'productDescription',
+                                  [product.variety, product.grade].filter(Boolean).join(' - '))
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="w-[200px]">
+                              <SelectValue placeholder="Select product" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {products.map((product) => (
+                                <SelectItem key={product.id} value={product.id}>
+                                  {product.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="text-sm">
+                            <div className="font-medium">{line.productCode}</div>
+                            <div className="text-gray-500">{line.productDescription}</div>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        {isEditing ? (
+                          <Input
+                            value={line.sizeGrade}
+                            onChange={(e) => handleLineChange(index, 'sizeGrade', e.target.value)}
+                            className="w-24"
+                          />
+                        ) : (
+                          <span className="text-sm">{line.sizeGrade}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            value={line.quantity}
+                            onChange={(e) => handleLineChange(index, 'quantity', parseFloat(e.target.value) || 0)}
+                            className="w-20"
+                          />
+                        ) : (
+                          <span className="text-sm">{line.quantity}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            value={line.unitSize}
+                            onChange={(e) => handleLineChange(index, 'unitSize', parseFloat(e.target.value) || 0)}
+                            className="w-20"
+                          />
+                        ) : (
+                          <span className="text-sm">{line.unitSize}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        {isEditing ? (
+                          <Select
+                            value={line.uom}
+                            onValueChange={(value) => handleLineChange(index, 'uom', value)}
+                          >
+                            <SelectTrigger className="w-24">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="CASE">CASE</SelectItem>
+                              <SelectItem value="BAG">BAG</SelectItem>
+                              <SelectItem value="LBS">LBS</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <span className="text-sm">{line.uom}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={line.unitPrice}
+                            onChange={(e) => handleLineChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                            className="w-24"
+                          />
+                        ) : (
+                          <span className="text-sm">${line.unitPrice.toFixed(2)}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <span className="text-sm font-medium">
+                          ${(line.lineTotal || (line.quantity * line.unitSize * line.unitPrice)).toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={line.commissionPct * 100}
+                            onChange={(e) => handleLineChange(index, 'commissionPct', (parseFloat(e.target.value) || 0) / 100)}
+                            className="w-20"
+                          />
+                        ) : (
+                          <span className="text-sm">{(line.commissionPct * 100).toFixed(2)}%</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <span className="text-sm font-medium text-orange-600">
+                          ${(line.commissionAmt || ((line.lineTotal || (line.quantity * line.unitSize * line.unitPrice)) * line.commissionPct)).toFixed(2)}
+                        </span>
+                      </td>
+                      {isEditing && (
+                        <td className="px-3 py-3 text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveLine(index)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Totals */}
+          {lines.length > 0 && (
+            <div className="mt-6 flex justify-end">
+              <div className="w-64 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Total:</span>
+                  <span className="text-lg font-bold">
+                    ${calculateTotal().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center border-t pt-2">
+                  <span className="text-sm font-medium">Commission:</span>
+                  <span className="text-lg font-bold text-orange-600">
+                    ${calculateCommissionTotal().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="flex items-start gap-3 border-l-2 border-purple-500 pl-4 py-2">
-              <div className="flex-shrink-0 w-2 h-2 bg-purple-500 rounded-full mt-1.5"></div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">Order Shipped</p>
-                <p className="text-xs text-gray-500">
-                  {new Date(order.date).toLocaleDateString()} at 9:00 AM
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 border-l-2 border-blue-500 pl-4 py-2">
-              <div className="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-1.5"></div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">Order Confirmed</p>
-                <p className="text-xs text-gray-500">
-                  {new Date(order.createdAt).toLocaleDateString()} at 3:15 PM
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 border-l-2 border-gray-300 pl-4 py-2">
-              <div className="flex-shrink-0 w-2 h-2 bg-gray-300 rounded-full mt-1.5"></div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">Order Created</p>
-                <p className="text-xs text-gray-500">
-                  {new Date(order.createdAt).toLocaleDateString()} at 10:30 AM
-                </p>
-              </div>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>

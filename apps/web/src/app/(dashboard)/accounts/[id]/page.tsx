@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/toast'
 import {
   ArrowLeft,
   Building2,
@@ -45,6 +46,8 @@ export default function AccountDetailPage() {
   const [transactions, setTransactions] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [salesAgentName, setSalesAgentName] = useState<string>('')
+  const [updatedByName, setUpdatedByName] = useState<string>('')
   const [addressFormData, setAddressFormData] = useState({
     type: 'billing',
     line1: '',
@@ -63,12 +66,39 @@ export default function AccountDetailPage() {
   const [formSubmitting, setFormSubmitting] = useState(false)
   const [editingAccount, setEditingAccount] = useState(false)
   const [editAccountName, setEditAccountName] = useState('')
+  const [editSalesAgentId, setEditSalesAgentId] = useState('')
+
+  const { showToast } = useToast()
   const [editingAddress, setEditingAddress] = useState<any>(null)
   const [editingContact, setEditingContact] = useState<any>(null)
 
   useEffect(() => {
     fetchAccountData()
   }, [accountId])
+
+  // Fetch user names from backend when account data loads
+  useEffect(() => {
+    if (account) {
+      // Fetch sales agent name
+      if (account.salesAgentId) {
+        fetch(`http://localhost:2000/api/users/${account.salesAgentId}/name`, {
+          credentials: 'include',
+        })
+        .then(res => res.json())
+        .then(data => setSalesAgentName(data.name))
+        .catch(() => setSalesAgentName(account.salesAgentId))
+      }
+      // Fetch updatedBy user name
+      if (account.updatedBy) {
+        fetch(`http://localhost:2000/api/users/${account.updatedBy}/name`, {
+          credentials: 'include',
+        })
+        .then(res => res.json())
+        .then(data => setUpdatedByName(data.name))
+        .catch(() => setUpdatedByName(account.updatedBy))
+      }
+    }
+  }, [account])
 
   const fetchAccountData = async () => {
     setIsLoading(true)
@@ -120,8 +150,13 @@ export default function AccountDetailPage() {
         throw new Error('Failed to add address')
       }
 
-      // Refresh account data
-      await fetchAccountData()
+      const newAddress = await response.json()
+
+      // Optimistically update the UI without full page refresh
+      setAccount((prev: any) => ({
+        ...prev,
+        addresses: [...(prev.addresses || []), newAddress],
+      }))
 
       // Reset form and close
       setAddressFormData({
@@ -134,9 +169,10 @@ export default function AccountDetailPage() {
         isPrimary: false,
       })
       setShowAddressForm(false)
+      showToast('Address added successfully', 'success')
     } catch (err) {
       console.error('Add address error:', err)
-      alert('Failed to add address')
+      showToast('Failed to add address', 'error')
     } finally {
       setFormSubmitting(false)
     }
@@ -159,8 +195,13 @@ export default function AccountDetailPage() {
         throw new Error('Failed to add contact')
       }
 
-      // Refresh account data
-      await fetchAccountData()
+      const newContact = await response.json()
+
+      // Optimistically update the UI without full page refresh
+      setAccount((prev: any) => ({
+        ...prev,
+        contacts: [...(prev.contacts || []), newContact],
+      }))
 
       // Reset form and close
       setContactFormData({
@@ -170,9 +211,10 @@ export default function AccountDetailPage() {
         isPrimary: false,
       })
       setShowContactForm(false)
+      showToast('Contact added successfully', 'success')
     } catch (err) {
       console.error('Add contact error:', err)
-      alert('Failed to add contact')
+      showToast('Failed to add contact', 'error')
     } finally {
       setFormSubmitting(false)
     }
@@ -185,15 +227,74 @@ export default function AccountDetailPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ name: editAccountName }),
+        body: JSON.stringify({
+          name: editAccountName,
+          salesAgentId: editSalesAgentId || null,
+        }),
       })
       if (!response.ok) throw new Error('Failed to update account')
-      await fetchAccountData()
+      setAccount((prev: any) => ({
+        ...prev,
+        name: editAccountName,
+        salesAgentId: editSalesAgentId,
+      }))
       setEditingAccount(false)
+      showToast('Account updated successfully', 'success')
     } catch (err) {
-      alert('Failed to update account')
+      showToast('Failed to update account', 'error')
     } finally {
       setFormSubmitting(false)
+    }
+  }
+
+  const handleToggleActive = async () => {
+    if (!confirm(`Are you sure you want to ${account.active ? 'deactivate' : 'activate'} this account?`)) {
+      return
+    }
+    try {
+      const response = await fetch(`http://localhost:2000/api/accounts/${accountId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          active: !account.active,
+        }),
+      })
+      if (!response.ok) throw new Error('Failed to update account status')
+
+      setAccount((prev: any) => ({
+        ...prev,
+        active: !prev.active,
+      }))
+      showToast(`Account ${!account.active ? 'activated' : 'deactivated'} successfully`, 'success')
+    } catch (err) {
+      showToast('Failed to update account status', 'error')
+    }
+  }
+
+  const handleAccountTypeChange = async (newType: string) => {
+    // Optimistic update - update UI immediately
+    setAccount((prev: any) => ({ ...prev, accountType: newType }))
+
+    try {
+      const response = await fetch(`http://localhost:2000/api/accounts/${accountId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          accountType: newType,
+        }),
+      })
+      if (!response.ok) {
+        // Revert on error
+        await fetchAccountData()
+        throw new Error('Failed to update account type')
+      }
+      showToast('Account type updated successfully', 'success')
+    } catch (err) {
+      // Revert on error
+      await fetchAccountData()
+      showToast('Failed to update account type', 'error')
     }
   }
 
@@ -208,10 +309,18 @@ export default function AccountDetailPage() {
         body: JSON.stringify(editingAddress),
       })
       if (!response.ok) throw new Error('Failed to update address')
-      await fetchAccountData()
+
+      // Optimistically update the UI
+      setAccount((prev: any) => ({
+        ...prev,
+        addresses: prev.addresses.map((addr: any) =>
+          addr.id === editingAddress.id ? editingAddress : addr
+        ),
+      }))
       setEditingAddress(null)
+      showToast('Address updated successfully', 'success')
     } catch (err) {
-      alert('Failed to update address')
+      showToast('Failed to update address', 'error')
     } finally {
       setFormSubmitting(false)
     }
@@ -225,9 +334,15 @@ export default function AccountDetailPage() {
         credentials: 'include',
       })
       if (!response.ok) throw new Error('Failed to delete address')
-      await fetchAccountData()
+
+      // Optimistically update the UI
+      setAccount((prev: any) => ({
+        ...prev,
+        addresses: prev.addresses.filter((addr: any) => addr.id !== addressId),
+      }))
+      showToast('Address deleted successfully', 'warning')
     } catch (err) {
-      alert('Failed to delete address')
+      showToast('Failed to delete address', 'error')
     }
   }
 
@@ -242,10 +357,18 @@ export default function AccountDetailPage() {
         body: JSON.stringify(editingContact),
       })
       if (!response.ok) throw new Error('Failed to update contact')
-      await fetchAccountData()
+
+      // Optimistically update the UI
+      setAccount((prev: any) => ({
+        ...prev,
+        contacts: prev.contacts.map((contact: any) =>
+          contact.id === editingContact.id ? editingContact : contact
+        ),
+      }))
       setEditingContact(null)
+      showToast('Contact updated successfully', 'success')
     } catch (err) {
-      alert('Failed to update contact')
+      showToast('Failed to update contact', 'error')
     } finally {
       setFormSubmitting(false)
     }
@@ -259,9 +382,15 @@ export default function AccountDetailPage() {
         credentials: 'include',
       })
       if (!response.ok) throw new Error('Failed to delete contact')
-      await fetchAccountData()
+
+      // Optimistically update the UI
+      setAccount((prev: any) => ({
+        ...prev,
+        contacts: prev.contacts.filter((contact: any) => contact.id !== contactId),
+      }))
+      showToast('Contact deleted successfully', 'warning')
     } catch (err) {
-      alert('Failed to delete contact')
+      showToast('Failed to delete contact', 'error')
     }
   }
 
@@ -430,10 +559,28 @@ export default function AccountDetailPage() {
                   </span>
                 )}
               </p>
+              {account.updatedAt && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Last updated: {new Date(account.updatedAt).toLocaleString()}
+                  {account.updatedBy && <span className="ml-1">by (Customer Service): {updatedByName || account.updatedBy}</span>}
+                </p>
+              )}
+              <div className="flex gap-2 mt-2">
+                {account.salesAgentId && (
+                  <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                    <User className="mr-1 h-3 w-3" />
+                    Sales Agent: {salesAgentName || account.salesAgentId}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => { setEditAccountName(account.name); setEditingAccount(true); }}>
+            <Button variant="outline" onClick={() => {
+              setEditAccountName(account.name);
+              setEditSalesAgentId(account.salesAgentId || '');
+              setEditingAccount(true);
+            }}>
               <Edit2 className="mr-2 h-4 w-4" />
               Edit Account
             </Button>
@@ -448,7 +595,7 @@ export default function AccountDetailPage() {
       {editingAccount && (
         <Card className="mb-6 border-blue-200 bg-blue-50">
           <CardHeader>
-            <CardTitle>Edit Account Name</CardTitle>
+            <CardTitle>Edit Account</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -462,6 +609,17 @@ export default function AccountDetailPage() {
                   placeholder="Enter account name"
                   required
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Sales Agent ID
+                </label>
+                <Input
+                  value={editSalesAgentId}
+                  onChange={(e) => setEditSalesAgentId(e.target.value)}
+                  placeholder="Enter Clerk user ID for sales agent"
+                />
+                <p className="text-xs text-gray-500 mt-1">Assign a sales representative to this account</p>
               </div>
               <div className="flex gap-2">
                 <Button onClick={handleEditAccount} className="bg-blue-600 hover:bg-blue-700" disabled={formSubmitting}>
@@ -511,36 +669,98 @@ export default function AccountDetailPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card>
-              <CardHeader>
-                <CardTitle>Account Information</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Account Information</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Account Code</label>
-                  <p className="mt-1 text-sm text-gray-900 font-mono">{account.code}</p>
+              <CardContent className="space-y-2.5">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">Account Code</label>
+                    <p className="text-sm text-gray-900 font-mono">{account.code}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">Created Date</label>
+                    <p className="text-sm text-gray-900">
+                      {new Date(account.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">Account Name</label>
+                    <p className="text-sm text-gray-900">{account.name}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 mb-1 block">Status</label>
+                    <div className="flex items-center">
+                      <button
+                        onClick={handleToggleActive}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                          account.active ? 'bg-green-600' : 'bg-gray-300'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            account.active ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                      <span className="ml-2 text-sm text-gray-700">
+                        {account.active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Account Name</label>
-                  <p className="mt-1 text-sm text-gray-900">{account.name}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Status</label>
-                  <p className="mt-1">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        account.active
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {account.active ? 'Active' : 'Inactive'}
-                    </span>
+                  <label className="text-xs font-medium text-gray-500">Sales Agent</label>
+                  <p className="text-sm text-gray-900">
+                    {salesAgentName || account.salesAgentId || 'Not assigned'}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Created Date</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {new Date(account.createdAt).toLocaleDateString()}
+                  <label className="text-xs font-medium text-gray-500 mb-1.5 block">Account Type</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="accountType"
+                        value="buyer"
+                        checked={(account.accountType || 'both') === 'buyer'}
+                        onChange={(e) => handleAccountTypeChange(e.target.value)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Buyer</span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="accountType"
+                        value="seller"
+                        checked={(account.accountType || 'both') === 'seller'}
+                        onChange={(e) => handleAccountTypeChange(e.target.value)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Seller</span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="accountType"
+                        value="both"
+                        checked={(account.accountType || 'both') === 'both'}
+                        onChange={(e) => handleAccountTypeChange(e.target.value)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Both</span>
+                    </label>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500">Brokers</label>
+                  <p className="text-sm text-gray-900">
+                    {account.brokerIds && account.brokerIds.length > 0
+                      ? `${account.brokerIds.length} broker(s) assigned`
+                      : 'No brokers assigned'}
                   </p>
                 </div>
               </CardContent>
@@ -735,7 +955,7 @@ export default function AccountDetailPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-sm text-gray-900">
-                            ${txn.lines?.reduce((sum, line) => sum + (parseFloat(line.commissionAmt) || 0), 0).toFixed(2) || '0'}
+                            ${txn.lines?.reduce((sum: number, line: any) => sum + (parseFloat(line.commissionAmt) || 0), 0).toFixed(2) || '0'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -1078,7 +1298,7 @@ export default function AccountDetailPage() {
           )}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {addresses.map((address) => (
+            {addresses.map((address: any) => (
               <Card key={address.id}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -1270,7 +1490,7 @@ export default function AccountDetailPage() {
           )}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {contacts.map((contact) => (
+            {contacts.map((contact: any) => (
               <Card key={contact.id}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
