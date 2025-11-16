@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
-import { Plus, Search, Package, ChevronRight, ChevronDown, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Edit2, Trash2, Copy, Menu, Eye, EyeOff, Layers, X, Filter } from 'lucide-react'
+import { DateRangePicker } from '@/components/ui/date-picker'
+import { Plus, Search, Package, ChevronRight, ChevronDown, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Edit2, Trash2, Copy, Menu, Eye, EyeOff, Layers, X, Filter, FilterX } from 'lucide-react'
 
 interface Product {
   id: string
@@ -78,6 +79,10 @@ export default function ProductsPage() {
 
   // Show active filter
   const [showActiveOnly, setShowActiveOnly] = useState(true)
+
+  // Date range filter state
+  const [dateRangeStart, setDateRangeStart] = useState<Date | null>(null)
+  const [dateRangeEnd, setDateRangeEnd] = useState<Date | null>(null)
 
   useEffect(() => {
     fetchProducts()
@@ -184,10 +189,16 @@ export default function ProductsPage() {
       uom: '',
       active: ''
     })
+    setDateRangeStart(null)
+    setDateRangeEnd(null)
+    showToast('All filters cleared', 'info')
   }
 
   // Check if any column filters are active
   const hasActiveColumnFilters = Object.values(columnFilters).some(value => value !== '')
+
+  // Check if any filters are active (column filters OR date range)
+  const hasAnyFilters = hasActiveColumnFilters || dateRangeStart !== null || dateRangeEnd !== null
 
   // Toggle column visibility
   const toggleColumnVisibility = (column: keyof ColumnVisibility) => {
@@ -288,6 +299,31 @@ export default function ProductsPage() {
       result = result.filter(product => product.active)
     }
 
+    // Apply date range filter (on createdAt)
+    if (dateRangeStart || dateRangeEnd) {
+      result = result.filter(product => {
+        const productDate = new Date(product.createdAt)
+        productDate.setHours(0, 0, 0, 0) // Normalize to start of day
+
+        if (dateRangeStart && dateRangeEnd) {
+          const startDate = new Date(dateRangeStart)
+          startDate.setHours(0, 0, 0, 0)
+          const endDate = new Date(dateRangeEnd)
+          endDate.setHours(23, 59, 59, 999) // End of day
+          return productDate >= startDate && productDate <= endDate
+        } else if (dateRangeStart) {
+          const startDate = new Date(dateRangeStart)
+          startDate.setHours(0, 0, 0, 0)
+          return productDate >= startDate
+        } else if (dateRangeEnd) {
+          const endDate = new Date(dateRangeEnd)
+          endDate.setHours(23, 59, 59, 999)
+          return productDate <= endDate
+        }
+        return true
+      })
+    }
+
     // Apply column filters
     if (columnFilters.fullName) {
       result = result.filter(product => {
@@ -379,7 +415,7 @@ export default function ProductsPage() {
     })
 
     return result
-  }, [products, showActiveOnly, columnFilters, searchQuery, sortField, sortDirection])
+  }, [products, showActiveOnly, columnFilters, searchQuery, sortField, sortDirection, dateRangeStart, dateRangeEnd])
 
   // Group products if grouping is enabled
   const groupedProducts = useMemo(() => {
@@ -824,13 +860,24 @@ export default function ProductsPage() {
                 <Filter className="h-4 w-4" />
                 {showActiveOnly ? 'Active Only' : 'Show All'}
               </button>
-              {hasActiveColumnFilters && (
+
+              {/* Date Range Filter */}
+              <div className="flex items-center gap-2">
+                <DateRangePicker
+                  startDate={dateRangeStart}
+                  endDate={dateRangeEnd}
+                  onStartDateChange={setDateRangeStart}
+                  onEndDateChange={setDateRangeEnd}
+                />
+              </div>
+
+              {hasAnyFilters && (
                 <button
                   onClick={clearAllFilters}
-                  className="flex items-center gap-2 px-4 py-2 rounded-md border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors whitespace-nowrap"
-                  title="Clear all column filters"
+                  className="flex items-center justify-center p-2.5 rounded-lg border border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 transition-all shadow-sm"
+                  title="Clear all filters"
                 >
-                  <X className="h-4 w-4" />
+                  <FilterX className="h-5 w-5" />
                   Clear Filters
                 </button>
               )}
