@@ -10,7 +10,7 @@
     "build": "turbo run build",
     "build:admin": "turbo run build --filter=web",
     "build:sales": "turbo run build --filter=sales",
-    "heroku-postbuild": "cd apps/api && npm install --production=false && npm run build",
+    "heroku-postbuild": "cd apps/api && PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true npm install --production=false && npm run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "clean": "turbo run clean && rm -rf node_modules"
