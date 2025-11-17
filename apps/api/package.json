@@ -40,7 +40,6 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "postgres": "^3.4.3",
-    "puppeteer": "^21.7.0",
     "qrcode": "^1.5.4",
     "redis": "^4.6.12",
     "speakeasy": "^2.0.0",
