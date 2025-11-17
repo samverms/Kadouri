@@ -3,14 +3,18 @@
   "version": "1.0.0",
   "private": true,
   "packageManager": "npm@10.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --filter=api --filter=web",
     "dev:admin": "turbo run dev --filter=web",
     "dev:sales": "turbo run dev --filter=sales",
     "build": "turbo run build",
     "build:admin": "turbo run build --filter=web",
     "build:sales": "turbo run build --filter=sales",
-    "heroku-postbuild": "cd apps/api && PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true npm install --production=false && npm run build",
+    "heroku-postbuild": "npm install --workspaces --if-present && cd apps/api && npm run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "clean": "turbo run clean && rm -rf node_modules"
