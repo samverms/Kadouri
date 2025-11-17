@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express'
 import { OrdersService } from './orders.service'
-import { createOrderSchema, updateOrderSchema } from './shared-copy'
+import { createOrderSchema, updateOrderSchema } from '@pace/shared'
 import { AuthRequest } from '../../middleware/auth'
 
 export class OrdersController {
