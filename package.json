@@ -14,12 +14,14 @@
     "build": "turbo run build",
     "build:admin": "turbo run build --filter=web",
     "build:sales": "turbo run build --filter=sales",
+    "heroku-postbuild": "cd apps/api && npm install --production=false && npm run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {
     "turbo": "^2.0.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "xlsx": "^0.18.5"
   }
 }
