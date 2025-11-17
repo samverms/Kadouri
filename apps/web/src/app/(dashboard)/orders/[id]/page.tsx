@@ -24,9 +24,14 @@ import {
   Trash2,
   AlertCircle,
   Copy,
-  Trash
+  Trash,
+  FileText,
+  RefreshCw,
+  XCircle,
+  Clock
 } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
+import { Badge } from '@/components/ui/badge'
 
 interface OrderLine {
   id?: string
@@ -63,6 +68,17 @@ interface Order {
     name: string
     code?: string
   }
+  qboDocId?: string
+  qboDocNumber?: string
+  qboDocType?: 'invoice' | 'estimate'
+}
+
+interface OrderActivity {
+  id: string
+  activityType: string
+  description: string
+  userName: string
+  createdAt: string
 }
 
 interface Account {
@@ -92,6 +108,16 @@ export default function OrderDetailPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
 
+  // Tab management
+  const [activeTab, setActiveTab] = useState<'details' | 'activities'>('details')
+
+  // Activities
+  const [activities, setActivities] = useState<OrderActivity[]>([])
+  const [activitiesLoading, setActivitiesLoading] = useState(false)
+
+  // QuickBooks actions
+  const [qbLoading, setQbLoading] = useState(false)
+
   // Order data
   const [order, setOrder] = useState<Order | null>(null)
   const [sellerId, setSellerId] = useState('')
@@ -117,6 +143,7 @@ export default function OrderDetailPage() {
     fetchOrder()
     fetchAccounts()
     fetchProducts()
+    fetchActivities()
   }, [orderId])
 
   const fetchOrder = async () => {
@@ -176,6 +203,24 @@ export default function OrderDetailPage() {
     }
   }
 
+  const fetchActivities = async () => {
+    setActivitiesLoading(true)
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+      const response = await fetch(`${apiUrl}/api/orders/${orderId}/activities`, {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setActivities(data.activities || [])
+      }
+    } catch (err) {
+      console.error('Failed to fetch activities:', err)
+    } finally {
+      setActivitiesLoading(false)
+    }
+  }
+
   // Filter accounts based on search (memoized for performance)
   const filteredSellers = useMemo(() => {
     if (!sellerSearch || sellerSearch.length < 3) return []
@@ -200,11 +245,11 @@ export default function OrderDetailPage() {
   }, [accounts, buyerSearch])
 
   const handleEdit = () => {
-    // Temporarily allow editing all orders for testing
-    // if (order?.status === 'posted_to_qb' || order?.status === 'paid') {
-    //   alert('Cannot edit orders that have been posted to QuickBooks or paid')
-    //   return
-    // }
+    // Prevent editing paid orders
+    if (order?.status === 'paid') {
+      showToast('Cannot edit order - invoice has been paid in QuickBooks', 'error')
+      return
+    }
     setMode('edit')
   }
 
@@ -382,6 +427,117 @@ export default function OrderDetailPage() {
     }, 0)
   }
 
+  const handleCreateInvoice = async () => {
+    if (!confirm('Create invoice in QuickBooks for this order?')) {
+      return
+    }
+
+    setQbLoading(true)
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+      const response = await fetch(`${apiUrl}/api/quickbooks/sync/order/${orderId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ docType: 'invoice' }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || 'Failed to create invoice')
+      }
+
+      const result = await response.json()
+      showToast(`Invoice #${result.docNumber} created in QuickBooks`, 'success')
+      await fetchOrder()
+      await fetchActivities()
+    } catch (err: any) {
+      showToast(`Error: ${err.message}`, 'error')
+    } finally {
+      setQbLoading(false)
+    }
+  }
+
+  const handleUpdateInvoice = async () => {
+    if (!confirm('Update this invoice in QuickBooks with current order data?')) {
+      return
+    }
+
+    setQbLoading(true)
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+      const response = await fetch(`${apiUrl}/api/quickbooks/sync/order/${orderId}`, {
+        method: 'PUT',
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || 'Failed to update invoice')
+      }
+
+      const result = await response.json()
+      showToast(`Invoice #${order?.qboDocNumber} updated in QuickBooks`, 'success')
+      await fetchOrder()
+      await fetchActivities()
+    } catch (err: any) {
+      showToast(`Error: ${err.message}`, 'error')
+    } finally {
+      setQbLoading(false)
+    }
+  }
+
+  const handleVoidInvoice = async () => {
+    if (!confirm('Void this invoice in QuickBooks? This action cannot be undone.')) {
+      return
+    }
+
+    setQbLoading(true)
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+      const response = await fetch(`${apiUrl}/api/quickbooks/sync/order/${orderId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || 'Failed to void invoice')
+      }
+
+      showToast('Invoice voided in QuickBooks', 'warning')
+      await fetchOrder()
+      await fetchActivities()
+    } catch (err: any) {
+      showToast(`Error: ${err.message}`, 'error')
+    } finally {
+      setQbLoading(false)
+    }
+  }
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'order_created':
+        return <Plus className="h-4 w-4 text-green-600" />
+      case 'order_updated':
+        return <Edit2 className="h-4 w-4 text-blue-600" />
+      case 'invoice_created':
+        return <FileText className="h-4 w-4 text-green-600" />
+      case 'invoice_updated':
+        return <RefreshCw className="h-4 w-4 text-blue-600" />
+      case 'invoice_voided':
+        return <XCircle className="h-4 w-4 text-red-600" />
+      case 'payment_received':
+        return <Badge className="h-4 w-4 text-green-600" />
+      case 'synced_from_qb':
+        return <RefreshCw className="h-4 w-4 text-purple-600" />
+      default:
+        return <Clock className="h-4 w-4 text-gray-600" />
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -418,19 +574,29 @@ export default function OrderDetailPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-blue-400">
               {mode === 'duplicate' ? 'New Order (Duplicate)' : `Order ${order?.orderNo}`}
             </h1>
-            <p className="text-sm text-gray-500">
-              Status: <span className="capitalize">{mode === 'duplicate' ? status : order?.status}</span>
-            </p>
+            <div className="flex items-center gap-3 mt-1">
+              <p className="text-sm text-gray-500">
+                Status: <span className="capitalize">{mode === 'duplicate' ? status : order?.status}</span>
+              </p>
+              {order?.qboDocNumber && (
+                <Badge variant="outline" className="text-xs">
+                  QB Invoice #{order.qboDocNumber}
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
 
         <div className="flex gap-2">
           {mode === 'view' && (
             <>
-              <Button onClick={handleEdit}>
+              <Button
+                onClick={handleEdit}
+                disabled={order?.status === 'paid'}
+              >
                 <Edit2 className="h-4 w-4 mr-2" />
                 Edit
               </Button>
@@ -438,7 +604,11 @@ export default function OrderDetailPage() {
                 <Copy className="h-4 w-4 mr-2" />
                 Duplicate
               </Button>
-              <Button variant="destructive" onClick={handleDelete}>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={order?.status === 'posted_to_qb' || order?.status === 'paid'}
+              >
                 <Trash className="h-4 w-4 mr-2" />
                 Delete
               </Button>
@@ -459,8 +629,105 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      {/* Order Details */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      {/* Paid Order Warning Banner */}
+      {order?.status === 'paid' && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3 mb-6">
+          <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+          <div>
+            <h3 className="font-semibold text-yellow-900">Order Paid - Read Only</h3>
+            <p className="text-sm text-yellow-700">
+              This order has been paid in QuickBooks and cannot be edited.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* QuickBooks Actions */}
+      {mode === 'view' && order && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-blue-900 mb-1">QuickBooks Integration</h3>
+              <p className="text-sm text-blue-700">
+                {!order.qboDocId && 'Create an invoice in QuickBooks for this order'}
+                {order.qboDocId && order.status !== 'paid' && 'Update or void the QuickBooks invoice'}
+                {order.status === 'paid' && 'Invoice has been paid in QuickBooks'}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {!order.qboDocId && (
+                <Button
+                  onClick={handleCreateInvoice}
+                  disabled={qbLoading}
+                  size="sm"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  {qbLoading ? 'Creating...' : 'Create Invoice in QB'}
+                </Button>
+              )}
+              {order.qboDocId && order.status !== 'paid' && (
+                <>
+                  <Button
+                    onClick={handleUpdateInvoice}
+                    disabled={qbLoading}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    {qbLoading ? 'Updating...' : 'Update QB Invoice'}
+                  </Button>
+                  <Button
+                    onClick={handleVoidInvoice}
+                    disabled={qbLoading}
+                    size="sm"
+                    variant="destructive"
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    {qbLoading ? 'Voiding...' : 'Void Invoice'}
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="border-b border-gray-200 mb-6">
+        <div className="flex gap-8">
+          <button
+            onClick={() => setActiveTab('details')}
+            className={`pb-3 px-1 border-b-2 transition-colors ${
+              activeTab === 'details'
+                ? 'border-blue-500 text-blue-600 font-medium'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Order Details
+          </button>
+          <button
+            onClick={() => setActiveTab('activities')}
+            className={`pb-3 px-1 border-b-2 transition-colors ${
+              activeTab === 'activities'
+                ? 'border-blue-500 text-blue-600 font-medium'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Activity Log
+            {activities.length > 0 && (
+              <span className="ml-2 bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full">
+                {activities.length}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'details' && (
+        <>
+          {/* Order Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         {/* Seller */}
         <Card>
           <CardHeader>
@@ -599,7 +866,7 @@ export default function OrderDetailPage() {
                 placeholder="Enter contract number"
               />
             ) : (
-              <p className="text-sm text-gray-900">{contractNo || '-'}</p>
+              <p className="text-sm text-gray-900 dark:text-gray-100">{contractNo || '-'}</p>
             )}
           </div>
 
@@ -613,7 +880,7 @@ export default function OrderDetailPage() {
                 rows={3}
               />
             ) : (
-              <p className="text-sm text-gray-900 whitespace-pre-wrap">{terms || '-'}</p>
+              <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{terms || '-'}</p>
             )}
           </div>
 
@@ -627,7 +894,7 @@ export default function OrderDetailPage() {
                 rows={3}
               />
             ) : (
-              <p className="text-sm text-gray-900 whitespace-pre-wrap">{notes || '-'}</p>
+              <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{notes || '-'}</p>
             )}
           </div>
 
@@ -848,6 +1115,48 @@ export default function OrderDetailPage() {
           )}
         </CardContent>
       </Card>
+        </>
+      )}
+
+      {/* Activity Tab */}
+      {activeTab === 'activities' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Activity Log</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {activitiesLoading ? (
+              <div className="text-center py-8 text-gray-500">Loading activities...</div>
+            ) : activities.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">No activities recorded yet</div>
+            ) : (
+              <div className="space-y-4">
+                {activities.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="mt-0.5">
+                      {getActivityIcon(activity.activityType)}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-900">{activity.description}</p>
+                      <div className="flex items-center gap-3 mt-1">
+                        <p className="text-xs text-gray-500">
+                          {activity.userName || 'System'}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(activity.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

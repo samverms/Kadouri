@@ -134,7 +134,6 @@ export class OrdersService {
             product: true,
           },
         },
-        pdfs: true,
       },
     })
 
@@ -142,7 +141,29 @@ export class OrdersService {
       throw new AppError('Order not found', 404)
     }
 
-    return order
+    // Transform the response to match frontend expectations
+    return {
+      ...order,
+      orderDate: order.createdAt,
+      agentName: order.createdBy || 'Unknown',
+      lines: order.lines.map(line => ({
+        ...line,
+        quantity: parseFloat(line.quantity),
+        unitSize: line.unitSize ? parseFloat(line.unitSize) : 0,
+        uom: line.uom || 'CASE',
+        totalWeight: line.totalWeight ? parseFloat(line.totalWeight) : 0,
+        unitPrice: parseFloat(line.unitPrice),
+        total: parseFloat(line.lineTotal),
+        totalPrice: parseFloat(line.lineTotal),
+        lineTotal: parseFloat(line.lineTotal),
+        commissionPct: line.commissionPct ? parseFloat(line.commissionPct) : 0,
+        commissionAmt: line.commissionAmt ? parseFloat(line.commissionAmt) : 0,
+        sizeGrade: line.sizeGrade || '',
+        productCode: line.product?.name || '',
+        productDescription: line.product ? [line.product.variety, line.product.grade].filter(Boolean).join(' - ') : '',
+        description: line.product?.name || '',
+      })),
+    }
   }
 
   async searchOrders(filters?: {
@@ -200,9 +221,10 @@ export class OrdersService {
       throw new AppError('Order not found', 404)
     }
 
-    // Check if order is editable
-    if (current.status === 'posted_to_qb' || current.status === 'paid') {
-      throw new AppError('Cannot edit order that has been posted to QuickBooks', 400)
+    // CRITICAL BUSINESS RULE: Paid orders cannot be edited
+    // Orders with 'posted_to_qb' status CAN be edited - user must click "Update QB Invoice" button
+    if (current.status === 'paid') {
+      throw new AppError('Cannot edit order - invoice has been paid in QuickBooks', 400)
     }
 
     // If lines are provided, recalculate totals
