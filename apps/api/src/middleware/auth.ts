@@ -17,9 +17,24 @@ export const authenticate = async (
   next: NextFunction
 ) => {
   try {
+    console.log('🔐 Auth middleware - Request:', {
+      path: req.path,
+      method: req.method,
+      headers: {
+        authorization: req.headers.authorization,
+        cookie: req.headers.cookie ? 'present' : 'missing'
+      }
+    })
+
     const auth = getAuth(req)
 
+    console.log('🔐 Auth result:', {
+      userId: auth.userId,
+      sessionId: auth.sessionId
+    })
+
     if (!auth.userId) {
+      console.log('❌ No userId found in auth')
       return next(new AppError('Unauthorized', 401))
     }
 

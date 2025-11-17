@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { PDFGenerator } from '../services/pdf/pdf-generator'
+import contractsService from '../modules/contracts/contracts.service'
 
 const router = Router()
 const pdfGenerator = new PDFGenerator()
@@ -57,6 +58,37 @@ router.post('/order/buyer', async (req, res) => {
     console.error('Error generating buyer PDF:', error)
     res.status(500).json({
       error: 'Failed to generate buyer PDF',
+      message: error.message,
+    })
+  }
+})
+
+/**
+ * Generate Contract PDF
+ * GET /api/pdf/contract/:id
+ */
+router.get('/contract/:id', async (req, res) => {
+  try {
+    const contractId = req.params.id
+
+    // Fetch contract with full details
+    const contract = await contractsService.getContractById(contractId)
+
+    if (!contract) {
+      return res.status(404).json({
+        error: 'Contract not found',
+      })
+    }
+
+    const pdfBuffer = await pdfGenerator.generateContractPDFBuffer(contract)
+
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `inline; filename="contract-${contract.contractNumber}.pdf"`)
+    res.send(pdfBuffer)
+  } catch (error: any) {
+    console.error('Error generating contract PDF:', error)
+    res.status(500).json({
+      error: 'Failed to generate contract PDF',
       message: error.message,
     })
   }

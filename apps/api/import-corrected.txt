@@ -1,0 +1,1716 @@
+
+🚀 Starting comprehensive CSV import...
+
+📖 Reading CSV file: C:\pace-crm-main\SalesByCustomer.csv
+  Found 48771 rows in CSV
+  ✅ Parsed 21620 invoices
+
+📊 Parsed 21620 invoices from CSV
+
+🏢 Setting up Golden Nuts account...
+  ✅ Golden Nuts account: Golden Nuts, Inc. DBA - The Kadouri Connection (57edd9a5-5617-4395-bfb1-ff21766fc458)
+
+📦 Importing invoices...
+  ❌ Error importing invoice 40242: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-40242) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 32545: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 29235: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 49037: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-49037) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ⏳ Imported 100/21620 invoices...
+  ❌ Error importing invoice 31075: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-31075) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 27403: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-27403) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 28407: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-28407) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 28401: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-28401) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 29555: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 30088: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-30088) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 32232: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-32232) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ⏳ Imported 200/21620 invoices...
+  ❌ Error importing invoice 27277: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ⏳ Imported 300/21620 invoices...
+  ❌ Error importing invoice 26586: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 28052: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-28052) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 33380: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ⏳ Imported 400/21620 invoices...
+  ❌ Error importing invoice 29185: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 42492: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 34141: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-34141) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ⏳ Imported 500/21620 invoices...
+  ❌ Error importing invoice 30889: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-30889) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 31109: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-31109) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ⏳ Imported 600/21620 invoices...
+  ❌ Error importing invoice 40534: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-40534) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 44511: PostgresError: null value in column "email" of relation "contacts" violates not-null constraint
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (8717743f-b23b-4d07-828d-b3a6c3860922, 353164bf-34a4-4c92-bcc6-001c9ff9d742, Ship To:, null, 3053170563, t, 2025-11-13 14:13:38.177453, 2025-11-13 14:13:38.177453).',
+  schema_name: 'public',
+  table_name: 'contacts',
+  column_name: 'email',
+  file: 'execMain.c',
+  line: '1981',
+  routine: 'ExecConstraints'
+}
+  ❌ Error importing invoice 30180: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 31120: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 32328: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 28048: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-28048) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 28701: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ⏳ Imported 700/21620 invoices...
+  ❌ Error importing invoice 31091: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-31091) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 31087: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-31087) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 35607: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-35607) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 38139: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-38139) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 41775: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-41775) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ⏳ Imported 800/21620 invoices...
+  ❌ Error importing invoice 26335: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 26523: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 29499: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 26506: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 26582: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 30631: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 30632: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-30632) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 33176: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-33176) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ⏳ Imported 900/21620 invoices...
+  ❌ Error importing invoice 26578: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 28063: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-28063) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 28068: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-28068) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 33196: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 25504: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-25504) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ⏳ Imported 1000/21620 invoices...
+  ❌ Error importing invoice 27742: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-27742) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 28039: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-28039) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 30623: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-30623) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 30628: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-30628) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 31292: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 26207: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 27257: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-27257) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 29715: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-29715) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 31703: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-31703) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 31828: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-31828) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 32739: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 32739: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-32739) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 43908: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-43908) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 43924: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-43924) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 44517: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-44517) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 44518: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-44518) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ⏳ Imported 1100/21620 invoices...
+  ❌ Error importing invoice 29883: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-29883) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 31026: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-31026) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 28598: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-28598) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 28594: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-28594) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 28598: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-28598) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ⏳ Imported 1200/21620 invoices...
+  ❌ Error importing invoice 26459: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 26087: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 28538: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 29062: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 31239: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 27094: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 25505: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-25505) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ❌ Error importing invoice 26036: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 26030: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-26030) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ⏳ Imported 1300/21620 invoices...
+  ❌ Error importing invoice 28833: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 29756: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ⏳ Imported 1400/21620 invoices...
+  ❌ Error importing invoice 27305: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 31121: PostgresError: duplicate key value violates unique constraint "orders_order_no_unique"
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (order_no)=(ORD-31121) already exists.',
+  schema_name: 'public',
+  table_name: 'orders',
+  constraint_name: 'orders_order_no_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+  ⏳ Imported 1500/21620 invoices...
+  ❌ Error importing invoice 30084: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ⏳ Imported 1600/21620 invoices...
+  ⏳ Imported 1700/21620 invoices...
+  ⏳ Imported 1800/21620 invoices...
+  ❌ Error importing invoice 27295: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 27605: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 30173: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ⏳ Imported 1900/21620 invoices...
+  ❌ Error importing invoice 27221: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 26014: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 25982: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 29551: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ⏳ Imported 2000/21620 invoices...
+  ❌ Error importing invoice 28831: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 29500: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 43824: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 26270: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 26784: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 29524: PostgresError: value too long for type character varying(100)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ⏳ Imported 2100/21620 invoices...
+
+✅ Import completed!
+  Imported: 2105 invoices
+  Skipped: 19515 invoices
+  Accounts created/updated: 134
+  Products created: 589
+  Contacts created: 31
+  Addresses created: 37
+
+🎉 Import script finished successfully!

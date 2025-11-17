@@ -15,6 +15,8 @@ import usersRouter from './users.routes'
 import contractsRouter from '../modules/contracts/contracts.routes'
 import quickbooksRouter from './quickbooks.routes'
 import qboWebhookRouter from './qbo-webhooks.routes'
+import brokersRouter from '../modules/brokers/brokers.routes'
+import agentsRouter from '../modules/agents/agents.routes'
 
 const router = Router()
 
@@ -33,6 +35,8 @@ router.use('/products', authenticate, productsRouter)
 router.use('/orders', authenticate, ordersRouter)
 router.use('/contracts', authenticate, contractsRouter)
 router.use('/invoices', authenticate, invoicesRouter)
+router.use('/brokers', authenticate, brokersRouter)
+router.use('/agents', authenticate, agentsRouter)
 router.use('/search', authenticate, searchRouter)
 router.use('/users', authenticate, usersRouter)
 router.use('/', authenticate, rolesRouter) // Roles and permissions

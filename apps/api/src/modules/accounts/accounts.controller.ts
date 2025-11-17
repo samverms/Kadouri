@@ -43,9 +43,9 @@ export class AccountsController {
     }
   }
 
-  updateAccount = async (req: Request, res: Response, next: NextFunction) => {
+  updateAccount = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const account = await this.accountsService.updateAccount(req.params.id, req.body)
+      const account = await this.accountsService.updateAccount(req.params.id, req.body, req.userId)
       res.json(account)
     } catch (error) {
       next(error)
@@ -109,9 +109,9 @@ export class AccountsController {
     }
   }
 
-  updateAddress = async (req: Request, res: Response, next: NextFunction) => {
+  updateAddress = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const address = await this.accountsService.updateAddress(req.params.addressId, req.body)
+      const address = await this.accountsService.updateAddress(req.params.addressId, req.body, req.userId)
       res.json(address)
     } catch (error) {
       next(error)
@@ -127,9 +127,9 @@ export class AccountsController {
     }
   }
 
-  updateContact = async (req: Request, res: Response, next: NextFunction) => {
+  updateContact = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const contact = await this.accountsService.updateContact(req.params.contactId, req.body)
+      const contact = await this.accountsService.updateContact(req.params.contactId, req.body, req.userId)
       res.json(contact)
     } catch (error) {
       next(error)

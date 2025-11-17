@@ -1,6 +1,12 @@
 import axios from 'axios'
 import { logger } from '../../utils/logger'
 
+interface OutlookAttachment {
+  filename: string
+  content: Buffer
+  contentType: string
+}
+
 interface OutlookEmailParams {
   to: string[]
   cc?: string[]
@@ -8,6 +14,7 @@ interface OutlookEmailParams {
   subject: string
   body: string
   isHtml?: boolean
+  attachments?: OutlookAttachment[]
 }
 
 export class OutlookClient {
@@ -18,7 +25,7 @@ export class OutlookClient {
   }
 
   async sendEmail(params: OutlookEmailParams): Promise<void> {
-    const message = {
+    const message: any = {
       subject: params.subject,
       body: {
         contentType: params.isHtml ? 'HTML' : 'Text',
@@ -33,6 +40,16 @@ export class OutlookClient {
       bccRecipients: params.bcc?.map((email) => ({
         emailAddress: { address: email },
       })),
+    }
+
+    // Add attachments if provided
+    if (params.attachments && params.attachments.length > 0) {
+      message.attachments = params.attachments.map((attachment) => ({
+        '@odata.type': '#microsoft.graph.fileAttachment',
+        name: attachment.filename,
+        contentType: attachment.contentType,
+        contentBytes: attachment.content.toString('base64'),
+      }))
     }
 
     try {

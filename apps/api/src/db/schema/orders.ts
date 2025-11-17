@@ -1,13 +1,33 @@
-import { pgTable, uuid, varchar, timestamp, numeric, text, integer } from 'drizzle-orm/pg-core'
-import { accounts } from './accounts'
+import { pgTable, uuid, varchar, timestamp, numeric, text, integer, boolean } from 'drizzle-orm/pg-core'
+import { relations } from 'drizzle-orm'
+import { accounts, addresses } from './accounts'
 import { products } from './products'
+import { productVariants } from './product-variants'
 
 export const orders = pgTable('orders', {
   id: uuid('id').primaryKey().defaultRandom(),
   orderNo: varchar('order_no', { length: 50 }).notNull().unique(),
   sellerId: uuid('seller_id').notNull().references(() => accounts.id),
   buyerId: uuid('buyer_id').notNull().references(() => accounts.id),
+
+  // Address references
+  sellerBillingAddressId: uuid('seller_billing_address_id').references(() => addresses.id),
+  sellerPickupAddressId: uuid('seller_pickup_address_id').references(() => addresses.id),
+  buyerBillingAddressId: uuid('buyer_billing_address_id').references(() => addresses.id),
+  buyerShippingAddressId: uuid('buyer_shipping_address_id').references(() => addresses.id),
+
+  // Pickup flag
+  isPickup: boolean('is_pickup').notNull().default(false), // If true, buyer picks up (no shipping address needed)
+
+  // Agent and Broker
+  agentUserId: varchar('agent_user_id', { length: 255 }), // Clerk user ID
+  agentName: varchar('agent_name', { length: 255 }), // Denormalized for PDFs/display
+  brokerUserId: varchar('broker_user_id', { length: 255 }), // Clerk user ID (optional)
+  brokerName: varchar('broker_name', { length: 255 }), // Denormalized for PDFs/display
+
+  salesAgentId: varchar('sales_agent_id', { length: 255 }), // Clerk user ID of the sales agent (DEPRECATED - use agentUserId)
   status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, confirmed, posted_to_qb, paid
+  contractId: uuid('contract_id'), // Link to contracts table (if this order is a contract draw)
   contractNo: varchar('contract_no', { length: 100 }),
   qboDocType: varchar('qbo_doc_type', { length: 20 }), // estimate or invoice
   qboDocId: varchar('qbo_doc_id', { length: 50 }),
@@ -17,10 +37,12 @@ export const orders = pgTable('orders', {
   totalAmount: numeric('total_amount', { precision: 12, scale: 2 }).notNull().default('0'),
   terms: text('terms'),
   notes: text('notes'),
+  memo: text('memo'), // Auto-generated memo field with manual override capability
   palletCount: integer('pallet_count'),
   createdBy: varchar('created_by', { length: 50 }).notNull(), // user ID
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  updatedBy: varchar('updated_by', { length: 255 }), // Clerk user ID
 })
 
 export const orderLines = pgTable('order_lines', {
@@ -28,6 +50,8 @@ export const orderLines = pgTable('order_lines', {
   orderId: uuid('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
   lineNo: integer('line_no').notNull(),
   productId: uuid('product_id').notNull().references(() => products.id),
+  variantId: uuid('variant_id').references(() => productVariants.id), // Optional: if product has variants
+  packageType: varchar('package_type', { length: 50 }), // bag, box, case, pallet, bulk, each
   sizeGrade: varchar('size_grade', { length: 100 }),
   quantity: numeric('quantity', { precision: 10, scale: 2 }).notNull(),
   unitSize: numeric('unit_size', { precision: 10, scale: 2 }).notNull(),
@@ -49,3 +73,47 @@ export const pdfs = pgTable('pdfs', {
   version: integer('version').notNull().default(1),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
+
+// Relations
+export const ordersRelations = relations(orders, ({ one, many }) => ({
+  seller: one(accounts, {
+    fields: [orders.sellerId],
+    references: [accounts.id],
+  }),
+  buyer: one(accounts, {
+    fields: [orders.buyerId],
+    references: [accounts.id],
+  }),
+  sellerBillingAddress: one(addresses, {
+    fields: [orders.sellerBillingAddressId],
+    references: [addresses.id],
+  }),
+  sellerPickupAddress: one(addresses, {
+    fields: [orders.sellerPickupAddressId],
+    references: [addresses.id],
+  }),
+  buyerBillingAddress: one(addresses, {
+    fields: [orders.buyerBillingAddressId],
+    references: [addresses.id],
+  }),
+  buyerShippingAddress: one(addresses, {
+    fields: [orders.buyerShippingAddressId],
+    references: [addresses.id],
+  }),
+  lines: many(orderLines),
+}))
+
+export const orderLinesRelations = relations(orderLines, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderLines.orderId],
+    references: [orders.id],
+  }),
+  product: one(products, {
+    fields: [orderLines.productId],
+    references: [products.id],
+  }),
+  variant: one(productVariants, {
+    fields: [orderLines.variantId],
+    references: [productVariants.id],
+  }),
+}))

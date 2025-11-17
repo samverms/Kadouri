@@ -1,0 +1,23 @@
+
+🚀 Starting comprehensive CSV import...
+
+📖 Reading CSV file: C:\pace-crm-main\SalesByCustomer.csv
+  Found 48771 rows in CSV
+  ✅ Parsed 21620 invoices
+
+📊 Parsed 21620 invoices from CSV
+
+🏢 Setting up Golden Nuts account...
+  ✅ Golden Nuts account: Golden Nuts, Inc. DBA - The Kadouri Connection (96491c8f-a727-4d21-8126-4ef53cbc8b2a)
+
+📦 Importing invoices...
+
+✅ Import completed!
+  Imported: 8 invoices
+  Skipped: 21612 invoices
+  Accounts created/updated: 5
+  Products created: 3
+  Contacts created: 3
+  Addresses created: 3
+
+🎉 Import script finished successfully!

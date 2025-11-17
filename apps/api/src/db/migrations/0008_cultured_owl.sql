@@ -1,0 +1,1 @@
+ALTER TABLE "products" ADD COLUMN "updated_by" varchar(100);

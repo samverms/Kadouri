@@ -5,9 +5,14 @@ export const accounts = pgTable('accounts', {
   code: varchar('code', { length: 50 }).notNull().unique(),
   name: varchar('name', { length: 255 }).notNull(),
   qboCustomerId: varchar('qbo_customer_id', { length: 50 }),
+  parentAccountId: uuid('parent_account_id'),
+  salesAgentId: varchar('sales_agent_id', { length: 255 }), // Assigned sales person/agent
+  accountType: varchar('account_type', { length: 20 }).notNull().default('both'), // 'buyer', 'seller', 'both'
+  brokerIds: text('broker_ids').array(), // Array of Clerk user IDs for associated brokers
   active: boolean('active').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  updatedBy: varchar('updated_by', { length: 255 }), // Customer service person who last edited
 })
 
 export const addresses = pgTable('addresses', {
@@ -23,6 +28,7 @@ export const addresses = pgTable('addresses', {
   isPrimary: boolean('is_primary').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  updatedBy: varchar('updated_by', { length: 255 }), // Clerk user ID
 })
 
 export const contacts = pgTable('contacts', {
@@ -34,4 +40,5 @@ export const contacts = pgTable('contacts', {
   isPrimary: boolean('is_primary').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  updatedBy: varchar('updated_by', { length: 255 }), // Clerk user ID
 })

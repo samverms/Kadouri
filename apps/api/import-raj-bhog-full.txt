@@ -1,0 +1,71 @@
+
+🚀 Starting comprehensive CSV import...
+
+📖 Reading CSV file: C:\pace-crm-main\SalesByCustomer.csv
+  Found 48771 rows in CSV
+  ✅ Parsed 21620 invoices
+
+📊 Parsed 21620 invoices from CSV
+
+🏢 Setting up Golden Nuts account...
+  ✅ Golden Nuts account: Golden Nuts, Inc. DBA - The Kadouri Connection (37041123-95e0-4a2e-896f-2c0b65f05783)
+
+📦 Importing invoices...
+  ❌ Error importing invoice 43491: PostgresError: value too long for type character varying(2)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 43401: PostgresError: value too long for type character varying(2)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+  ❌ Error importing invoice 48658: PostgresError: value too long for type character varying(2)
+    at ErrorResponse (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:794:26)
+    at handle (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:480:6)
+    at Socket.data (C:\pace-crm-main\node_modules\postgres\cjs\src\connection.js:315:9)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+  severity_local: 'ERROR',
+  severity: 'ERROR',
+  code: '22001',
+  file: 'varchar.c',
+  line: '637',
+  routine: 'varchar'
+}
+
+✅ Import completed!
+  Imported: 5 invoices
+  Skipped: 21615 invoices
+  Accounts created/updated: 5
+  Products created: 2
+  Contacts created: 3
+  Addresses created: 0
+
+🎉 Import script finished successfully!

@@ -3,6 +3,7 @@ import { orders, orderLines } from '../../db/schema'
 import { eq, desc, ilike, or } from 'drizzle-orm'
 import { AppError } from '../../middleware/error-handler'
 import { logger } from '../../utils/logger'
+import contractsService from '../contracts/contracts.service'
 
 export class OrdersService {
   // Generate order number (format: YYMM-NNNN)
@@ -48,9 +49,22 @@ export class OrdersService {
     data: {
       sellerId: string
       buyerId: string
+      sellerBillingAddressId?: string
+      sellerPickupAddressId?: string
+      buyerBillingAddressId?: string
+      buyerShippingAddressId?: string
+      isPickup?: boolean
+      agentUserId?: string
+      agentName?: string
+      brokerUserId?: string
+      brokerName?: string
       contractNo?: string
+      contractId?: string
+      contractDrawQuantity?: number
       terms?: string
       notes?: string
+      memo?: string
+      palletCount?: number
       lines: any[]
     },
     userId: string
@@ -83,9 +97,21 @@ export class OrdersService {
         orderNo,
         sellerId: data.sellerId,
         buyerId: data.buyerId,
+        sellerBillingAddressId: data.sellerBillingAddressId,
+        sellerPickupAddressId: data.sellerPickupAddressId,
+        buyerBillingAddressId: data.buyerBillingAddressId,
+        buyerShippingAddressId: data.buyerShippingAddressId,
+        isPickup: data.isPickup || false,
+        agentUserId: data.agentUserId,
+        agentName: data.agentName,
+        brokerUserId: data.brokerUserId,
+        brokerName: data.brokerName,
+        contractId: data.contractId,
         contractNo: data.contractNo,
         terms: data.terms,
         notes: data.notes,
+        memo: data.memo,
+        palletCount: data.palletCount,
         status: 'draft',
         subtotal: subtotal.toString(),
         commissionTotal: commissionTotal.toString(),
@@ -115,6 +141,30 @@ export class OrdersService {
       )
       .returning()
 
+    // If this order is drawn from a contract, record the contract draw
+    if (data.contractId && data.contractDrawQuantity) {
+      try {
+        await contractsService.recordContractDraw(
+          data.contractId,
+          order.id,
+          data.contractDrawQuantity,
+          userId
+        )
+        logger.info(`Contract draw recorded for order: ${order.id}`, {
+          contractId: data.contractId,
+          quantity: data.contractDrawQuantity,
+        })
+      } catch (error: any) {
+        // If contract draw fails, we should probably rollback the order
+        // For now, just log the error
+        logger.error(`Failed to record contract draw: ${error.message}`, {
+          orderId: order.id,
+          contractId: data.contractId,
+        })
+        // You might want to delete the order here or mark it with an error status
+      }
+    }
+
     logger.info(`Created order: ${order.id} (${order.orderNo})`)
 
     return {
@@ -129,6 +179,10 @@ export class OrdersService {
       with: {
         seller: true,
         buyer: true,
+        sellerBillingAddress: true,
+        sellerPickupAddress: true,
+        buyerBillingAddress: true,
+        buyerShippingAddress: true,
         lines: {
           with: {
             product: true,

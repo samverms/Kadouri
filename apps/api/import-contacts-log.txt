@@ -1,0 +1,211 @@
+Reading Accounts.xlsx...
+Found 119 accounts in Excel file
+
+Processing: A-1 Bakery Supply (ABS5983)
+  ✓ Created contact: orders@a1bakerysupply.com
+  ✓ Created billing address: Jersey St Paterson, NJ
+
+⚠ Account not found: AKC Commodities, Inc.
+⚠ Account not found: AKimpeks
+Processing: All American Nut & Candy Corp (AAN&CC7041)
+  ✓ Created contact: isidor@all-american.co
+  ✓ Created billing address: Beinoris Dr Wood Dale, IL
+
+⚠ Account not found: Allen R Klein Company Inc
+⚠ Account not found: Allstar Food Ingredients LLC
+Processing: Allure Foods (AF6984)
+  ✓ Created contact: (718) 236-1100
+  ✓ Created billing address: St Brooklyn, NY
+
+⚠ Account not found: Alya Foods
+⚠ Account not found: American Berry Company
+⚠ Account not found: Anchor Ingredients
+⚠ Account not found: Apricot Trade LLC
+⚠ Account not found: Aripack Inc.
+⚠ Account not found: Arthur Coussa ( Squash Int'l Comm)
+⚠ Account not found: ATLANTIC (USA) INC.
+⚠ Account not found: Aurora Products Inc
+⚠ Account not found: Baja Ag Inc
+Processing: BAL Marketing (BM0553)
+  ✓ Created contact: orders@metrocommoditiesinc.com
+  ✓ Created billing address: Unknown, XX
+
+⚠ Account not found: Bazzini Holdings LLC
+⚠ Account not found: BBI Packers / Baobab Value Adding
+Processing: Best Food Inc (BFI4816)
+  ✓ Created contact: shadab73@yahoo.com
+  ✓ Created billing address: MIDVALE RD EDISON, NJ
+
+Processing: BK Sterling Corporation/Neff Co., Inc. (BSCCI1878)
+  ✓ Created contact: nefforders@bksterling.com
+  ✓ Created billing address: Cumming, GA
+
+Processing: Blue Star Direct LLC (BSDL9967)
+  ✓ Created contact: Swaroop7415@gmail.com
+  ✓ Created billing address: Robin Rd Warren, NJ
+
+⚠ Account not found: Brahm Foods Inc
+Processing: Bulk Buy USA (BBU2534)
+  ✓ Created contact: tmueller@bulkbuyusa.com
+  ✓ Created billing address: C Troy, MO
+
+⚠ Account not found: Capco Ent Inc
+⚠ Account not found: Carriere Family Farms
+⚠ Account not found: Charlie Scala Broker
+⚠ Account not found: Chase Pecan
+⚠ Account not found: Chickplease LLC
+⚠ Account not found: Chickplease   LLC
+⚠ Account not found: Cibo Vita Inc
+Processing: CNS Confectionary (CC4502)
+  ✓ Created contact: luz@cnscoinc.com
+  ✓ Created billing address: Hook Rd Bayonne, NJ
+
+⚠ Account not found: Cornerstone Maintenance
+⚠ Account not found: Danny kadouri 1
+Processing: David Rosen Bakery Supply (DRBS3496)
+  ✓ Created contact: jrosen.bakery@gmail.com
+  ✓ Created billing address: Unknown, XX
+
+Processing: Deutschon Inc (DI6068)
+  ✓ Created contact: goldnutcorp@gmail.com
+  ✓ Created billing address: Rutgers St Belleville, NJ
+
+⚠ Account not found: Devik International Inc
+⚠ Account not found: Empire Specialty Foods Inc
+⚠ Account not found: Euro Goods Food Inc
+Processing: Floyd's Market / Nut Factory Trade Inc (FM/NFT7923)
+  ✓ Created contact: din.allall@gmail.com
+  ✓ Created billing address: Greenwood Ave Midland Park, NJ
+
+⚠ Account not found: Food Link Inc
+⚠ Account not found: FoodWorks NW, LLC
+⚠ Account not found: Genex Traders
+⚠ Account not found: Global Crop Exchange, Inc
+⚠ Account not found: Global Food Solutions
+⚠ Account not found: Golden Star Wholesale, Inc.
+Processing: Great Lakes Intl (GLI5689)
+  ✓ Created contact: emi@glit.com
+  ✓ Created billing address: Traverse City, MI
+  ✓ Created shipping address: Business Park Drive Traverse City, MI
+
+⚠ Account not found: HB PArnell Co Inc
+⚠ Account not found: Hilltop Ranch, Inc.
+⚠ Account not found: ILG Int'l Trading
+⚠ Account not found: Innovative Sales Inc.
+⚠ Account not found: International Harvest
+⚠ Account not found: J.F. Braun & Sons, Inc
+⚠ Account not found: Julie Young  & Associates LLC
+⚠ Account not found: Klara Beri
+⚠ Account not found: Klein's Natural
+⚠ Account not found: Lamanuzzi
+⚠ Account not found: Laurel Organic Commodities
+⚠ Account not found: Lion Import
+⚠ Account not found: Malko karkanni Bros
+⚠ Account not found: Mancini
+⚠ Account not found: Medjool Plus LTD
+⚠ Account not found: MEM Fairway Inc Nuts and Dried Fruit Specialist
+⚠ Account not found: MOR USA
+⚠ Account not found: Nassau Candy
+Processing: National Harvest Corp (NHC7002)
+  ✓ Created contact: john@national-harvest.com
+  ✓ Created billing address: Great Neck, NY
+
+⚠ Account not found: Natural Food Source Inc.
+Processing: Natural Nut & Spice Inc (NN&SI5903)
+  ✓ Created contact: naturalnut17@gmail.com
+  ✓ Created billing address: Fairlawn, NJ
+
+Processing: Nazo Products (NP4663)
+  ✓ Created contact: ny@nazoproducts.com
+  ✓ Created billing address: Brook Ave Deer Park, NY
+
+⚠ Account not found: Neviot Corp
+⚠ Account not found: Nuts Pro
+⚠ Account not found: Nutty Naturals
+Processing: Olive Branch Brokerage (OBB2404)
+  ✓ Created contact: olivebranchbrk@gmail.com
+  ✓ Created billing address: Brooklyn, NY
+
+⚠ Account not found: Organics Finesse
+⚠ Account not found: Orgibite
+⚠ Account not found: Pace Enterprises
+⚠ Account not found: Pacific /Atlantic Crop Exchange Inc
+⚠ Account not found: Pan Argo Consulting & Exporting
+⚠ Account not found: Paradise Fruit Company
+⚠ Account not found: Paul Esposito Inc.
+⚠ Account not found: Pereg Gourmet
+⚠ Account not found: PNH Intercontinental Corp
+⚠ Account not found: Prosperitas Foods (Pty) Ltd t/as Farmers Price Raisins
+⚠ Account not found: Pure Food Corp
+Processing: Raj Bhog Foods (RBF0293)
+  ✓ Created contact: ajitmody@rajbhog.com
+  ✓ Created billing address: Murray St Flushing, NY
+
+Processing: RCN Imports Inc (RII3972)
+  ✓ Created contact: rick@rcnimports.com
+  ✓ Created billing address: Edison, NJ
+  ✓ Created shipping address: Edison, NJ
+
+⚠ Account not found: Red River
+⚠ Account not found: Rockland Wholesale
+⚠ Account not found: Royal Quality Group
+Processing: Ryszaro Food Dist Inc (RFDI3230)
+  ✓ Created contact: ryszardfd@aol.com
+  ✓ Created billing address: Unknown, XX
+
+⚠ Account not found: Salmo Corporation
+Processing: Sam's International (SI0086)
+  ✓ Created contact: SAMDRYFRUIT.NUTS@GMAIL.COM
+  ✓ Created billing address: Rembrandt Place Modesto, CA
+
+⚠ Account not found: Schiff Foods
+⚠ Account not found: Select Ingredients Inc
+⚠ Account not found: Sevenwells LLC
+⚠ Account not found: Shah Trading Company
+⚠ Account not found: Sirob Imports
+Processing: Soleil Foods LLC (SFL5588)
+  ✓ Created contact: hsaad@soleilfoods.com
+  ✓ Created billing address: Unknown, XX
+  ✓ Created shipping address: Unknown, XX
+
+Processing: Sunco & Frenchie LLC (S&FL6327)
+  ✓ Created contact: ugur@sunconatural.com
+  ✓ Created billing address: Pine Brook, NJ
+
+Processing: Sunrise Commodities (SC1676)
+  ✓ Created contact: arosen@foodimportgroup.com
+  ✓ Created billing address: Sylvan Avenue Englewood Cliffs, NJ
+
+Processing: Taj Trading (TT9923)
+  ✓ Created contact: abdul@tajfoodsusa.com
+  ✓ Created billing address: Unknown, XX
+
+⚠ Account not found: Tasty Foods USA   dba STB Quarters LLC
+⚠ Account not found: The Tides Commodity Trading Group, Inc
+Processing: The Xiali Global LLC (TXGL8588)
+  ✓ Created contact: helenl.xialitradingco@gmail.com
+  ✓ Created billing address: Unknown, XX
+
+⚠ Account not found: TM Duche Nut
+⚠ Account not found: Trade LLC
+⚠ Account not found: Traina
+⚠ Account not found: TRC / The Raisin Company Ltd
+⚠ Account not found: TZAMAC Ltd
+⚠ Account not found: Ultra Trading International
+⚠ Account not found: Universal Harvest LLC
+⚠ Account not found: Valesco Trading LLC
+⚠ Account not found: Vann Family Orchards
+⚠ Account not found: Vintage Food Corp
+Processing: Westcott Nut Company (WNC7464)
+  ✓ Created contact: westcottnut@gmail.com
+  ✓ Created billing address: Coit St Irvington, NJ
+
+⚠ Account not found: Wilbur Packing Company
+⚠ Account not found: Ziba Nut Corp.
+⚠ Account not found: Ziyad Brothers Importing
+⚠ Account not found: Z-Kosher Supply
+
+=== Import Summary ===
+Contacts created: 27
+Addresses created: 30
+Accounts not found: 92

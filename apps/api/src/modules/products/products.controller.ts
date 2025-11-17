@@ -30,10 +30,11 @@ export class ProductsController {
 
   searchProducts = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { search, limit } = req.query
+      const { search, limit, includeInactive } = req.query
       const products = await this.productsService.searchProducts(
         search as string,
-        limit ? parseInt(limit as string) : undefined
+        limit ? parseInt(limit as string) : undefined,
+        includeInactive === 'true'
       )
       res.json(products)
     } catch (error) {
@@ -44,7 +45,9 @@ export class ProductsController {
   updateProduct = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const validated = updateProductSchema.parse(req.body)
-      const product = await this.productsService.updateProduct(req.params.id, validated)
+      // @ts-ignore - Clerk adds userId to req.auth
+      const userId = req.auth?.userId
+      const product = await this.productsService.updateProduct(req.params.id, validated, userId)
       res.json(product)
     } catch (error) {
       next(error)

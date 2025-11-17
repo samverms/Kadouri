@@ -11,10 +11,13 @@ import { routes } from './routes'
 const app = express()
 
 // Middleware
-app.use(helmet())
 app.use(cors({
-  origin: ['http://localhost:2005', 'http://localhost:2010'], // Allow both dashboards
+  origin: config.cors.origins, // Allow both dashboards
   credentials: true
+}))
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+  contentSecurityPolicy: false
 }))
 app.use(compression())
 app.use(express.json())
@@ -42,3 +45,4 @@ app.listen(PORT, () => {
 })
 
 export default app
+

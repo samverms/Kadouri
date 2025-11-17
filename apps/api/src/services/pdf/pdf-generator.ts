@@ -680,4 +680,348 @@ export class PDFGenerator {
       </html>
     `
   }
+
+  async generateContractPDFBuffer(contractData: any): Promise<Buffer> {
+    const html = this.generateContractHTML(contractData)
+
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    })
+
+    const page = await browser.newPage()
+    await page.setContent(html, { waitUntil: 'networkidle0' })
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '20mm',
+        right: '15mm',
+        bottom: '20mm',
+        left: '15mm',
+      },
+    })
+
+    await browser.close()
+
+    return Buffer.from(pdfBuffer)
+  }
+
+  private generateContractHTML(contract: any): string {
+    const fs = require('fs')
+    const path = require('path')
+
+    // Load logo as base64
+    const logoPath = path.join(__dirname, '../../assets/logo.png')
+    let logoBase64 = ''
+    try {
+      const logoBuffer = fs.readFileSync(logoPath)
+      logoBase64 = logoBuffer.toString('base64')
+    } catch (error) {
+      console.error('Error loading logo:', error)
+    }
+
+    const validFrom = new Date(contract.validFrom).toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' })
+    const validUntil = new Date(contract.validUntil).toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' })
+    const currentDate = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            body {
+              font-family: 'Calibri', 'Arial', sans-serif;
+              padding: 20px 30px;
+              color: #000;
+              background: white;
+              font-size: 9pt;
+            }
+            .header {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 10px;
+              padding-bottom: 8px;
+              border-bottom: 2px solid #000;
+            }
+            .header-left {
+              display: flex;
+              align-items: center;
+              gap: 12px;
+            }
+            .logo {
+              width: 60px;
+              height: auto;
+            }
+            .company-info {
+              display: flex;
+              flex-direction: column;
+            }
+            .company-name {
+              font-size: 11pt;
+              font-weight: bold;
+              color: #1e40af;
+            }
+            .company-address {
+              font-size: 7pt;
+              color: #666;
+              margin-top: 2px;
+            }
+            .contract-info {
+              text-align: right;
+            }
+            .contract-title {
+              font-size: 13pt;
+              font-weight: bold;
+              margin-bottom: 2px;
+            }
+            .contract-date {
+              font-size: 8pt;
+            }
+            .parties-section {
+              display: flex;
+              justify-content: space-between;
+              margin: 8px 0;
+              font-size: 9pt;
+            }
+            .party {
+              flex: 1;
+            }
+            .party-label {
+              font-weight: bold;
+              margin-bottom: 2px;
+            }
+            .validity {
+              margin: 8px 0;
+              font-weight: bold;
+              font-size: 9pt;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 10px 0;
+              font-size: 8pt;
+            }
+            th {
+              background: #f0f0f0;
+              border: 1px solid #000;
+              padding: 4px;
+              text-align: left;
+              font-weight: bold;
+              font-size: 7pt;
+            }
+            td {
+              border: 1px solid #000;
+              padding: 4px;
+              font-size: 8pt;
+            }
+            .product-details {
+              margin: 10px 0;
+              font-size: 8pt;
+            }
+            .detail-row {
+              display: flex;
+              margin-bottom: 4px;
+            }
+            .detail-label {
+              font-weight: bold;
+              min-width: 100px;
+            }
+            .commission {
+              margin: 8px 0;
+              font-size: 9pt;
+            }
+            .broker-section {
+              margin: 8px 0;
+              padding: 6px;
+              background: #f9fafb;
+              border: 1px solid #e5e7eb;
+              font-size: 8pt;
+            }
+            .arbitration-section {
+              margin: 10px 0;
+              padding: 8px;
+              background: #fffbeb;
+              border: 1px solid #fbbf24;
+              font-size: 7pt;
+              line-height: 1.4;
+            }
+            .arbitration-title {
+              font-weight: bold;
+              margin-bottom: 4px;
+            }
+            .signature-section {
+              margin-top: 20px;
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 40px;
+              font-size: 9pt;
+            }
+            .signature-block {
+              display: flex;
+              flex-direction: column;
+            }
+            .signature-label {
+              font-weight: bold;
+              margin-bottom: 25px;
+            }
+            .signature-line {
+              border-bottom: 1px solid #000;
+              margin-bottom: 5px;
+            }
+            .text-right {
+              text-align: right;
+            }
+            .bold {
+              font-weight: bold;
+            }
+            .total-row {
+              font-weight: bold;
+              background: #f0f0f0;
+            }
+          </style>
+        </head>
+        <body>
+          <!-- Header -->
+          <div class="header">
+            <div class="header-left">
+              ${logoBase64 ? `<img src="data:image/png;base64,${logoBase64}" class="logo" alt="Logo" />` : ''}
+              <div class="company-info">
+                <div class="company-name">The Kadouri Connection</div>
+                <div class="company-address">525 Northern Blvd, Suite 205; Great Neck, NY 11021; USA</div>
+              </div>
+            </div>
+            <div class="contract-info">
+              <div class="contract-title">CONTRACT # ${contract.contractNumber}</div>
+              <div class="contract-date">${currentDate}</div>
+            </div>
+          </div>
+
+          <!-- Parties -->
+          <div class="parties-section">
+            <div class="party">
+              <div class="party-label">Seller:</div>
+              <div>${contract.seller.companyName}</div>
+              ${contract.seller.address ? `<div style="font-size: 8pt; color: #666; margin-top: 2px;">${contract.seller.address}</div>` : ''}
+            </div>
+            <div class="party">
+              <div class="party-label">Purchaser:</div>
+              <div>${contract.buyer.companyName}</div>
+              ${contract.buyer.address ? `<div style="font-size: 8pt; color: #666; margin-top: 2px;">${contract.buyer.address}</div>` : ''}
+            </div>
+          </div>
+
+          <!-- Contract Validity -->
+          <div class="validity">
+            Contract Valid: ${validFrom}, to ${validUntil}
+          </div>
+
+          ${contract.brokerName ? `
+          <!-- Broker Information -->
+          <div class="broker-section">
+            <div class="bold">Broker: ${contract.brokerName}</div>
+            ${contract.brokerAddress ? `<div>${contract.brokerAddress}</div>` : ''}
+            ${contract.brokerPhone ? `<div>Phone: ${contract.brokerPhone}</div>` : ''}
+            ${contract.brokerEmail ? `<div>Email: ${contract.brokerEmail}</div>` : ''}
+          </div>
+          ` : ''}
+
+          <!-- Product Table -->
+          <table>
+            <thead>
+              <tr>
+                <th>Commodity</th>
+                <th>Description</th>
+                <th>Number of Packages</th>
+                <th>Package Weight Per Unit</th>
+                <th>Total Weight lbs</th>
+                <th>Unit Price In $ US</th>
+                <th>Total Amount $ US</th>
+                <th>Commission (0.5%)</th>
+                <th>Total w/ Comm.</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${contract.product.name}</td>
+                <td>${contract.product.name}</td>
+                <td>${parseFloat(contract.totalQuantity).toLocaleString()}</td>
+                <td>${contract.unit}</td>
+                <td>${parseFloat(contract.totalQuantity).toLocaleString()}</td>
+                <td>${parseFloat(contract.pricePerUnit).toFixed(2)}</td>
+                <td>${parseFloat(contract.totalValue).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td>${(parseFloat(contract.totalValue) * 0.005).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td>${(parseFloat(contract.totalValue) * 1.005).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+              </tr>
+              <tr class="total-row">
+                <td colspan="6" style="text-align: right;"><strong>TOTAL:</strong></td>
+                <td><strong>${parseFloat(contract.totalValue).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
+                <td><strong>${(parseFloat(contract.totalValue) * 0.005).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
+                <td><strong>${(parseFloat(contract.totalValue) * 1.005).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Product Details -->
+          <div class="product-details">
+            <div class="detail-row">
+              <div class="detail-label">Product:</div>
+              <div>${contract.product.name}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">Quantity:</div>
+              <div>${parseFloat(contract.totalQuantity).toLocaleString()} ${contract.unit}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">Packaging:</div>
+              <div>${contract.unit}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">Price:</div>
+              <div>see above, pick up</div>
+            </div>
+            ${contract.notes ? `
+            <div class="detail-row">
+              <div class="detail-label">Notes:</div>
+              <div>${contract.notes}</div>
+            </div>
+            ` : ''}
+          </div>
+
+          <!-- Arbitration Clause -->
+          <div class="arbitration-section">
+            <div class="arbitration-title">Arbitration:</div>
+            <div>
+              All disputes arising from the execution of or in connection with the Contract of Sale shall be settled through negotiation in good faith.
+              In case no settlement can be reached through negotiation, the case shall then be submitted to the Association of Food Industries, Inc.
+              for arbitration in accordance with the Provisional Rules of Procedure. The arbitration award is final and binding upon both parties.
+            </div>
+          </div>
+
+          <!-- Signatures -->
+          <div class="signature-section">
+            <div class="signature-block">
+              <div class="signature-label">Seller</div>
+              <div class="signature-line"></div>
+              <div>Date: _____________________________</div>
+            </div>
+            <div class="signature-block">
+              <div class="signature-label">Buyer</div>
+              <div class="signature-line"></div>
+              <div>Date: _____________________________</div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `
+  }
 }
+

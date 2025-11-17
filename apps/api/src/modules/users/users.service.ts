@@ -131,3 +131,16 @@ export async function getActiveUsersCount(): Promise<number> {
 export async function getUsersByRole(role: UserRole): Promise<User[]> {
   return (await db.select().from(users).where(eq(users.role, role))) as User[]
 }
+
+/**
+ * Get all active users (for agent/broker dropdowns)
+ */
+export async function getActiveUsers(): Promise<Array<{ id: string; name: string; email: string }>> {
+  const activeUsers = await db.select().from(users).where(eq(users.active, true))
+
+  return activeUsers.map(user => ({
+    id: user.id,
+    name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+    email: user.email,
+  }))
+}

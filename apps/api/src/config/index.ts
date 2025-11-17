@@ -17,6 +17,7 @@ const envSchema = z.object({
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
   AWS_S3_BUCKET: z.string().optional(),
+  CORS_ORIGINS: z.string().default('http://localhost:2005,http://localhost:2010'),
 })
 
 const env = envSchema.parse(process.env)
@@ -44,5 +45,8 @@ export const config = {
     accessKeyId: env.AWS_ACCESS_KEY_ID,
     secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
     s3Bucket: env.AWS_S3_BUCKET,
+  },
+  cors: {
+    origins: env.CORS_ORIGINS.split(','),
   },
 }

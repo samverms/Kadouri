@@ -31,6 +31,8 @@ export class AccountsService {
       name: data.name,
       code,
       active: data.active ?? true,
+      accountType: data.accountType || 'both',
+      brokerIds: data.brokerIds || null,
     }).returning()
 
     logger.info(`Created account: ${newAccount.id} (${newAccount.code})`)
@@ -128,7 +130,11 @@ export class AccountsService {
     data: {
       name?: string
       active?: boolean
-    }
+      salesAgentId?: string
+      accountType?: string
+      brokerIds?: string[]
+    },
+    userId?: string
   ) {
     const [account] = await db.select().from(accounts).where(eq(accounts.id, id)).limit(1)
 
@@ -141,11 +147,12 @@ export class AccountsService {
       .set({
         ...data,
         updatedAt: new Date(),
+        updatedBy: userId, // This is the customer service person
       })
       .where(eq(accounts.id, id))
       .returning()
 
-    logger.info(`Updated account: ${id}`)
+    logger.info(`Updated account: ${id} by user: ${userId || 'unknown'}`)
     return updatedAccount
   }
 
@@ -251,7 +258,7 @@ export class AccountsService {
   }
 
   // Update address
-  async updateAddress(addressId: string, data: any) {
+  async updateAddress(addressId: string, data: any, userId?: string) {
     const [address] = await db.select().from(addresses).where(eq(addresses.id, addressId)).limit(1)
     if (!address) {
       throw new AppError('Address not found', 404)
@@ -278,11 +285,13 @@ export class AccountsService {
         postalCode: data.postalCode,
         country: data.country,
         isPrimary: data.isPrimary,
+        updatedAt: new Date(),
+        updatedBy: userId,
       })
       .where(eq(addresses.id, addressId))
       .returning()
 
-    logger.info(`Updated address ${addressId}`)
+    logger.info(`Updated address ${addressId} by user: ${userId || 'unknown'}`)
     return updatedAddress
   }
 
@@ -299,7 +308,7 @@ export class AccountsService {
   }
 
   // Update contact
-  async updateContact(contactId: string, data: any) {
+  async updateContact(contactId: string, data: any, userId?: string) {
     const [contact] = await db.select().from(contacts).where(eq(contacts.id, contactId)).limit(1)
     if (!contact) {
       throw new AppError('Contact not found', 404)
@@ -322,11 +331,13 @@ export class AccountsService {
         email: data.email,
         phone: data.phone,
         isPrimary: data.isPrimary,
+        updatedAt: new Date(),
+        updatedBy: userId,
       })
       .where(eq(contacts.id, contactId))
       .returning()
 
-    logger.info(`Updated contact ${contactId}`)
+    logger.info(`Updated contact ${contactId} by user: ${userId || 'unknown'}`)
     return updatedContact
   }
 
