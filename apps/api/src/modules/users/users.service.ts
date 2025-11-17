@@ -1,7 +1,7 @@
 import { db } from '../../db'
 import { users } from '../../db/schema'
 import { eq } from 'drizzle-orm'
-import { User, UserRole } from '@pace/shared'
+import { User, UserRole } from './shared-copy'
 
 /**
  * Get all users

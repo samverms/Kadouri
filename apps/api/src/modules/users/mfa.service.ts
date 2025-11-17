@@ -4,7 +4,7 @@ import crypto from 'crypto'
 import { db } from '../../db'
 import { users } from '../../db/schema'
 import { eq } from 'drizzle-orm'
-import { MFASetup } from '@pace/shared'
+import { MFASetup } from './shared-copy'
 
 const APP_NAME = 'Kaduri Connection CRM'
 const ENCRYPTION_KEY = process.env.MFA_ENCRYPTION_KEY || 'your-32-char-secret-key-here!!' // Should be 32 chars

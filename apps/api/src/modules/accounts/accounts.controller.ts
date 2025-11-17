@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import { AccountsService } from './accounts.service'
-import { createAccountSchema, createAddressSchema, createContactSchema } from '@pace/shared'
+import { createAccountSchema, createAddressSchema, createContactSchema } from './shared-copy'
 import { AuthRequest } from '../../middleware/auth'
 
 export class AccountsController {
