@@ -92,8 +92,8 @@ router.post('/sync/order/:orderId', authenticate, async (req, res) => {
     // Record activity
     await OrderActivityService.recordActivity({
       orderId,
-      clerkUserId: req.auth.userId,
-      userName: (req.auth as any).sessionClaims?.firstName + ' ' + (req.auth as any).sessionClaims?.lastName || 'User',
+      clerkUserId: (req as any).auth.userId,
+      userName: (req as any).auth.sessionClaims?.firstName + ' ' + (req as any).auth.sessionClaims?.lastName || 'User',
       activityType: 'invoice_created',
       description: `${docType === 'invoice' ? 'Invoice' : 'Estimate'} #${result.docNumber} created in QuickBooks`,
       ipAddress: req.ip,
@@ -132,8 +132,8 @@ router.put('/sync/order/:orderId', authenticate, async (req, res) => {
     // Record activity
     await OrderActivityService.recordActivity({
       orderId,
-      clerkUserId: req.auth.userId,
-      userName: (req.auth as any).sessionClaims?.firstName + ' ' + (req.auth as any).sessionClaims?.lastName || 'User',
+      clerkUserId: (req as any).auth.userId,
+      userName: (req as any).auth.sessionClaims?.firstName + ' ' + (req as any).auth.sessionClaims?.lastName || 'User',
       activityType: 'invoice_updated',
       description: `${order.qboDocType === 'invoice' ? 'Invoice' : 'Estimate'} #${order.qboDocNumber} updated in QuickBooks`,
       ipAddress: req.ip,
@@ -181,8 +181,8 @@ router.delete('/sync/order/:orderId', authenticate, async (req, res) => {
     // Record activity
     await OrderActivityService.recordActivity({
       orderId,
-      clerkUserId: req.auth.userId,
-      userName: (req.auth as any).sessionClaims?.firstName + ' ' + (req.auth as any).sessionClaims?.lastName || 'User',
+      clerkUserId: (req as any).auth.userId,
+      userName: (req as any).auth.sessionClaims?.firstName + ' ' + (req as any).auth.sessionClaims?.lastName || 'User',
       activityType: 'invoice_voided',
       description: `Invoice #${order.qboDocNumber} voided in QuickBooks`,
       ipAddress: req.ip,

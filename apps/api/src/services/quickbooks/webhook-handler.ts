@@ -4,7 +4,8 @@ import { db } from '../../db'
 import { orders, accounts, products } from '../../db/schema'
 import { eq } from 'drizzle-orm'
 import { logger } from '../../utils/logger'
-import { qboClient } from './config'
+import { QuickBooksClient } from './client'
+import { TokenManager } from './token-manager'
 import { OrderActivityService } from '../../modules/order-activities/order-activities.service'
 
 // QuickBooks webhook verification token
@@ -91,8 +92,6 @@ export async function handleQuickBooksWebhook(req: Request, res: Response) {
  * Handle Invoice changes from QuickBooks
  */
 async function handleInvoiceChange(qboInvoiceId: string, operation: string, realmId: string) {
-  const qbo = await getQBOClient(realmId)
-
   if (operation === 'Delete') {
     // Invoice was deleted/voided in QuickBooks
     logger.info(`Invoice ${qboInvoiceId} was deleted in QB`)
@@ -130,14 +129,14 @@ async function handleInvoiceChange(qboInvoiceId: string, operation: string, real
 
   // Fetch the invoice from QuickBooks to get latest data
   try {
-    const invoice = await new Promise((resolve, reject) => {
-      qbo.getInvoice(qboInvoiceId, (err: any, data: any) => {
-        if (err) reject(err)
-        else resolve(data)
-      })
-    })
+    // Get QB client with tokens
+    const { accessToken, realmId: tokenRealmId } = await TokenManager.getActiveToken()
+    const qboClient = new QuickBooksClient({
+      access_token: accessToken,
+      realmId: tokenRealmId
+    } as any)
 
-    const invoiceData = invoice as any
+    const invoiceData = await qboClient.getInvoice(qboInvoiceId)
 
     // Find the order with this QB invoice ID
     const [order] = await db
@@ -152,8 +151,8 @@ async function handleInvoiceChange(qboInvoiceId: string, operation: string, real
     }
 
     // Determine payment status
-    const balance = parseFloat(invoiceData.Balance || '0')
-    const totalAmount = parseFloat(invoiceData.TotalAmt || '0')
+    const balance = parseFloat(String(invoiceData.Balance || '0'))
+    const totalAmount = parseFloat(String(invoiceData.TotalAmt || '0'))
 
     let paymentStatus = 'unpaid'
     if (balance === 0 && totalAmount > 0) {
@@ -227,17 +226,15 @@ async function handleCustomerChange(qboCustomerId: string, operation: string, re
   }
 
   // For Create/Update, fetch the customer data
-  const qbo = await getQBOClient(realmId)
-
   try {
-    const customer = await new Promise((resolve, reject) => {
-      qbo.getCustomer(qboCustomerId, (err: any, data: any) => {
-        if (err) reject(err)
-        else resolve(data)
-      })
-    })
+    // Get QB client with tokens
+    const { accessToken, realmId: tokenRealmId } = await TokenManager.getActiveToken()
+    const qboClient = new QuickBooksClient({
+      access_token: accessToken,
+      realmId: tokenRealmId
+    } as any)
 
-    const customerData = customer as any
+    const customerData = await qboClient.getCustomer(qboCustomerId)
 
     // Find account with this QB customer ID
     const [account] = await db
@@ -301,17 +298,15 @@ async function handleItemChange(qboItemId: string, operation: string, realmId: s
  * Handle Payment changes from QuickBooks
  */
 async function handlePaymentChange(qboPaymentId: string, operation: string, realmId: string) {
-  const qbo = await getQBOClient(realmId)
-
   try {
-    const payment = await new Promise((resolve, reject) => {
-      qbo.getPayment(qboPaymentId, (err: any, data: any) => {
-        if (err) reject(err)
-        else resolve(data)
-      })
-    })
+    // Get QB client with tokens
+    const { accessToken, realmId: tokenRealmId } = await TokenManager.getActiveToken()
+    const qboClient = new QuickBooksClient({
+      access_token: accessToken,
+      realmId: tokenRealmId
+    } as any)
 
-    const paymentData = payment as any
+    const paymentData = await qboClient.getPayment(qboPaymentId)
 
     // Get the linked invoices
     const linkedInvoices = paymentData.Line?.filter((line: any) => line.LinkedTxn) || []
@@ -330,15 +325,8 @@ async function handlePaymentChange(qboPaymentId: string, operation: string, real
 
           if (order) {
             // Fetch the invoice to check balance
-            const invoice = await new Promise((resolve, reject) => {
-              qbo.getInvoice(qboInvoiceId, (err: any, data: any) => {
-                if (err) reject(err)
-                else resolve(data)
-              })
-            })
-
-            const invoiceData = invoice as any
-            const balance = parseFloat(invoiceData.Balance || '0')
+            const invoiceData = await qboClient.getInvoice(qboInvoiceId)
+            const balance = parseFloat(String(invoiceData.Balance || '0'))
 
             // Update payment status
             const status = balance === 0 ? 'paid' : 'posted_to_qb'

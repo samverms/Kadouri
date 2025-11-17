@@ -8,6 +8,97 @@
       "when": 1759894434151,
       "tag": "0000_ambitious_doctor_faustus",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1762697060325,
+      "tag": "0001_sloppy_richard_fisk",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1762982934224,
+      "tag": "0002_absurd_annihilus",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1763273715623,
+      "tag": "0003_flippant_runaways",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1763308964080,
+      "tag": "0004_elite_christian_walker",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1763311595660,
+      "tag": "0005_lush_energizer",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1763323826477,
+      "tag": "0006_charming_pride",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1763324418651,
+      "tag": "0007_faithful_lenny_balinger",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1763327800681,
+      "tag": "0008_cultured_owl",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1763333404707,
+      "tag": "0009_soft_ma_gnuci",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1763333585026,
+      "tag": "0010_mushy_vulcan",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1763357146675,
+      "tag": "0011_equal_bill_hollister",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1763357289395,
+      "tag": "0012_eager_ultimo",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "5",
+      "when": 1763365329000,
+      "tag": "0013_slimy_frank_castle",
+      "breakpoints": true
     }
   ]
 }
