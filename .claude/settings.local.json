@@ -47,7 +47,20 @@
       "Bash(grep:*)",
       "Bash(heroku run:*)",
       "Bash(del \"apps\\web\\src\\app\\(dashboard)\\nul\" 2)",
-      "Bash(nul)"
+      "Bash(nul)",
+      "Bash(heroku apps:rename:*)",
+      "Bash(heroku create:*)",
+      "Bash(node fix-api-urls.js:*)",
+      "Bash(node fix-all-api-urls.js:*)",
+      "Bash(git grep:*)",
+      "Bash(node fix-remaining-urls.js:*)",
+      "Bash(node fix-syntax-errors.js:*)",
+      "Bash(railway whoami:*)",
+      "Bash(railway link --help:*)",
+      "Bash(railway link:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(railway logs:*)",
+      "Bash(railway status:*)"
     ],
     "deny": [],
     "ask": []
