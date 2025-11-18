@@ -1,32 +1,13 @@
 {
-  "name": "pace-crm",
+  "name": "pace-crm-api",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "npm@10.0.0",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "scripts": {
-    "dev": "turbo run dev --filter=api --filter=web",
-    "dev:admin": "turbo run dev --filter=web",
-    "dev:sales": "turbo run dev --filter=sales",
-    "build": "turbo run build",
-    "build:admin": "turbo run build --filter=web",
-    "build:sales": "turbo run build --filter=sales",
-    "heroku-postbuild": "cd apps/api && npm install && npm run build",
-    "start": "node apps/api/dist/main.js",
-    "lint": "turbo run lint",
-    "test": "turbo run test",
-    "clean": "turbo run clean && rm -rf node_modules"
-  },
   "engines": {
     "node": "20.x",
     "npm": "10.x"
   },
-  "devDependencies": {
-    "turbo": "^2.0.0",
-    "typescript": "^5.3.3",
-    "xlsx": "^0.18.5"
+  "scripts": {
+    "heroku-postbuild": "cd apps/api && npm install --production=false && npm run build",
+    "start": "node apps/api/dist/main.js"
   }
 }
