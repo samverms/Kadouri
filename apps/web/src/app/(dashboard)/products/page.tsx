@@ -490,11 +490,6 @@ export default function ProductsPage() {
         return fullName.toLowerCase().includes(columnFilters.fullName.toLowerCase())
       })
     }
-    if (columnFilters.name) {
-      result = result.filter(product =>
-        product.name?.toLowerCase().includes(columnFilters.name.toLowerCase())
-      )
-    }
     if (columnFilters.variety) {
       result = result.filter(product =>
         product.variety?.toLowerCase().includes(columnFilters.variety.toLowerCase())
