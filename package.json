@@ -7,7 +7,7 @@
     "npm": "10.x"
   },
   "scripts": {
-    "heroku-postbuild": "cd packages/shared && npm install && npm run build && cd ../../apps/api && npm install --production=false && npm link ../../packages/shared && npm run build && cd ../web && npm install --production=false && npm link ../../packages/shared && npm run build",
+    "heroku-postbuild": "cd packages/shared && npm install && npm run build && cd ../../apps/api && npm install --production=false && npm link ../../packages/shared && npm run build && cd ../web && npm ci --legacy-peer-deps && npm link ../../packages/shared && npm run build",
     "start": "node apps/api/dist/main.js"
   }
 }
