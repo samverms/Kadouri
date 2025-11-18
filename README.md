@@ -1,4 +1,4 @@
-# PACE CRM - QuickBooks Order Management System
+# Kadouri CRM - QuickBooks Order Management System
 
 A modern order management system with QuickBooks Online integration, built for produce/agricultural sales with commission tracking.
 
@@ -43,7 +43,7 @@ This repository contains **two separate dashboard versions** to choose from:
 ## Project Structure
 
 ```
-pace-crm/
+kadouri-crm/
 ├── apps/
 │   ├── web/              # Next.js frontend
 │   └── api/              # Express backend
@@ -66,8 +66,8 @@ pace-crm/
 
 1. **Clone and install dependencies:**
 ```bash
-git clone https://github.com/mailumaoc/pace-crm.git
-cd pace-crm
+git clone https://github.com/luminoustec/kadouri.git
+cd kadouri-crm
 npm install
 ```
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PACE CRM is a modern order management system with QuickBooks Online integration, built for produce/agricultural sales with commission tracking. It's a **Turborepo monorepo** with a Next.js frontend and Express backend.
+Kadouri CRM is a modern order management system with QuickBooks Online integration, built for produce/agricultural sales with commission tracking. It's a **Turborepo monorepo** with a Next.js frontend and Express backend.
 
 ### Tech Stack
 - **Frontend**: Next.js 14, TailwindCSS, TanStack Query/Table, Zustand, React Hook Form + Zod, Clerk auth
