@@ -78,7 +78,7 @@ export default function AccountsPage() {
     setIsLoading(true)
     setError('')
     try {
-      const response = await fetch('http://localhost:2000/api/accounts', {
+      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts', {
         credentials: 'include',
       })
 
@@ -101,7 +101,7 @@ export default function AccountsPage() {
 
     setLoadingOrders(accountId)
     try {
-      const response = await fetch(`http://localhost:2000/api/invoices?accountId=${accountId}&limit=5`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/invoices?accountId=${accountId}&limit=5`, {
         credentials: 'include',
       })
 

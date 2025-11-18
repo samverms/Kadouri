@@ -6,7 +6,7 @@ export function useUserRole() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000') + '/api/me/role', { credentials: 'include' })
+    fetch((process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || '') + '/api/me/role', { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         setRole(data.role)

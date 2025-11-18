@@ -23,7 +23,7 @@ export default function ContractDetailPage() {
 
   const fetchContract = async () => {
     try {
-      const res = await fetch(`http://localhost:2000/api/contracts/${params.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contracts/${params.id}`, {
         credentials: 'include',
       })
 
@@ -41,7 +41,7 @@ export default function ContractDetailPage() {
   const handleDownloadPDF = async () => {
     setDownloadingPDF(true)
     try {
-      const res = await fetch(`http://localhost:2000/api/pdf/contract/${params.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/pdf/contract/${params.id}`, {
         credentials: 'include',
       })
 
@@ -67,7 +67,7 @@ export default function ContractDetailPage() {
       const formData = new FormData()
       formData.append('file', file)
 
-      const res = await fetch(`http://localhost:2000/api/contracts/${params.id}/upload`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contracts/${params.id}/upload`, {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -121,7 +121,7 @@ export default function ContractDetailPage() {
     }
 
     try {
-      const res = await fetch(`http://localhost:2000/api/contracts/${params.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contracts/${params.id}`, {
         method: 'DELETE',
         credentials: 'include',
       })
@@ -138,7 +138,7 @@ export default function ContractDetailPage() {
 
   const handleMarkComplete = async () => {
     try {
-      const res = await fetch(`http://localhost:2000/api/contracts/${params.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contracts/${params.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

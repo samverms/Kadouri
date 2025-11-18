@@ -89,7 +89,7 @@ export default function ProductDetailPage() {
     setIsLoading(true)
     try {
       // Fetch product details
-      const productResponse = await fetch(`http://localhost:2000/api/products/${productId}`, {
+      const productResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/${productId}`, {
         credentials: 'include',
       })
 
@@ -104,7 +104,7 @@ export default function ProductDetailPage() {
       }
 
       // Fetch transactions (orders) containing this product
-      const transactionsResponse = await fetch(`http://localhost:2000/api/invoices?productId=${productId}`, {
+      const transactionsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/invoices?productId=${productId}`, {
         credentials: 'include',
       })
 
@@ -121,7 +121,7 @@ export default function ProductDetailPage() {
 
   const fetchUserName = async (userId: string) => {
     try {
-      const response = await fetch(`http://localhost:2000/api/users/${userId}/name`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/users/${userId}/name`, {
         credentials: 'include',
       })
 

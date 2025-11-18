@@ -14,20 +14,20 @@ export default function RolesManagementPage() {
   useEffect(() => { fetchRoles(); fetchPermissions() }, [])
 
   const fetchRoles = async () => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
     const res = await fetch(apiUrl + '/api/roles', { credentials: 'include' })
     setRoles(await res.json())
     setIsLoading(false)
   }
 
   const fetchPermissions = async () => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
     const res = await fetch(apiUrl + '/api/permissions', { credentials: 'include' })
     setPermissions(await res.json())
   }
 
   const fetchRoleDetails = async (roleId: string) => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
     const res = await fetch(apiUrl + '/api/roles/' + roleId, { credentials: 'include' })
     setSelectedRole(await res.json())
   }
@@ -41,7 +41,7 @@ export default function RolesManagementPage() {
 
   const save = async () => {
     if (!selectedRole) return
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
     try {
       await fetch(apiUrl + '/api/roles/' + selectedRole.id + '/permissions', {
         method: 'POST',

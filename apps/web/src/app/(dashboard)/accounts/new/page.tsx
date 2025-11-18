@@ -178,7 +178,7 @@ export default function NewAccountPage() {
           })),
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}/api/accounts`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -148,7 +148,7 @@ export default function OrderDetailPage() {
 
   const fetchOrder = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
         credentials: 'include',
       })
@@ -174,7 +174,7 @@ export default function OrderDetailPage() {
 
   const fetchAccounts = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/accounts?limit=10000`, {
         credentials: 'include',
       })
@@ -190,7 +190,7 @@ export default function OrderDetailPage() {
 
   const fetchProducts = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/products`, {
         credentials: 'include',
       })
@@ -206,7 +206,7 @@ export default function OrderDetailPage() {
   const fetchActivities = async () => {
     setActivitiesLoading(true)
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/orders/${orderId}/activities`, {
         credentials: 'include',
       })
@@ -311,7 +311,7 @@ export default function OrderDetailPage() {
         })),
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
 
       if (mode === 'edit') {
         // Update existing order
@@ -366,7 +366,7 @@ export default function OrderDetailPage() {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
         method: 'DELETE',
         credentials: 'include',
@@ -434,7 +434,7 @@ export default function OrderDetailPage() {
 
     setQbLoading(true)
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/quickbooks/sync/order/${orderId}`, {
         method: 'POST',
         headers: {
@@ -467,7 +467,7 @@ export default function OrderDetailPage() {
 
     setQbLoading(true)
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/quickbooks/sync/order/${orderId}`, {
         method: 'PUT',
         credentials: 'include',
@@ -496,7 +496,7 @@ export default function OrderDetailPage() {
 
     setQbLoading(true)
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/quickbooks/sync/order/${orderId}`, {
         method: 'DELETE',
         credentials: 'include',

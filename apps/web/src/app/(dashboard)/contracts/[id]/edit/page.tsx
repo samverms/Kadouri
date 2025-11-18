@@ -124,7 +124,7 @@ export default function EditContractPage() {
 
   const fetchContract = async () => {
     try {
-      const res = await fetch(`http://localhost:2000/api/contracts/${params.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contracts/${params.id}`, {
         credentials: 'include',
       })
       if (res.ok) {
@@ -168,7 +168,7 @@ export default function EditContractPage() {
 
   const fetchAccounts = async () => {
     try {
-      const res = await fetch('http://localhost:2000/api/accounts?limit=10000', {
+      const res = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts?limit=10000', {
         credentials: 'include',
       })
       if (res.ok) {
@@ -182,7 +182,7 @@ export default function EditContractPage() {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch('http://localhost:2000/api/products?limit=10000', {
+      const res = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/products?limit=10000', {
         credentials: 'include',
       })
       if (res.ok) {
@@ -228,7 +228,7 @@ export default function EditContractPage() {
   const handleSelectSeller = async (account: Account) => {
     // Fetch full account details with addresses
     try {
-      const response = await fetch(`http://localhost:2000/api/accounts/${account.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${account.id}`, {
         credentials: 'include',
       })
 
@@ -253,7 +253,7 @@ export default function EditContractPage() {
   const handleSelectBuyer = async (account: Account) => {
     // Fetch full account details with addresses
     try {
-      const response = await fetch(`http://localhost:2000/api/accounts/${account.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${account.id}`, {
         credentials: 'include',
       })
 
@@ -352,7 +352,7 @@ export default function EditContractPage() {
         ...formData,
       }
 
-      const res = await fetch(`http://localhost:2000/api/contracts/${params.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contracts/${params.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

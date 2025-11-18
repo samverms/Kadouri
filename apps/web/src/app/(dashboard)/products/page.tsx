@@ -109,7 +109,7 @@ export default function ProductsPage() {
     setError('')
     try {
       const includeInactive = !showActiveOnly
-      const response = await fetch(`http://localhost:2000/api/products?includeInactive=${includeInactive}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products?includeInactive=${includeInactive}`, {
         credentials: 'include',
       })
 
@@ -153,7 +153,7 @@ export default function ProductsPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:2000/api/products/${productId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/${productId}`, {
         method: 'DELETE',
         credentials: 'include',
       })

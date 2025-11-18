@@ -54,7 +54,7 @@ export default function NewProductPage() {
         active: formData.active,
       }
 
-      const response = await fetch(`http://localhost:2000/api/products`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

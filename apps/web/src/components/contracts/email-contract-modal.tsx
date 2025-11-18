@@ -59,7 +59,7 @@ export function EmailContractModal({ contract, onClose, onSuccess }: EmailContra
     setError('')
 
     try {
-      const res = await fetch(`http://localhost:2000/api/contracts/${contract.id}/email`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contracts/${contract.id}/email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

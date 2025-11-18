@@ -81,7 +81,7 @@ export default function AccountDetailPage() {
     if (account) {
       // Fetch sales agent name
       if (account.salesAgentId) {
-        fetch(`http://localhost:2000/api/users/${account.salesAgentId}/name`, {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/users/${account.salesAgentId}/name`, {
           credentials: 'include',
         })
         .then(res => res.json())
@@ -90,7 +90,7 @@ export default function AccountDetailPage() {
       }
       // Fetch updatedBy user name
       if (account.updatedBy) {
-        fetch(`http://localhost:2000/api/users/${account.updatedBy}/name`, {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/users/${account.updatedBy}/name`, {
           credentials: 'include',
         })
         .then(res => res.json())
@@ -105,7 +105,7 @@ export default function AccountDetailPage() {
     setError('')
     try {
       // Fetch account details
-      const accountResponse = await fetch(`http://localhost:2000/api/accounts/${accountId}`, {
+      const accountResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${accountId}`, {
         credentials: 'include',
       })
 
@@ -117,7 +117,7 @@ export default function AccountDetailPage() {
       setAccount(accountData)
 
       // Fetch transactions for this account
-      const transactionsResponse = await fetch(`http://localhost:2000/api/invoices?accountId=${accountId}`, {
+      const transactionsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/invoices?accountId=${accountId}`, {
         credentials: 'include',
       })
 
@@ -137,7 +137,7 @@ export default function AccountDetailPage() {
     e.preventDefault()
     setFormSubmitting(true)
     try {
-      const response = await fetch(`http://localhost:2000/api/accounts/${accountId}/addresses`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${accountId}/addresses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -182,7 +182,7 @@ export default function AccountDetailPage() {
     e.preventDefault()
     setFormSubmitting(true)
     try {
-      const response = await fetch(`http://localhost:2000/api/accounts/${accountId}/contacts`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${accountId}/contacts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -223,7 +223,7 @@ export default function AccountDetailPage() {
   const handleEditAccount = async () => {
     setFormSubmitting(true)
     try {
-      const response = await fetch(`http://localhost:2000/api/accounts/${accountId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${accountId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -252,7 +252,7 @@ export default function AccountDetailPage() {
       return
     }
     try {
-      const response = await fetch(`http://localhost:2000/api/accounts/${accountId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${accountId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -277,7 +277,7 @@ export default function AccountDetailPage() {
     setAccount((prev: any) => ({ ...prev, accountType: newType }))
 
     try {
-      const response = await fetch(`http://localhost:2000/api/accounts/${accountId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${accountId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -302,7 +302,7 @@ export default function AccountDetailPage() {
     if (!editingAddress) return
     setFormSubmitting(true)
     try {
-      const response = await fetch(`http://localhost:2000/api/accounts/addresses/${editingAddress.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/addresses/${editingAddress.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -329,7 +329,7 @@ export default function AccountDetailPage() {
   const handleDeleteAddress = async (addressId: string) => {
     if (!confirm('Are you sure you want to delete this address?')) return
     try {
-      const response = await fetch(`http://localhost:2000/api/accounts/addresses/${addressId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/addresses/${addressId}`, {
         method: 'DELETE',
         credentials: 'include',
       })
@@ -350,7 +350,7 @@ export default function AccountDetailPage() {
     if (!editingContact) return
     setFormSubmitting(true)
     try {
-      const response = await fetch(`http://localhost:2000/api/accounts/contacts/${editingContact.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/contacts/${editingContact.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -377,7 +377,7 @@ export default function AccountDetailPage() {
   const handleDeleteContact = async (contactId: string) => {
     if (!confirm('Are you sure you want to delete this contact?')) return
     try {
-      const response = await fetch(`http://localhost:2000/api/accounts/contacts/${contactId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/contacts/${contactId}`, {
         method: 'DELETE',
         credentials: 'include',
       })

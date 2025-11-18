@@ -58,7 +58,7 @@ export default function ContractsPage() {
 
   const fetchContracts = async () => {
     try {
-      const res = await fetch('http://localhost:2000/api/contracts', {
+      const res = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/contracts', {
         credentials: 'include',
       })
 

@@ -91,7 +91,7 @@ export default function EditProductPage() {
     setIsLoading(true)
     setError('')
     try {
-      const response = await fetch(`http://localhost:2000/api/products/${productId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/${productId}`, {
         credentials: 'include',
       })
 
@@ -144,7 +144,7 @@ export default function EditProductPage() {
         active: formData.active,
       }
 
-      const response = await fetch(`http://localhost:2000/api/products/${productId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/${productId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -217,7 +217,7 @@ export default function EditProductPage() {
 
       if (editingVariant) {
         // Update existing variant
-        const response = await fetch(`http://localhost:2000/api/products/variants/${editingVariant.id}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/variants/${editingVariant.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -231,7 +231,7 @@ export default function EditProductPage() {
         showToast('Variant updated successfully', 'success')
       } else {
         // Create new variant
-        const response = await fetch(`http://localhost:2000/api/products/${productId}/variants`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/${productId}/variants`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -257,7 +257,7 @@ export default function EditProductPage() {
     if (!confirm('Are you sure you want to delete this variant?')) return
 
     try {
-      const response = await fetch(`http://localhost:2000/api/products/variants/${variantId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/variants/${variantId}`, {
         method: 'DELETE',
         credentials: 'include',
       })
@@ -275,7 +275,7 @@ export default function EditProductPage() {
   const handleSetDefaultVariant = async (variantId: string) => {
     try {
       const response = await fetch(
-        `http://localhost:2000/api/products/${productId}/variants/${variantId}/set-default`,
+        `${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/${productId}/variants/${variantId}/set-default`,
         {
           method: 'POST',
           credentials: 'include',

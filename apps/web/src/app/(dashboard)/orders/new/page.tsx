@@ -215,7 +215,7 @@ export default function NewOrderPage() {
       if (selectedSeller && selectedBuyer && orderLines.length > 0 && orderLines[0].productId) {
         try {
           const response = await fetch(
-            `http://localhost:2000/api/contracts/match?sellerId=${selectedSeller.id}&buyerId=${selectedBuyer.id}&productId=${orderLines[0].productId}`,
+            `${process.env.NEXT_PUBLIC_API_URL || ''}/api/contracts/match?sellerId=${selectedSeller.id}&buyerId=${selectedBuyer.id}&productId=${orderLines[0].productId}`,
             { credentials: 'include' }
           )
 
@@ -246,7 +246,7 @@ export default function NewOrderPage() {
 
   const fetchAccounts = async () => {
     try {
-      const response = await fetch('http://localhost:2000/api/accounts?limit=10000', {
+      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts?limit=10000', {
         credentials: 'include',
       })
 
@@ -263,7 +263,7 @@ export default function NewOrderPage() {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('http://localhost:2000/api/products?includeInactive=false', {
+      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/products?includeInactive=false', {
         credentials: 'include',
       })
 
@@ -281,7 +281,7 @@ export default function NewOrderPage() {
   const fetchAgentsAndBrokers = async () => {
     try {
       // Fetch agents
-      const agentsResponse = await fetch('http://localhost:2000/api/agents', {
+      const agentsResponse = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/agents', {
         credentials: 'include',
       })
       if (agentsResponse.ok) {
@@ -290,7 +290,7 @@ export default function NewOrderPage() {
       }
 
       // Fetch brokers
-      const brokersResponse = await fetch('http://localhost:2000/api/brokers', {
+      const brokersResponse = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/brokers', {
         credentials: 'include',
       })
       if (brokersResponse.ok) {
@@ -326,7 +326,7 @@ export default function NewOrderPage() {
   const handleSelectSeller = async (account: Account) => {
     // Fetch full account details with addresses and contacts
     try {
-      const response = await fetch(`http://localhost:2000/api/accounts/${account.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${account.id}`, {
         credentials: 'include',
       })
 
@@ -358,7 +358,7 @@ export default function NewOrderPage() {
   const handleSelectBuyer = async (account: Account) => {
     // Fetch full account details with addresses and contacts
     try {
-      const response = await fetch(`http://localhost:2000/api/accounts/${account.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${account.id}`, {
         credentials: 'include',
       })
 
@@ -601,7 +601,7 @@ export default function NewOrderPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:2000/api/accounts/${targetAccount.id}/addresses`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${targetAccount.id}/addresses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -672,7 +672,7 @@ export default function NewOrderPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:2000/api/accounts/${targetAccount.id}/contacts`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${targetAccount.id}/contacts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -732,7 +732,7 @@ export default function NewOrderPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:2000/api/agents`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/agents`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -778,7 +778,7 @@ export default function NewOrderPage() {
 
     try {
       // Create broker in database
-      const response = await fetch(`http://localhost:2000/api/brokers`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/brokers`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -870,7 +870,7 @@ export default function NewOrderPage() {
         })),
       }
 
-      const response = await fetch('http://localhost:2000/api/orders', {
+      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

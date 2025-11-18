@@ -122,7 +122,7 @@ export default function InvoicesPage() {
       }
       params.append('limit', '1000') // Increase limit to fetch more invoices
 
-      const url = `http://localhost:2000/api/invoices${params.toString() ? '?' + params.toString() : ''}`
+      const url = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/invoices${params.toString() ? '?' + params.toString() : ''}`
 
       const response = await fetch(url, {
         credentials: 'include',
