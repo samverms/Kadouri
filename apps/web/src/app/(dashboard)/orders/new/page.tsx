@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -88,10 +89,24 @@ interface Account {
 
 export default function NewOrderPage() {
   const router = useRouter()
+  const { getToken } = useAuth()
   const { showToast } = useToast()
 
   // Order state
-  const [orderLines, setOrderLines] = useState<OrderLine[]>([])
+  const [orderLines, setOrderLines] = useState<OrderLine[]>([{
+    id: 'initial-line',
+    productId: '',
+    product: '',
+    variety: '',
+    size: '',
+    grade: '',
+    quantity: 0,
+    unitSize: 0,
+    unitSizeUnit: 'LBS',
+    totalWeight: 0,
+    unitPrice: 0,
+    total: 0,
+  }])
   const [commissionRate, setCommissionRate] = useState(0)
   const [numPallets, setNumPallets] = useState('')
   const [conditions, setConditions] = useState('')
@@ -214,9 +229,15 @@ export default function NewOrderPage() {
     const fetchMatchingContracts = async () => {
       if (selectedSeller && selectedBuyer && orderLines.length > 0 && orderLines[0].productId) {
         try {
+          const token = await getToken()
           const response = await fetch(
             `${process.env.NEXT_PUBLIC_API_URL || ''}/api/contracts/match?sellerId=${selectedSeller.id}&buyerId=${selectedBuyer.id}&productId=${orderLines[0].productId}`,
-            { credentials: 'include' }
+            {
+              credentials: 'include',
+              headers: {
+                ...(token && { Authorization: `Bearer ${token}` }),
+              },
+            }
           )
 
           if (response.ok) {
@@ -246,8 +267,12 @@ export default function NewOrderPage() {
 
   const fetchAccounts = async () => {
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts?limit=10000`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!response.ok) {
@@ -263,8 +288,12 @@ export default function NewOrderPage() {
 
   const fetchProducts = async () => {
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products?includeInactive=false`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!response.ok) {
@@ -280,9 +309,13 @@ export default function NewOrderPage() {
 
   const fetchAgentsAndBrokers = async () => {
     try {
+      const token = await getToken()
       // Fetch agents
       const agentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/agents`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
       if (agentsResponse.ok) {
         const agentsData = await agentsResponse.json()
@@ -292,6 +325,9 @@ export default function NewOrderPage() {
       // Fetch brokers
       const brokersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/brokers`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
       if (brokersResponse.ok) {
         const brokersData = await brokersResponse.json()
@@ -326,8 +362,12 @@ export default function NewOrderPage() {
   const handleSelectSeller = async (account: Account) => {
     // Fetch full account details with addresses and contacts
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${account.id}`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!response.ok) {
@@ -358,8 +398,12 @@ export default function NewOrderPage() {
   const handleSelectBuyer = async (account: Account) => {
     // Fetch full account details with addresses and contacts
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${account.id}`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!response.ok) {
@@ -428,12 +472,12 @@ export default function NewOrderPage() {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement
 
-      // Check if click is on product input
+      // Check if click is on product input or dropdown
       const isInput = Object.values(inputRefs.current).some(input => input && input.contains(target))
+      const isProductDropdown = productDropdownRef.current?.contains(target)
 
-      // Only close if clicking truly outside (not on input)
-      // The dropdown itself uses stopPropagation to prevent closing when clicked
-      if (!isInput && activeSearchLineId) {
+      // Only close if clicking truly outside (not on input or dropdown)
+      if (!isInput && !isProductDropdown && activeSearchLineId) {
         setActiveSearchLineId(null)
       }
 
@@ -487,7 +531,7 @@ export default function NewOrderPage() {
     setOrderLines(orderLines.filter((line) => line.id !== id))
   }
 
-  const handleProductSelect = (lineId: string, product: Product) => {
+  const handleSelectProduct = (lineId: string, product: Product) => {
     // Check if product has active variants
     const activeVariants = product.variants?.filter(v => v.active) || []
 
@@ -501,6 +545,8 @@ export default function NewOrderPage() {
     } else {
       // No variants, proceed with normal product selection
       applyProductToLine(lineId, product, null)
+      setProductSearchQuery({ ...productSearchQuery, [lineId]: '' })
+      setActiveSearchLineId(null)
     }
   }
 
@@ -601,10 +647,12 @@ export default function NewOrderPage() {
     }
 
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${targetAccount.id}/addresses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         credentials: 'include',
         body: JSON.stringify(newAddress),
@@ -672,10 +720,12 @@ export default function NewOrderPage() {
     }
 
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${targetAccount.id}/contacts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         credentials: 'include',
         body: JSON.stringify(newContact),
@@ -732,9 +782,13 @@ export default function NewOrderPage() {
     }
 
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/agents`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
         credentials: 'include',
         body: JSON.stringify({
           name: newUser.name,
@@ -777,11 +831,13 @@ export default function NewOrderPage() {
     }
 
     try {
+      const token = await getToken()
       // Create broker in database
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/brokers`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -870,10 +926,12 @@ export default function NewOrderPage() {
         })),
       }
 
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         credentials: 'include',
         body: JSON.stringify(orderData),
@@ -1422,25 +1480,17 @@ export default function NewOrderPage() {
                             placeholder="Type to search products..."
                           />
 
-                          {/* Product Dropdown - Inline */}
+                          {/* Product Dropdown */}
                           {activeSearchLineId === line.id && getFilteredProducts(line.id).length > 0 && (
                             <div
+                              ref={productDropdownRef}
                               className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-700 rounded-md shadow-lg max-h-60 overflow-auto"
-                              onMouseDown={(e) => {
-                                // Prevent the click-outside handler from closing the dropdown
-                                e.stopPropagation()
-                              }}
                             >
                               {getFilteredProducts(line.id).map((product) => (
                                 <div
                                   key={product.id}
                                   className="px-3 py-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50 border-b dark:border-gray-700 last:border-b-0"
-                                  onMouseDown={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    handleProductSelect(line.id, product)
-                                    setActiveSearchLineId(null)
-                                  }}
+                                  onClick={() => handleSelectProduct(line.id, product)}
                                 >
                                   <div className="font-medium text-gray-900 dark:text-white">
                                     {product.name} - {product.variety}

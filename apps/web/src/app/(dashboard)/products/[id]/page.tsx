@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -68,6 +69,7 @@ interface Transaction {
 export default function ProductDetailPage() {
   const params = useParams()
   const productId = params.id as string
+  const { getToken } = useAuth()
 
   const [activeTab, setActiveTab] = useState<'overview' | 'transactions'>(
     'overview'
@@ -88,9 +90,13 @@ export default function ProductDetailPage() {
   const fetchProductAndTransactions = async () => {
     setIsLoading(true)
     try {
+      const token = await getToken()
       // Fetch product details
       const productResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/${productId}`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (productResponse.ok) {
@@ -106,6 +112,9 @@ export default function ProductDetailPage() {
       // Fetch transactions (orders) containing this product
       const transactionsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/invoices?productId=${productId}`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (transactionsResponse.ok) {
@@ -121,8 +130,12 @@ export default function ProductDetailPage() {
 
   const fetchUserName = async (userId: string) => {
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/users/${userId}/name`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (response.ok) {

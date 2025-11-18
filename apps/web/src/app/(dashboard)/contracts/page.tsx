@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, Fragment, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,6 +29,7 @@ interface Contract {
 
 export default function ContractsPage() {
   const router = useRouter()
+  const { getToken } = useAuth()
   const [contracts, setContracts] = useState<Contract[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -58,8 +60,12 @@ export default function ContractsPage() {
 
   const fetchContracts = async () => {
     try {
+      const token = await getToken()
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contracts`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!res.ok) {

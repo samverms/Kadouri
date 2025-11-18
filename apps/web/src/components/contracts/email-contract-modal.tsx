@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -43,6 +44,7 @@ interface EmailContractModalProps {
 }
 
 export function EmailContractModal({ contract, onClose, onSuccess }: EmailContractModalProps) {
+  const { getToken } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [sendToSeller, setSendToSeller] = useState(true)
@@ -59,10 +61,12 @@ export function EmailContractModal({ contract, onClose, onSuccess }: EmailContra
     setError('')
 
     try {
+      const token = await getToken()
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contracts/${contract.id}/email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         credentials: 'include',
         body: JSON.stringify({

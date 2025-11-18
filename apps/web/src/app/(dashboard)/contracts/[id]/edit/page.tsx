@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,6 +38,7 @@ interface Product {
 export default function EditContractPage() {
   const router = useRouter()
   const params = useParams()
+  const { getToken } = useAuth()
   const [accounts, setAccounts] = useState<Account[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(false)
@@ -124,8 +126,12 @@ export default function EditContractPage() {
 
   const fetchContract = async () => {
     try {
+      const token = await getToken()
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contracts/${params.id}`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
       if (res.ok) {
         const contract = await res.json()
@@ -168,8 +174,12 @@ export default function EditContractPage() {
 
   const fetchAccounts = async () => {
     try {
+      const token = await getToken()
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts?limit=10000`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
       if (res.ok) {
         const data = await res.json()
@@ -182,8 +192,12 @@ export default function EditContractPage() {
 
   const fetchProducts = async () => {
     try {
+      const token = await getToken()
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products?limit=10000`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
       if (res.ok) {
         const data = await res.json()

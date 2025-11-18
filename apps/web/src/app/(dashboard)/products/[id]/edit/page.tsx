@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -43,6 +44,7 @@ export default function EditProductPage() {
   const router = useRouter()
   const params = useParams()
   const productId = params.id as string
+  const { getToken } = useAuth()
   const { showToast } = useToast()
 
   const [product, setProduct] = useState<Product | null>(null)
@@ -91,8 +93,12 @@ export default function EditProductPage() {
     setIsLoading(true)
     setError('')
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/${productId}`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!response.ok) {
@@ -144,10 +150,12 @@ export default function EditProductPage() {
         active: formData.active,
       }
 
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/${productId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         credentials: 'include',
         body: JSON.stringify(payload),
@@ -206,6 +214,7 @@ export default function EditProductPage() {
     }
 
     try {
+      const token = await getToken()
       const payload = {
         sku: variantForm.sku || undefined,
         size: parseFloat(variantForm.size),
@@ -219,7 +228,10 @@ export default function EditProductPage() {
         // Update existing variant
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/variants/${editingVariant.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
           credentials: 'include',
           body: JSON.stringify(payload),
         })
@@ -233,7 +245,10 @@ export default function EditProductPage() {
         // Create new variant
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/${productId}/variants`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
           credentials: 'include',
           body: JSON.stringify(payload),
         })
@@ -257,9 +272,13 @@ export default function EditProductPage() {
     if (!confirm('Are you sure you want to delete this variant?')) return
 
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/variants/${variantId}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!response.ok) throw new Error('Failed to delete variant')
@@ -274,11 +293,15 @@ export default function EditProductPage() {
 
   const handleSetDefaultVariant = async (variantId: string) => {
     try {
+      const token = await getToken()
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/${productId}/variants/${variantId}/set-default`,
         {
           method: 'POST',
           credentials: 'include',
+          headers: {
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
         }
       )
 

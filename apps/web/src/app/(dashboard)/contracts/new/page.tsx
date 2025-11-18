@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,6 +37,7 @@ interface Product {
 
 export default function NewContractPage() {
   const router = useRouter()
+  const { getToken } = useAuth()
   const [accounts, setAccounts] = useState<Account[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(false)
@@ -121,8 +123,12 @@ export default function NewContractPage() {
 
   const fetchAccounts = async () => {
     try {
+      const token = await getToken()
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts?limit=10000`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
       if (res.ok) {
         const data = await res.json()
@@ -135,8 +141,12 @@ export default function NewContractPage() {
 
   const fetchProducts = async () => {
     try {
+      const token = await getToken()
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products?limit=10000`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
       if (res.ok) {
         const data = await res.json()
@@ -298,6 +308,7 @@ export default function NewContractPage() {
     setLoading(true)
 
     try {
+      const token = await getToken()
       const submitData = {
         sellerId: selectedSeller.id,
         buyerId: selectedBuyer.id,
@@ -307,7 +318,10 @@ export default function NewContractPage() {
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contracts`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
         credentials: 'include',
         body: JSON.stringify(submitData),
       })

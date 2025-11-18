@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -56,6 +57,7 @@ interface ColumnVisibility {
 
 export default function AccountsPage() {
   const router = useRouter()
+  const { getToken } = useAuth()
   const { showToast } = useToast()
   const [searchQuery, setSearchQuery] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -122,8 +124,12 @@ export default function AccountsPage() {
     setIsLoading(true)
     setError('')
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!response.ok) {
@@ -145,8 +151,12 @@ export default function AccountsPage() {
 
     setLoadingOrders(accountId)
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/invoices?accountId=${accountId}&limit=5`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (response.ok) {

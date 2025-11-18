@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,6 +29,7 @@ interface QuickBooksStatus {
 }
 
 export default function SettingsPage() {
+  const { getToken } = useAuth()
   const [isSaving, setIsSaving] = useState(false)
   const [qbStatus, setQbStatus] = useState<QuickBooksStatus | null>(null)
   const [qbLoading, setQbLoading] = useState(true)
@@ -39,8 +41,12 @@ export default function SettingsPage() {
   const fetchQuickBooksStatus = async () => {
     try {
       setQbLoading(true)
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/quickbooks/status`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
       if (response.ok) {
         const data = await response.json()
@@ -63,9 +69,13 @@ export default function SettingsPage() {
   const handleQuickBooksDisconnect = async () => {
     try {
       setQbLoading(true)
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/quickbooks/disconnect`, {
         method: 'POST',
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (response.ok) {

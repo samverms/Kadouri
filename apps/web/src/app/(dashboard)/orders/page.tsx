@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, Fragment, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
+import { useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -97,6 +98,7 @@ interface Product {
 
 export default function OrdersPage() {
   const router = useRouter()
+  const { getToken } = useAuth()
   const { showToast } = useToast()
   const [searchQuery, setSearchQuery] = useState('')
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -490,13 +492,16 @@ export default function OrdersPage() {
   }
 
   const generateSinglePDF = async (orderData: any, type: 'seller' | 'buyer') => {
+    const token = await getToken()
     const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/pdf/order/${type}`
 
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
       },
+      credentials: 'include',
       body: JSON.stringify(orderData),
     })
 
@@ -548,10 +553,12 @@ export default function OrdersPage() {
         })),
       }
 
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         credentials: 'include',
         body: JSON.stringify(duplicateData),
@@ -586,8 +593,12 @@ export default function OrdersPage() {
 
   const fetchAccounts = async () => {
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts?limit=10000`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!response.ok) {
@@ -605,8 +616,12 @@ export default function OrdersPage() {
     setIsLoading(true)
     setError('')
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/invoices`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!response.ok) {

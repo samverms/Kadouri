@@ -1,23 +1,33 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '@clerk/nextjs'
 
 export function useUserRole() {
+  const { getToken } = useAuth()
   const [role, setRole] = useState(null)
   const [permissions, setPermissions] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch((process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || '') + '/api/me/role', { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => {
+    const fetchRole = async () => {
+      try {
+        const token = await getToken()
+        const res = await fetch((process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || '') + '/api/me/role', {
+          credentials: 'include',
+          headers: {
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        })
+        const data = await res.json()
         setRole(data.role)
         setPermissions(data.permissions)
-        setLoading(false)
-      })
-      .catch(err => {
+      } catch (err) {
         console.error('Failed to fetch user role:', err)
+      } finally {
         setLoading(false)
-      })
-  }, [])
+      }
+    }
+    fetchRole()
+  }, [getToken])
 
   return { role, permissions, loading }
 }

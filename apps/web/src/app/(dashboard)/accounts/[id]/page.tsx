@@ -3,6 +3,7 @@
 import { useState, useEffect, Fragment } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -34,6 +35,7 @@ import {
 export default function AccountDetailPage() {
   const params = useParams()
   const accountId = params.id as string
+  const { getToken } = useAuth()
   const [activeTab, setActiveTab] = useState<'overview' | 'addresses' | 'contacts'>('overview')
   const [showAddressForm, setShowAddressForm] = useState(false)
   const [showContactForm, setShowContactForm] = useState(false)
@@ -78,35 +80,49 @@ export default function AccountDetailPage() {
 
   // Fetch user names from backend when account data loads
   useEffect(() => {
-    if (account) {
-      // Fetch sales agent name
-      if (account.salesAgentId) {
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/users/${account.salesAgentId}/name`, {
-          credentials: 'include',
-        })
-        .then(res => res.json())
-        .then(data => setSalesAgentName(data.name))
-        .catch(() => setSalesAgentName(account.salesAgentId))
-      }
-      // Fetch updatedBy user name
-      if (account.updatedBy) {
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/users/${account.updatedBy}/name`, {
-          credentials: 'include',
-        })
-        .then(res => res.json())
-        .then(data => setUpdatedByName(data.name))
-        .catch(() => setUpdatedByName(account.updatedBy))
+    const fetchUserNames = async () => {
+      if (account) {
+        const token = await getToken()
+        // Fetch sales agent name
+        if (account.salesAgentId) {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/users/${account.salesAgentId}/name`, {
+            credentials: 'include',
+            headers: {
+              ...(token && { Authorization: `Bearer ${token}` }),
+            },
+          })
+          .then(res => res.json())
+          .then(data => setSalesAgentName(data.name))
+          .catch(() => setSalesAgentName(account.salesAgentId))
+        }
+        // Fetch updatedBy user name
+        if (account.updatedBy) {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/users/${account.updatedBy}/name`, {
+            credentials: 'include',
+            headers: {
+              ...(token && { Authorization: `Bearer ${token}` }),
+            },
+          })
+          .then(res => res.json())
+          .then(data => setUpdatedByName(data.name))
+          .catch(() => setUpdatedByName(account.updatedBy))
+        }
       }
     }
-  }, [account])
+    fetchUserNames()
+  }, [account, getToken])
 
   const fetchAccountData = async () => {
     setIsLoading(true)
     setError('')
     try {
+      const token = await getToken()
       // Fetch account details
       const accountResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${accountId}`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!accountResponse.ok) {
@@ -119,6 +135,9 @@ export default function AccountDetailPage() {
       // Fetch transactions for this account
       const transactionsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/invoices?accountId=${accountId}`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (transactionsResponse.ok) {
@@ -137,10 +156,12 @@ export default function AccountDetailPage() {
     e.preventDefault()
     setFormSubmitting(true)
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${accountId}/addresses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         credentials: 'include',
         body: JSON.stringify(addressFormData),
@@ -182,10 +203,12 @@ export default function AccountDetailPage() {
     e.preventDefault()
     setFormSubmitting(true)
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${accountId}/contacts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         credentials: 'include',
         body: JSON.stringify(contactFormData),
@@ -223,9 +246,13 @@ export default function AccountDetailPage() {
   const handleEditAccount = async () => {
     setFormSubmitting(true)
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${accountId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
         credentials: 'include',
         body: JSON.stringify({
           name: editAccountName,
@@ -252,9 +279,13 @@ export default function AccountDetailPage() {
       return
     }
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${accountId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
         credentials: 'include',
         body: JSON.stringify({
           active: !account.active,
@@ -277,9 +308,13 @@ export default function AccountDetailPage() {
     setAccount((prev: any) => ({ ...prev, accountType: newType }))
 
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${accountId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
         credentials: 'include',
         body: JSON.stringify({
           accountType: newType,
@@ -302,9 +337,13 @@ export default function AccountDetailPage() {
     if (!editingAddress) return
     setFormSubmitting(true)
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/addresses/${editingAddress.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
         credentials: 'include',
         body: JSON.stringify(editingAddress),
       })
@@ -329,9 +368,13 @@ export default function AccountDetailPage() {
   const handleDeleteAddress = async (addressId: string) => {
     if (!confirm('Are you sure you want to delete this address?')) return
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/addresses/${addressId}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
       if (!response.ok) throw new Error('Failed to delete address')
 
@@ -350,9 +393,13 @@ export default function AccountDetailPage() {
     if (!editingContact) return
     setFormSubmitting(true)
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/contacts/${editingContact.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
         credentials: 'include',
         body: JSON.stringify(editingContact),
       })
@@ -377,9 +424,13 @@ export default function AccountDetailPage() {
   const handleDeleteContact = async (contactId: string) => {
     if (!confirm('Are you sure you want to delete this contact?')) return
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/contacts/${contactId}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
       if (!response.ok) throw new Error('Failed to delete contact')
 

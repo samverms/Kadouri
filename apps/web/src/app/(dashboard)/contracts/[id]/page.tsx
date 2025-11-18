@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Mail, Edit, FileText, Calendar, Package, DollarSign, Download, Upload, Trash2, CheckCircle } from 'lucide-react'
@@ -10,6 +11,7 @@ import { EmailContractModal } from '@/components/contracts/email-contract-modal'
 export default function ContractDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const { getToken } = useAuth()
   const [contract, setContract] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [emailModalOpen, setEmailModalOpen] = useState(false)
@@ -23,8 +25,12 @@ export default function ContractDetailPage() {
 
   const fetchContract = async () => {
     try {
+      const token = await getToken()
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contracts/${params.id}`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!res.ok) throw new Error('Failed to fetch contract')
@@ -41,8 +47,12 @@ export default function ContractDetailPage() {
   const handleDownloadPDF = async () => {
     setDownloadingPDF(true)
     try {
+      const token = await getToken()
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/pdf/contract/${params.id}`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!res.ok) throw new Error('Failed to generate PDF')
@@ -67,9 +77,13 @@ export default function ContractDetailPage() {
       const formData = new FormData()
       formData.append('file', file)
 
+      const token = await getToken()
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contracts/${params.id}/upload`, {
         method: 'POST',
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
         body: formData,
       })
 
@@ -121,9 +135,13 @@ export default function ContractDetailPage() {
     }
 
     try {
+      const token = await getToken()
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contracts/${params.id}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!res.ok) throw new Error('Failed to delete contract')
@@ -138,9 +156,13 @@ export default function ContractDetailPage() {
 
   const handleMarkComplete = async () => {
     try {
+      const token = await getToken()
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/contracts/${params.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
         credentials: 'include',
         body: JSON.stringify({ status: 'completed' }),
       })

@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,6 +12,7 @@ import { ArrowLeft, Save, X } from 'lucide-react'
 
 export default function NewProductPage() {
   const router = useRouter()
+  const { getToken } = useAuth()
   const { showToast } = useToast()
 
   const [isSaving, setIsSaving] = useState(false)
@@ -54,10 +56,12 @@ export default function NewProductPage() {
         active: formData.active,
       }
 
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         credentials: 'include',
         body: JSON.stringify(payload),

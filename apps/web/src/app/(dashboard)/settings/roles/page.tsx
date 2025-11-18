@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useAuth } from '@clerk/nextjs'
 import { Shield, Save } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 
 export default function RolesManagementPage() {
+  const { getToken } = useAuth()
   const [roles, setRoles] = useState<any[]>([])
   const [permissions, setPermissions] = useState<any[]>([])
   const [selectedRole, setSelectedRole] = useState<any>(null)
@@ -14,21 +16,39 @@ export default function RolesManagementPage() {
   useEffect(() => { fetchRoles(); fetchPermissions() }, [])
 
   const fetchRoles = async () => {
+    const token = await getToken()
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
-    const res = await fetch(apiUrl + '/api/roles', { credentials: 'include' })
+    const res = await fetch(apiUrl + '/api/roles', {
+      credentials: 'include',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    })
     setRoles(await res.json())
     setIsLoading(false)
   }
 
   const fetchPermissions = async () => {
+    const token = await getToken()
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
-    const res = await fetch(apiUrl + '/api/permissions', { credentials: 'include' })
+    const res = await fetch(apiUrl + '/api/permissions', {
+      credentials: 'include',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    })
     setPermissions(await res.json())
   }
 
   const fetchRoleDetails = async (roleId: string) => {
+    const token = await getToken()
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
-    const res = await fetch(apiUrl + '/api/roles/' + roleId, { credentials: 'include' })
+    const res = await fetch(apiUrl + '/api/roles/' + roleId, {
+      credentials: 'include',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    })
     setSelectedRole(await res.json())
   }
 
@@ -41,11 +61,15 @@ export default function RolesManagementPage() {
 
   const save = async () => {
     if (!selectedRole) return
+    const token = await getToken()
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
     try {
       await fetch(apiUrl + '/api/roles/' + selectedRole.id + '/permissions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
         credentials: 'include',
         body: JSON.stringify({ permissionIds: selectedRole.permissions.map((p: any) => p.id) })
       })

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Fragment, useMemo, useRef } from 'react'
 import Link from 'next/link'
+import { useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -49,6 +50,7 @@ interface ColumnVisibility {
 }
 
 export default function ProductsPage() {
+  const { getToken } = useAuth()
   const { showToast } = useToast()
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedProductId, setExpandedProductId] = useState<string | null>(null)
@@ -108,9 +110,13 @@ export default function ProductsPage() {
     setIsLoading(true)
     setError('')
     try {
+      const token = await getToken()
       const includeInactive = !showActiveOnly
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products?includeInactive=${includeInactive}`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!response.ok) {
@@ -153,9 +159,13 @@ export default function ProductsPage() {
     }
 
     try {
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/${productId}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!response.ok) {

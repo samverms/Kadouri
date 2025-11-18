@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,6 +30,7 @@ interface Address {
 
 export default function NewAccountPage() {
   const router = useRouter()
+  const { getToken } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -178,10 +180,12 @@ export default function NewAccountPage() {
           })),
       }
 
+      const token = await getToken()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         credentials: 'include',
         body: JSON.stringify(payload),
