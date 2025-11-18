@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "nodemon --exec ts-node src/main.ts",
+    "prebuild": "cd ../../packages/shared && npm install && npm run build && cd ../../apps/api && npm link ../../packages/shared",
     "build": "tsc",
     "start": "node dist/main.js",
     "lint": "eslint src --ext .ts",
