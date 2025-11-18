@@ -1,1 +1,1 @@
-web: cd apps/web && npm start -- -p $PORT
+web: cd apps/api && npm start
