@@ -7,7 +7,7 @@ import { productsRouter } from '../modules/products/products.routes'
 import { ordersRouter } from '../modules/orders/orders.routes'
 import { invitationRouter } from '../modules/users/invitation.routes'
 import orderActivitiesRouter from '../modules/order-activities/order-activities.routes'
-import pdfRouter from './pdf.routes'
+// import pdfRouter from './pdf.routes' // Disabled for Heroku (Puppeteer not supported)
 import searchRouter from './search.routes'
 import rolesRouter from '../modules/roles/roles.routes'
 import invoicesRouter from '../modules/invoices/invoices.routes'
@@ -42,7 +42,7 @@ router.use('/users', authenticate, usersRouter)
 router.use('/', authenticate, rolesRouter) // Roles and permissions
 router.use('/', orderActivitiesRouter) // Order activities (has auth in routes)
 router.use('/invitations', invitationRouter) // Has its own auth per route
-router.use('/pdf', authenticate, pdfRouter)
+// router.use('/pdf', authenticate, pdfRouter) // Disabled for Heroku (Puppeteer not supported)
 router.use('/quickbooks', quickbooksRouter) // QuickBooks OAuth and sync (has mixed auth)
 router.use('/webhooks/qbo', qboWebhookRouter) // QuickBooks webhooks (no auth)
 
