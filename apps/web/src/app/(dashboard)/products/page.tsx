@@ -200,7 +200,6 @@ export default function ProductsPage() {
     // Clear column filters
     setColumnFilters({
       fullName: '',
-      name: '',
       variety: '',
       grade: '',
       category: '',
