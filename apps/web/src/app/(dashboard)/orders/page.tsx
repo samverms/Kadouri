@@ -705,6 +705,7 @@ export default function OrdersPage() {
 
   // Clear all column filters
   const clearAllFilters = () => {
+    // Clear column filters
     setColumnFilters({
       orderNo: '',
       date: '',
@@ -716,10 +717,18 @@ export default function OrdersPage() {
       commission: '',
       status: ''
     })
-    // Also clear date range filters
+    // Clear date range
     setDateRangeStart(null)
     setDateRangeEnd(null)
-    showToast('All filters cleared', 'info')
+    // Clear grouping
+    setGroupByColumn([])
+    setExpandedGroups(new Set())
+    // Clear sorting
+    setSortColumn(null)
+    setSortDirection('asc')
+    // Clear search
+    setSearchQuery('')
+    showToast('All filters and settings reset', 'info')
   }
 
   // Check if any column filters are active
@@ -866,16 +875,14 @@ export default function OrdersPage() {
           return '4. Very Large Orders ($10,000+)'
         }
       case 'paymentStatus':
-        // Group by payment status
+        // Group by payment status (using order status as proxy)
         const status = order.status || ''
-        if (status === 'paid') {
-          return '1. Paid'
-        } else if (status === 'partially_paid') {
-          return '2. Partially Paid'
-        } else if (status === 'pending' || status === 'confirmed' || status === 'shipped' || status === 'delivered') {
-          return '3. Unpaid (Active)'
+        if (status === 'pending' || status === 'confirmed' || status === 'shipped' || status === 'delivered') {
+          return '1. Active Orders'
+        } else if (status === 'posted_to_qb') {
+          return '2. Posted to QuickBooks'
         } else {
-          return '4. Other'
+          return '3. Other'
         }
       default:
         return 'Unknown'
@@ -970,7 +977,7 @@ export default function OrdersPage() {
 
         {isOpen && (
           <div
-            className={`absolute left-0 top-full mt-1 ${column === 'date' ? 'w-auto min-w-[600px]' : 'w-56'} bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50`}
+            className={`absolute left-0 top-full mt-1 ${column === 'date' ? 'min-w-[500px] max-w-[min(600px,calc(100vw-2rem))] max-h-[80vh] overflow-auto' : 'w-56'} bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50`}
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
           >
@@ -1297,7 +1304,7 @@ export default function OrdersPage() {
       case 'cancelled':
         return 'bg-red-100 text-red-800'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gray-100 text-gray-800 dark:text-gray-200'
     }
   }
 
@@ -1333,7 +1340,7 @@ export default function OrdersPage() {
             </Link>
           </td>
           <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700">
-            {new Date(order.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            {new Date(order.date).toLocaleDateString('en-US', { year: '2-digit', month: '2-digit', day: '2-digit' })}
           </td>
           <td className="px-3 py-2 whitespace-nowrap max-w-[120px] truncate border-r border-gray-200 dark:border-gray-700">
             <Link
@@ -1469,7 +1476,7 @@ export default function OrdersPage() {
                         Order Date
                       </label>
                       <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
-                        {new Date(order.date).toLocaleDateString()}
+                        {new Date(order.date).toLocaleDateString('en-US', { year: '2-digit', month: '2-digit', day: '2-digit' })}
                       </p>
                     </div>
                     <div>
@@ -1560,7 +1567,7 @@ export default function OrdersPage() {
                     <Building2 className="h-4 w-4" />
                     Parties
                   </h4>
-                  <div className="bg-white rounded-lg p-4 border border-gray-200 space-y-4">
+                  <div className="bg-white dark:bg-gray-950 rounded-lg p-4 border border-gray-200 dark:border-gray-700 space-y-4">
                     <div>
                       <label className="text-xs font-medium text-gray-500 uppercase flex items-center gap-1 mb-1">
                         <User className="h-3 w-3" />
@@ -1691,10 +1698,10 @@ export default function OrdersPage() {
 
   return (
     <div className="-mt-4">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Orders</h1>
-          <p className="mt-0.5 text-xs text-gray-600 dark:text-gray-400">Manage and track all orders</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-blue-400">Orders</h1>
+          <p className="mt-0.5 text-xs text-gray-600 dark:text-gray-300">Manage and track all orders</p>
         </div>
         <Link href="/orders/new">
           <Button className="bg-blue-600 hover:bg-blue-700">
@@ -1705,15 +1712,15 @@ export default function OrdersPage() {
       </div>
 
       {/* Search Bar and Filters */}
-      <Card className="mb-3">
+      <Card className="mb-4">
         <CardContent className="py-3">
           <div className="flex flex-col gap-3">
             {/* Search and Buttons Row */}
             <div className="flex flex-col sm:flex-row gap-3 items-center">
-              <div className="relative flex-1 w-full">
+              <div className="relative w-full sm:w-[70%]">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
-                  placeholder="Search orders by order #, seller, buyer, product, or agent..."
+                  placeholder="Search orders..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -1763,7 +1770,7 @@ export default function OrdersPage() {
                   )}
                 </button>
                 {showGroupingPanel && (
-                  <div className="absolute left-0 top-full mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  <div className="absolute left-0 top-full mt-1 w-64 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
                     <div className="p-3">
                       <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Group by columns</div>
                       <div className="space-y-2">
@@ -1781,7 +1788,7 @@ export default function OrdersPage() {
                           const isSelected = groupByColumn.includes(option.value)
                           const currentIndex = groupByColumn.indexOf(option.value)
                           return (
-                            <label key={option.value} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                            <label key={option.value} className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={isSelected}
@@ -1793,7 +1800,7 @@ export default function OrdersPage() {
                                   }
                                   setExpandedGroups(new Set())
                                 }}
-                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                               />
                               <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">{option.label}</span>
                               {isSelected && (
@@ -1805,14 +1812,14 @@ export default function OrdersPage() {
                           )
                         })}
                       </div>
-                      <div className="border-t border-gray-200 mt-3 pt-3 flex gap-2">
+                      <div className="border-t border-gray-200 dark:border-gray-700 mt-3 pt-3 flex gap-2">
                         <button
                           onClick={() => {
                             setGroupByColumn([])
                             setExpandedGroups(new Set())
                             setShowGroupingPanel(false)
                           }}
-                          className="flex-1 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 rounded"
+                          className="flex-1 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded"
                         >
                           Clear
                         </button>
@@ -1831,7 +1838,7 @@ export default function OrdersPage() {
               {hasActiveColumnFilters && (
                 <button
                   onClick={clearAllFilters}
-                  className="flex items-center gap-2 px-4 py-2 rounded-md border border-gray-200 bg-gray-50 text-gray-700 dark:text-gray-300 hover:bg-gray-100 transition-colors whitespace-nowrap"
+                  className="flex items-center gap-2 px-4 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors whitespace-nowrap"
                   title="Clear all column filters"
                 >
                   <X className="h-4 w-4" />
@@ -1845,7 +1852,7 @@ export default function OrdersPage() {
 
       {/* Create Order Dialog */}
       {showCreateDialog && (
-        <Card className="mb-3 border-blue-200 bg-white">
+        <Card className="mb-3 border-blue-200 bg-white dark:bg-gray-900">
           <CardHeader className="py-3">
             <CardTitle className="text-lg font-bold text-gray-900 dark:text-gray-100">Entry Order</CardTitle>
           </CardHeader>
@@ -1870,7 +1877,7 @@ export default function OrdersPage() {
                           onChange={(e) => handleSellerCodeChange(e.target.value)}
                           onFocus={() => setShowSellerDropdown(true)}
                           placeholder="Code..."
-                          className="flex-1 bg-white"
+                          className="flex-1 bg-white dark:bg-gray-800"
                         />
 
                         <Input
@@ -1880,7 +1887,7 @@ export default function OrdersPage() {
                           onChange={(e) => handleSellerNameChange(e.target.value)}
                           onFocus={() => setShowSellerDropdown(true)}
                           placeholder="Account name..."
-                          className="flex-[2] bg-white"
+                          className="flex-[2] bg-white dark:bg-gray-800"
                         />
                       </div>
 
@@ -1888,7 +1895,7 @@ export default function OrdersPage() {
                       {showSellerDropdown && (sellerCodeSearch || sellerNameSearch) && (
                         <div
                           ref={sellerDropdownRef}
-                          className="absolute z-50 w-full mt-1 bg-white border border-blue-300 rounded-md shadow-lg max-h-60 overflow-auto"
+                          className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-900 border border-blue-300 dark:border-blue-700 rounded-md shadow-lg max-h-60 overflow-auto"
                         >
                           {getFilteredSellerAccounts().length > 0 ? (
                             getFilteredSellerAccounts().map((account) => (
@@ -1921,14 +1928,14 @@ export default function OrdersPage() {
                         Billing Address <span className="text-red-500">*</span>
                       </label>
                       <div className="flex gap-2">
-                        <select className="w-32 rounded-md border border-gray-300 px-2 py-1.5 text-sm bg-white">
+                        <select className="w-32 rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm bg-white dark:bg-gray-800">
                           <option value="">Billing</option>
                           <option value="shipping">Shipping</option>
                         </select>
 
                         <Input
                           placeholder="Address (auto-filled)"
-                          className="flex-1 bg-white"
+                          className="flex-1 bg-white dark:bg-gray-800"
                         />
                       </div>
                     </div>
@@ -1938,14 +1945,14 @@ export default function OrdersPage() {
                         Pickup Location <span className="text-red-500">*</span>
                       </label>
                       <div className="flex gap-2">
-                        <select className="w-32 rounded-md border border-gray-300 px-2 py-1.5 text-sm bg-white">
+                        <select className="w-32 rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm bg-white dark:bg-gray-800">
                           <option value="">Warehouse</option>
                           <option value="billing">Billing</option>
                         </select>
 
                         <Input
                           placeholder="Location (auto-filled)"
-                          className="flex-1 bg-white"
+                          className="flex-1 bg-white dark:bg-gray-800"
                         />
                       </div>
                     </div>
@@ -1954,7 +1961,7 @@ export default function OrdersPage() {
                       <label className="block text-xs font-medium text-gray-700 mb-1.5">
                         Contact
                       </label>
-                      <select className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm bg-white">
+                      <select className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm bg-white dark:bg-gray-800">
                         <option value="">BO ECKER - bo@waterfordnut.com - 209-874-2317</option>
                       </select>
                     </div>
@@ -1963,7 +1970,7 @@ export default function OrdersPage() {
                       <label className="block text-xs font-medium text-gray-700 mb-1.5">
                         Sales Confirmation No.
                       </label>
-                      <Input placeholder="Enter sales confirmation number..." className="bg-white" />
+                      <Input placeholder="Enter sales confirmation number..." className="bg-white dark:bg-gray-800" />
                     </div>
                   </div>
                 </div>
@@ -1985,7 +1992,7 @@ export default function OrdersPage() {
                           onChange={(e) => handleBuyerCodeChange(e.target.value)}
                           onFocus={() => setShowBuyerDropdown(true)}
                           placeholder="Code..."
-                          className="flex-1 bg-white"
+                          className="flex-1 bg-white dark:bg-gray-800"
                         />
 
                         <Input
@@ -2003,7 +2010,7 @@ export default function OrdersPage() {
                       {showBuyerDropdown && (buyerCodeSearch || buyerNameSearch) && (
                         <div
                           ref={buyerDropdownRef}
-                          className="absolute z-50 w-full mt-1 bg-white border border-green-300 rounded-md shadow-lg max-h-60 overflow-auto"
+                          className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-900 border border-green-300 dark:border-green-700 rounded-md shadow-lg max-h-60 overflow-auto"
                         >
                           {getFilteredBuyerAccounts().length > 0 ? (
                             getFilteredBuyerAccounts().map((account) => (
@@ -2015,7 +2022,7 @@ export default function OrdersPage() {
                                 <div className="flex gap-2">
                                   <span className="font-medium text-green-900">{account.code}</span>
                                   <span className="text-gray-700">-</span>
-                                  <span className="text-gray-900">{account.name}</span>
+                                  <span className="text-gray-900 dark:text-gray-100">{account.name}</span>
                                 </div>
                                 {account.city && account.state && (
                                   <div className="text-xs text-gray-500 mt-0.5">
@@ -2036,14 +2043,14 @@ export default function OrdersPage() {
                         Billing Address <span className="text-red-500">*</span>
                       </label>
                       <div className="flex gap-2">
-                        <select className="w-32 rounded-md border border-gray-300 px-2 py-1.5 text-sm bg-white">
+                        <select className="w-32 rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm bg-white dark:bg-gray-800">
                           <option value="">Billing</option>
                           <option value="shipping">Shipping</option>
                         </select>
 
                         <Input
                           placeholder="Address (auto-filled)"
-                          className="flex-1 bg-white"
+                          className="flex-1 bg-white dark:bg-gray-800"
                         />
                       </div>
                     </div>
@@ -2053,13 +2060,13 @@ export default function OrdersPage() {
                         Ship to Location <span className="text-red-500">*</span>
                       </label>
                       <div className="flex gap-2">
-                        <select className="w-32 rounded-md border border-gray-300 px-2 py-1.5 text-sm bg-white">
+                        <select className="w-32 rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm bg-white dark:bg-gray-800">
                           <option value="">Billing</option>
                           <option value="warehouse">Warehouse</option>
                         </select>
                         <Input
                           placeholder="Location (auto-filled)"
-                          className="flex-1 bg-white"
+                          className="flex-1 bg-white dark:bg-gray-800"
                         />
                       </div>
                     </div>
@@ -2068,7 +2075,7 @@ export default function OrdersPage() {
                       <label className="block text-xs font-medium text-gray-700 mb-1.5">
                         Contact
                       </label>
-                      <select className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm bg-white">
+                      <select className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm bg-white dark:bg-gray-800">
                         <option value="">noemail@email.com - (514) 381-9790</option>
                       </select>
                     </div>
@@ -2077,7 +2084,7 @@ export default function OrdersPage() {
                       <label className="block text-xs font-medium text-gray-700 mb-1.5">
                         Purchase Order No.
                       </label>
-                      <Input placeholder="Enter purchase order number..." className="bg-white" />
+                      <Input placeholder="Enter purchase order number..." className="bg-white dark:bg-gray-800" />
                     </div>
                   </div>
                 </div>
@@ -2096,7 +2103,7 @@ export default function OrdersPage() {
               {/* Product List Table */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-base font-bold text-gray-900">Product List</h3>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Product List</h3>
                   <Button type="button" onClick={addOrderLine} className="bg-indigo-600 hover:bg-indigo-700">
                     <Plus className="mr-2 h-4 w-4" />
                     Add Item
@@ -2105,20 +2112,20 @@ export default function OrdersPage() {
 
                 <div className="border rounded-lg overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                    <thead className="bg-gray-50 dark:bg-transparent">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Line</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Product / Variety</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Size / Grade</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Quantity</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Unit Size</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Total Weight</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Unit Price</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Total</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Line</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Product / Variety</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Size / Grade</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Quantity</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Unit Size</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Total Weight</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Unit Price</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Total</th>
                         <th className="px-4 py-3"></th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                       {orderLines.length === 0 ? (
                         <tr>
                           <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
@@ -2158,10 +2165,10 @@ export default function OrdersPage() {
                                     width: 450
                                   })
                                 }}
-                                className="w-full px-2 py-1 text-sm text-gray-900 border border-gray-300 rounded focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                className="w-full px-2 py-1 text-sm text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 placeholder="Type to search products..."
                               />
-                              <div className="px-2 py-1 text-sm text-gray-600 bg-gray-50 rounded border border-gray-200">
+                              <div className="px-2 py-1 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
                                 {line.variety || 'Variety (auto-filled)'}
                               </div>
                             </div>
@@ -2170,10 +2177,10 @@ export default function OrdersPage() {
                           {/* Size / Grade - Auto-filled from product */}
                           <td className="px-4 py-4">
                             <div className="space-y-2">
-                              <div className="px-3 py-2 text-sm font-medium text-gray-900 bg-gray-50 rounded border border-gray-200">
+                              <div className="px-3 py-2 text-sm font-medium text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
                                 {line.size || 'Size (auto-filled)'}
                               </div>
-                              <div className="px-3 py-2 text-sm text-gray-700 bg-gray-50 rounded border border-gray-200">
+                              <div className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
                                 {line.grade || 'Grade (auto-filled)'}
                               </div>
                             </div>
@@ -2185,7 +2192,7 @@ export default function OrdersPage() {
                               type="number"
                               value={line.quantity || ''}
                               onChange={(e) => updateOrderLine(line.id, 'quantity', parseFloat(e.target.value) || 0)}
-                              className="w-24 px-2 py-1 text-sm text-gray-900 border border-gray-300 rounded text-right focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              className="w-24 px-2 py-1 text-sm text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded text-right focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                               placeholder="0"
                             />
                           </td>
@@ -2197,13 +2204,13 @@ export default function OrdersPage() {
                                 type="number"
                                 value={line.unitSize || ''}
                                 onChange={(e) => updateOrderLine(line.id, 'unitSize', parseFloat(e.target.value) || 0)}
-                                className="w-20 px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded text-right focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-20 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded text-right focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 placeholder="0"
                               />
                               <select
                                 value={line.unitSizeUnit}
                                 onChange={(e) => updateOrderLine(line.id, 'unitSizeUnit', e.target.value)}
-                                className="px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                               >
                                 <option value="LBS">LBS</option>
                                 <option value="KG">KG</option>
@@ -2214,21 +2221,21 @@ export default function OrdersPage() {
 
                           {/* Total Weight - Calculated (Read-only styled) */}
                           <td className="px-4 py-4 align-middle">
-                            <div className="px-4 py-2 text-sm font-bold text-gray-900 bg-gradient-to-r from-gray-100 to-gray-50 border border-gray-200 rounded-md text-right">
+                            <div className="px-4 py-2 text-sm font-bold text-gray-900 dark:text-gray-100 bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 rounded-md text-right">
                               {line.totalWeight > 0 ? `${line.totalWeight.toLocaleString()} ${line.unitSizeUnit}` : '—'}
                             </div>
                           </td>
 
                           {/* Unit Price - Editable */}
                           <td className="px-4 py-4 align-middle">
-                            <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-md px-3 py-2">
+                            <div className="flex items-center gap-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2">
                               <span className="text-sm font-medium text-gray-700">$</span>
                               <input
                                 type="number"
                                 step="0.01"
                                 value={line.unitPrice || ''}
                                 onChange={(e) => updateOrderLine(line.id, 'unitPrice', parseFloat(e.target.value) || 0)}
-                                className="w-20 text-right text-sm text-gray-900 focus:outline-none"
+                                className="w-20 text-right text-sm text-gray-900 dark:text-gray-100 focus:outline-none"
                                 placeholder="0.00"
                               />
                               <span className="text-xs text-gray-500">/{line.unitSizeUnit}</span>
@@ -2261,18 +2268,18 @@ export default function OrdersPage() {
                 </div>
 
                 {/* Grand Total and Commission */}
-                <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="mt-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                   <div className="flex justify-between items-start">
                     {/* Commission Section */}
                     <div className="flex items-center gap-4">
                       <label className="text-sm font-medium text-gray-700">Commission Rate:</label>
-                      <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-md px-3 py-2">
+                      <div className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2">
                         <input
                           type="number"
                           step="0.1"
                           min="0"
                           max="100"
-                          className="w-16 text-right text-sm font-medium text-gray-900 focus:outline-none"
+                          className="w-16 text-right text-sm font-medium text-gray-900 dark:text-gray-100 focus:outline-none"
                           value={commissionRate}
                           onChange={(e) => setCommissionRate(parseFloat(e.target.value) || 0)}
                           placeholder="0"
@@ -2318,7 +2325,7 @@ export default function OrdersPage() {
                       </label>
                       <div className="relative">
                         <textarea
-                          className="w-full rounded-md border border-gray-300 px-3 py-2 min-h-[80px]"
+                          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 min-h-[80px]"
                           placeholder="- FOB SELLERS PLANT IN CALIFORNIA"
                           value={conditions}
                           onChange={(e) => setConditions(e.target.value)}
@@ -2358,7 +2365,7 @@ export default function OrdersPage() {
                         Other Remarks
                       </label>
                       <textarea
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 min-h-[80px]"
+                        className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 min-h-[80px]"
                         placeholder="Enter other remarks..."
                         value={otherRemarks}
                         onChange={(e) => setOtherRemarks(e.target.value)}
@@ -2388,7 +2395,7 @@ export default function OrdersPage() {
       {/* Product Dropdown Portal */}
       {activeSearchLineId && dropdownPosition && typeof window !== 'undefined' && createPortal(
         <div
-          className="fixed bg-white border-2 border-blue-500 rounded-lg shadow-2xl max-h-[500px] overflow-y-auto"
+          className="fixed bg-white dark:bg-gray-900 border-2 border-blue-500 dark:border-blue-700 rounded-lg shadow-2xl max-h-[500px] overflow-y-auto"
           style={{
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`,
@@ -2408,7 +2415,7 @@ export default function OrdersPage() {
               }}
               className="w-full px-6 py-4 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none border-b border-gray-200 last:border-b-0"
             >
-              <div className="font-semibold text-gray-900 text-base mb-1">{product.name}</div>
+              <div className="font-semibold text-gray-900 dark:text-gray-100 text-base mb-1">{product.name}</div>
               <div className="text-sm text-gray-600">
                 {product.variety} • {product.size} • {product.grade}
               </div>
@@ -2439,10 +2446,10 @@ export default function OrdersPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-300">
-                  <th className="w-12 px-2 sm:px-4 bg-gray-50"></th>
-                  <th className={`px-3 py-2 text-left border-r border-gray-200 ${hasColumnFilter('orderNo') ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
+                <tr className="border-b border-gray-300 dark:border-gray-600">
+                  <th className="w-12 px-2 sm:px-4 bg-gray-50 dark:bg-gray-800"></th>
+                  <th className={`px-3 py-2 text-left border-r border-gray-200 dark:border-gray-700 ${hasColumnFilter('orderNo') ? 'bg-blue-50 dark:bg-blue-900' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                       <div className="flex items-center gap-1">
                         <span>Order #</span>
                         {hasColumnFilter('orderNo') && (
@@ -2461,8 +2468,8 @@ export default function OrdersPage() {
                       <ColumnMenu column="orderNo" label="Order #" />
                     </div>
                   </th>
-                  <th className={`px-3 py-2 text-left border-r border-gray-200 ${hasColumnFilter('date') ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
+                  <th className={`px-3 py-2 text-left border-r border-gray-200 dark:border-gray-700 ${hasColumnFilter('date') ? 'bg-blue-50 dark:bg-blue-900' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                       <div className="flex items-center gap-1">
                         <span>Date</span>
                         {hasColumnFilter('date') && (
@@ -2481,8 +2488,8 @@ export default function OrdersPage() {
                       <ColumnMenu column="date" label="Date" />
                     </div>
                   </th>
-                  <th className={`px-3 py-2 text-left border-r border-gray-200 ${hasColumnFilter('seller') ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
+                  <th className={`px-3 py-2 text-left border-r border-gray-200 dark:border-gray-700 ${hasColumnFilter('seller') ? 'bg-blue-50 dark:bg-blue-900' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                       <div className="flex items-center gap-1">
                         <span>Seller</span>
                         {hasColumnFilter('seller') && (
@@ -2501,8 +2508,8 @@ export default function OrdersPage() {
                       <ColumnMenu column="seller" label="Seller" />
                     </div>
                   </th>
-                  <th className={`px-3 py-2 text-left border-r border-gray-200 ${hasColumnFilter('buyer') ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
+                  <th className={`px-3 py-2 text-left border-r border-gray-200 dark:border-gray-700 ${hasColumnFilter('buyer') ? 'bg-blue-50 dark:bg-blue-900' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                       <div className="flex items-center gap-1">
                         <span>Buyer</span>
                         {hasColumnFilter('buyer') && (
@@ -2521,8 +2528,8 @@ export default function OrdersPage() {
                       <ColumnMenu column="buyer" label="Buyer" />
                     </div>
                   </th>
-                  <th className={`px-3 py-2 text-left border-r border-gray-200 ${hasColumnFilter('product') ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
+                  <th className={`px-3 py-2 text-left border-r border-gray-200 dark:border-gray-700 ${hasColumnFilter('product') ? 'bg-blue-50 dark:bg-blue-900' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                       <div className="flex items-center gap-1">
                         <span>Product</span>
                         {hasColumnFilter('product') && (
@@ -2541,8 +2548,8 @@ export default function OrdersPage() {
                       <ColumnMenu column="product" label="Product" />
                     </div>
                   </th>
-                  <th className={`px-3 py-2 text-left border-r border-gray-200 ${hasColumnFilter('agent') ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
+                  <th className={`px-3 py-2 text-left border-r border-gray-200 dark:border-gray-700 ${hasColumnFilter('agent') ? 'bg-blue-50 dark:bg-blue-900' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                       <div className="flex items-center gap-1">
                         <span>Agent</span>
                         {hasColumnFilter('agent') && (
@@ -2561,8 +2568,8 @@ export default function OrdersPage() {
                       <ColumnMenu column="agent" label="Agent" />
                     </div>
                   </th>
-                  <th className={`px-3 py-2 text-left border-r border-gray-200 ${hasColumnFilter('total') ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
+                  <th className={`px-3 py-2 text-left border-r border-gray-200 dark:border-gray-700 ${hasColumnFilter('total') ? 'bg-blue-50 dark:bg-blue-900' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                       <div className="flex items-center gap-1">
                         <span>Total</span>
                         {hasColumnFilter('total') && (
@@ -2581,8 +2588,8 @@ export default function OrdersPage() {
                       <ColumnMenu column="total" label="Total" />
                     </div>
                   </th>
-                  <th className={`px-3 py-2 text-left border-r border-gray-200 ${hasColumnFilter('commission') ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
+                  <th className={`px-3 py-2 text-left border-r border-gray-200 dark:border-gray-700 ${hasColumnFilter('commission') ? 'bg-blue-50 dark:bg-blue-900' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                       <div className="flex items-center gap-1">
                         <span>Commission</span>
                         {hasColumnFilter('commission') && (
@@ -2601,8 +2608,8 @@ export default function OrdersPage() {
                       <ColumnMenu column="commission" label="Commission" />
                     </div>
                   </th>
-                  <th className={`px-3 py-2 text-left border-r border-gray-200 ${hasColumnFilter('status') ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
+                  <th className={`px-3 py-2 text-left border-r border-gray-200 dark:border-gray-700 ${hasColumnFilter('status') ? 'bg-blue-50 dark:bg-blue-900' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                       <div className="flex items-center gap-1">
                         <span>Status</span>
                         {hasColumnFilter('status') && (
@@ -2621,12 +2628,12 @@ export default function OrdersPage() {
                       <ColumnMenu column="status" label="Status" />
                     </div>
                   </th>
-                  <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 bg-gray-50">
+                  <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white">
+              <tbody className="bg-white dark:bg-gray-900">
                 {groupByColumn.length > 0 && groupedOrders ? (
                   // Render grouped orders with nesting
                   (() => {
@@ -2718,12 +2725,12 @@ export default function OrdersPage() {
               </tbody>
               {/* Aggregation Footer */}
               {filteredOrders.length > 0 && (
-                <tfoot className="border-t-2 border-gray-300 bg-gray-100">
+                <tfoot className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800">
                   <tr>
                     <td colSpan={12} className="px-4 py-3">
                       <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-6">
-                          <span className="font-semibold text-gray-900">
+                          <span className="font-semibold text-gray-900 dark:text-gray-100">
                             Total Orders: <span className="text-blue-600">{aggregations.totalOrders}</span>
                           </span>
                           <span className="text-gray-700">
@@ -2748,7 +2755,7 @@ export default function OrdersPage() {
           {filteredOrders.length === 0 && (
             <div className="text-center py-12">
               <FileText className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No orders found</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No orders found</h3>
               <p className="mt-1 text-sm text-gray-500">
                 {searchQuery || hasActiveColumnFilters
                   ? 'Try adjusting your search query or filters'
