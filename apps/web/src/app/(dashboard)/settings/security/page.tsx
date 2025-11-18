@@ -71,9 +71,9 @@ export default function SecurityPage() {
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="mx-auto max-w-4xl px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900">Security Settings</h1>
-          <p className="mt-2 text-gray-600">Manage your account security and authentication</p>
+        <div className="mb-6">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-blue-400">Security Settings</h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-300">Manage your account security and authentication</p>
         </div>
 
         {/* MFA Status Card */}
@@ -91,7 +91,7 @@ export default function SecurityPage() {
                   />
                 </div>
                 <div>
-                  <CardTitle className="text-xl font-semibold text-gray-900">
+                  <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                     Two-Factor Authentication (MFA)
                   </CardTitle>
                   <CardDescription className="mt-1">
@@ -145,7 +145,7 @@ export default function SecurityPage() {
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                     <div className="flex items-center gap-3 mb-2">
                       <Smartphone className="h-5 w-5 text-gray-600" />
-                      <h4 className="font-medium text-gray-900">Authenticator App</h4>
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">Authenticator App</h4>
                     </div>
                     <p className="text-sm text-gray-600">
                       Configured and active for time-based codes
@@ -154,7 +154,7 @@ export default function SecurityPage() {
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                     <div className="flex items-center gap-3 mb-2">
                       <Key className="h-5 w-5 text-gray-600" />
-                      <h4 className="font-medium text-gray-900">Backup Codes</h4>
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">Backup Codes</h4>
                     </div>
                     <p className="text-sm text-gray-600">8 unused backup codes available</p>
                   </div>
@@ -179,7 +179,7 @@ export default function SecurityPage() {
         {/* Recent Security Activity */}
         <Card className="border-gray-200">
           <CardHeader className="border-b border-gray-200">
-            <CardTitle className="text-xl font-semibold text-gray-900">
+            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               Recent Security Activity
             </CardTitle>
           </CardHeader>
@@ -190,7 +190,7 @@ export default function SecurityPage() {
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">Successful login</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Successful login</p>
                   <p className="text-xs text-gray-500">
                     Chrome on Windows • Oct 31, 2025 at 10:30 AM
                   </p>
@@ -201,7 +201,7 @@ export default function SecurityPage() {
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">Successful login</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Successful login</p>
                   <p className="text-xs text-gray-500">
                     Chrome on Windows • Oct 30, 2025 at 3:45 PM
                   </p>
@@ -212,7 +212,7 @@ export default function SecurityPage() {
                   <Key className="h-4 w-4 text-blue-600" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">Password changed</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Password changed</p>
                   <p className="text-xs text-gray-500">Oct 28, 2025 at 9:15 AM</p>
                 </div>
               </div>
@@ -226,7 +226,7 @@ export default function SecurityPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-lg">
             <CardHeader className="border-b border-gray-200">
-              <CardTitle className="text-xl font-semibold text-gray-900">
+              <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                 {setupStep === 'scan' && 'Scan QR Code'}
                 {setupStep === 'verify' && 'Verify Setup'}
                 {setupStep === 'backup' && 'Save Backup Codes'}

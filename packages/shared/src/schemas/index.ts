@@ -62,20 +62,57 @@ export const createContactSchema = z.object({
 
 // Product schemas
 export const createProductSchema = z.object({
+  code: z.string().optional(),
   name: z.string().min(1),
   variety: z.string().optional(),
   grade: z.string().optional(),
+  category: z.string().optional(),
   defaultUnitSize: z.number().positive().optional(),
-  uom: z.string().min(1),
+  uom: z.string().optional(), // Now optional - use variants instead
   qboItemId: z.string().optional(),
   active: z.boolean().default(true),
 })
 
-export const updateProductSchema = createProductSchema.partial()
+export const updateProductSchema = z.object({
+  code: z.string().optional(),
+  name: z.string().min(1).optional(),
+  variety: z.string().optional(),
+  grade: z.string().optional(),
+  category: z.string().optional(),
+  defaultUnitSize: z.number().positive().optional(),
+  uom: z.string().optional(),
+  active: z.boolean().optional(),
+})
+
+// Product variant schemas
+export const packageTypeSchema = z.enum(['bag', 'box', 'case', 'pallet', 'bulk', 'each'])
+
+export const sizeUnitSchema = z.enum(['lb', 'kg', 'oz', 'g', 'ton'])
+
+export const createVariantSchema = z.object({
+  productId: z.string().uuid(),
+  sku: z.string().optional(),
+  size: z.number().positive(),
+  sizeUnit: sizeUnitSchema,
+  packageType: packageTypeSchema,
+  isDefault: z.boolean().default(false),
+  active: z.boolean().default(true),
+})
+
+export const updateVariantSchema = z.object({
+  sku: z.string().optional(),
+  size: z.number().positive().optional(),
+  sizeUnit: sizeUnitSchema.optional(),
+  packageType: packageTypeSchema.optional(),
+  isDefault: z.boolean().optional(),
+  active: z.boolean().optional(),
+})
 
 // Order line schemas
 export const createOrderLineSchema = z.object({
   productId: z.string().uuid(),
+  variantId: z.string().uuid().optional(), // Optional: if product has variants
+  packageType: z.string().optional(), // Optional: bag, box, case, pallet, bulk, each
   sizeGrade: z.string().optional(),
   quantity: z.number().positive(),
   unitSize: z.number().positive(),

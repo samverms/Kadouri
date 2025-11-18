@@ -2,46 +2,87 @@
 sidebar_position: 1
 ---
 
-# Tutorial Intro
+# Welcome to Kadouri CRM
 
-Let's discover **Docusaurus in less than 5 minutes**.
+Kadouri CRM is a modern order management system with **QuickBooks Online integration**, built specifically for produce and agricultural sales with commission tracking.
 
-## Getting Started
+## Overview
 
-Get started by **creating a new site**.
+Kadouri CRM provides a comprehensive solution for managing:
 
-Or **try Docusaurus immediately** with **[docusaurus.new](https://docusaurus.new)**.
+- **Accounts** - Sellers and buyers with addresses, contacts, and QuickBooks customer mapping
+- **Products** - Item catalog with variety/grade tracking and QuickBooks integration
+- **Orders** - Complete order management with line-item commission tracking
+- **Invoicing** - Automatic PDF generation and QuickBooks sync
+- **Reporting** - Customer history, commission reports, and analytics
+- **Role-Based Access Control** - Granular permissions across 10 modules
 
-### What you'll need
+## Tech Stack
 
-- [Node.js](https://nodejs.org/en/download/) version 20.0 or above:
-  - When installing Node.js, you are recommended to check all checkboxes related to dependencies.
+### Frontend
+- Next.js 14 with App Router
+- TailwindCSS for styling
+- TanStack Query & Table for data management
+- Clerk for authentication
+- Zustand for state management
 
-## Generate a new site
+### Backend
+- Node.js with Express
+- PostgreSQL with Drizzle ORM
+- Redis for caching
+- BullMQ for job queues
+- Puppeteer for PDF generation
+- AWS S3 for file storage
 
-Generate a new Docusaurus site using the **classic template**.
+### Integrations
+- QuickBooks Online API with OAuth 2.0
+- Microsoft Outlook for email
 
-The classic template will automatically be added to your project after you run the command:
+## Monorepo Structure
 
-```bash
-npm init docusaurus@latest my-website classic
+This is a **Turborepo monorepo** with multiple apps:
+
+```
+pace-crm/
+├── apps/
+│   ├── api/           # Express backend (port 2000)
+│   ├── web/           # Admin dashboard (port 2005)
+│   └── sales/         # Sales dashboard (port 2010)
+├── packages/
+│   └── shared/        # Shared types & schemas
+└── docs/              # This documentation site
 ```
 
-You can type this command into Command Prompt, Powershell, Terminal, or any other integrated terminal of your code editor.
-
-The command also installs all necessary dependencies you need to run Docusaurus.
-
-## Start your site
-
-Run the development server:
+## Quick Start
 
 ```bash
-cd my-website
-npm run start
+# Install dependencies
+npm install
+
+# Set up environment
+cp apps/web/.env.example apps/web/.env.local
+cp apps/api/.env.example apps/api/.env
+
+# Run migrations and seed database
+cd apps/api
+npm run migration:run
+npx tsx src/db/seed-roles.ts
+cd ../..
+
+# Start development servers
+npm run dev:admin    # API + Web dashboard
+# or
+npm run dev:sales    # API + Sales dashboard
 ```
 
-The `cd` command changes the directory you're working with. In order to work with your newly created Docusaurus site, you'll need to navigate the terminal there.
+Visit:
+- API: http://localhost:2000
+- Admin Dashboard: http://localhost:2005
+- Sales Dashboard: http://localhost:2010
 
-The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at http://localhost:3000/.
+## What's Next?
 
-Open `docs/intro.md` (this page) and edit some lines: the site **reloads automatically** and displays your changes.
+- [Installation Guide](getting-started/installation) - Detailed setup instructions
+- [Architecture Overview](architecture/overview) - Understand the system architecture
+- [Features](features/accounts) - Explore key features
+- [API Reference](api/overview) - API documentation

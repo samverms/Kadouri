@@ -171,7 +171,7 @@ export function CreateAccountModal({ onClose, onSuccess }: CreateAccountModalPro
           })),
       }
 
-      const response = await fetch('http://localhost:3001/api/accounts', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}/api/accounts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -197,9 +197,9 @@ export function CreateAccountModal({ onClose, onSuccess }: CreateAccountModalPro
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">Create New Account</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-blue-400">Create New Account</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -261,9 +261,9 @@ export function CreateAccountModal({ onClose, onSuccess }: CreateAccountModalPro
             </CardHeader>
             <CardContent className="space-y-4">
               {contacts.map((contact, index) => (
-                <div key={contact.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <div key={contact.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-gray-900">Contact {index + 1}</h4>
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Contact {index + 1}</h4>
                     <div className="flex gap-2">
                       <Button type="button" variant="outline" size="sm" onClick={addContact}>
                         <Plus className="h-4 w-4" />
@@ -351,9 +351,9 @@ export function CreateAccountModal({ onClose, onSuccess }: CreateAccountModalPro
             </CardHeader>
             <CardContent className="space-y-4">
               {addresses.map((address, index) => (
-                <div key={address.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <div key={address.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-gray-900">Address {index + 1}</h4>
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Address {index + 1}</h4>
                     <div className="flex gap-2">
                       <Button type="button" variant="outline" size="sm" onClick={addAddress}>
                         <Plus className="h-4 w-4" />
@@ -472,7 +472,7 @@ export function CreateAccountModal({ onClose, onSuccess }: CreateAccountModalPro
           </Card>
 
           {/* Submit Buttons */}
-          <div className="flex gap-3 justify-end sticky bottom-0 bg-white pt-4 border-t border-gray-200">
+          <div className="flex gap-3 justify-end sticky bottom-0 bg-white dark:bg-gray-800 pt-4 border-t border-gray-200 dark:border-gray-700">
             <Button
               type="button"
               variant="outline"

@@ -1,0 +1,926 @@
+'use client'
+// Updated table layout with compact columns
+import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Plus, Search, ChevronRight, ChevronDown, Mail, Phone, MapPin, User, Building2, FileText, Trash2, MoreVertical, Filter, ArrowUpDown, ArrowUp, ArrowDown, X } from 'lucide-react'
+import { CreateAccountModal } from '@/components/accounts/create-account-modal'
+
+interface Account {
+  id: string
+  code: string
+  name: string
+  qboCustomerId?: string
+  active: boolean
+  createdAt: string
+  addresses?: Address[]
+  contacts?: Contact[]
+  salesAgentId?: string
+}
+
+interface Address {
+  id: string
+  type: string
+  line1: string
+  line2?: string
+  city: string
+  state: string
+  postalCode: string
+  isPrimary: boolean
+}
+
+interface Contact {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  isPrimary: boolean
+}
+
+export default function AccountsPage() {
+  const router = useRouter()
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [expandedAccountId, setExpandedAccountId] = useState<string | null>(null)
+  const [accounts, setAccounts] = useState<Account[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [openOrdersAccountId, setOpenOrdersAccountId] = useState<string | null>(null)
+  const [accountOrders, setAccountOrders] = useState<{ [key: string]: any[] }>({})
+  const [outstandingInvoices, setOutstandingInvoices] = useState<{ [key: string]: number }>({})
+  const [loadingOrders, setLoadingOrders] = useState<string | null>(null)
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  const [emailRecipient, setEmailRecipient] = useState<{email: string, name: string} | null>(null)
+  const [showActiveOnly, setShowActiveOnly] = useState(true)
+
+  // Sorting and filtering state
+  const [sortColumn, setSortColumn] = useState<string | null>(null)
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [columnFilters, setColumnFilters] = useState({
+    code: '',
+    name: '',
+    contact: '',
+    phone: '',
+    email: '',
+    address: '',
+    agent: '',
+    status: ''
+  })
+
+  useEffect(() => {
+    fetchAccounts()
+  }, [])
+
+  const fetchAccounts = async () => {
+    setIsLoading(true)
+    setError('')
+    try {
+      const response = await fetch('http://localhost:2000/api/accounts', {
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch accounts')
+      }
+
+      const data = await response.json()
+      setAccounts(data)
+    } catch (err) {
+      console.error('Fetch accounts error:', err)
+      setError('Failed to load accounts')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchAccountOrders = async (accountId: string) => {
+    if (accountOrders[accountId]) return // Already fetched
+
+    setLoadingOrders(accountId)
+    try {
+      const response = await fetch(`http://localhost:2000/api/invoices?accountId=${accountId}&limit=5`, {
+        credentials: 'include',
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setAccountOrders(prev => ({ ...prev, [accountId]: data }))
+
+        // Count outstanding invoices (not paid)
+        const outstanding = data.filter((order: any) =>
+          order.status !== 'paid' && order.status !== 'cancelled'
+        ).length
+        setOutstandingInvoices(prev => ({ ...prev, [accountId]: outstanding }))
+      }
+    } catch (err) {
+      console.error('Fetch orders error:', err)
+    } finally {
+      setLoadingOrders(null)
+    }
+  }
+
+  const handleToggleOrders = (accountId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (openOrdersAccountId === accountId) {
+      setOpenOrdersAccountId(null)
+    } else {
+      setOpenOrdersAccountId(accountId)
+      fetchAccountOrders(accountId)
+    }
+  }
+
+  // Close popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setOpenOrdersAccountId(null)
+    }
+
+    if (openOrdersAccountId) {
+      document.addEventListener('click', handleClickOutside)
+      return () => {
+        document.removeEventListener('click', handleClickOutside)
+      }
+    }
+  }, [openOrdersAccountId])
+
+  const handleOpenEmailModal = (email: string, name: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setEmailRecipient({ email, name })
+    setShowEmailModal(true)
+  }
+
+  const handleAccountCreated = (newAccount: Account) => {
+    setAccounts([newAccount, ...accounts])
+    setShowCreateModal(false)
+  }
+
+  // Sort handler
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      // Cycle through: asc -> desc -> null
+      if (sortDirection === 'asc') {
+        setSortDirection('desc')
+      } else {
+        setSortColumn(null)
+        setSortDirection('asc')
+      }
+    } else {
+      setSortColumn(column)
+      setSortDirection('asc')
+    }
+  }
+
+  // Column filter handler
+  const handleColumnFilterChange = (column: string, value: string) => {
+    setColumnFilters(prev => ({
+      ...prev,
+      [column]: value
+    }))
+  }
+
+  // Clear all column filters
+  const clearAllFilters = () => {
+    setColumnFilters({
+      code: '',
+      name: '',
+      contact: '',
+      phone: '',
+      email: '',
+      address: '',
+      agent: '',
+      status: ''
+    })
+  }
+
+  const filteredAccounts = accounts.filter((account) => {
+    // Filter by active status
+    if (showActiveOnly && !account.active) {
+      return false
+    }
+
+    // If no search query, return the account (after active filter)
+    if (!searchQuery) {
+      return true
+    }
+
+    const query = searchQuery.toLowerCase().trim()
+
+    // Parse nested query with field-specific search
+    // Supported syntax: agent:John, name:ABC, email:test@example.com, contact:Jane, address:NY, code:ABC-123
+    const fieldMatches: { [key: string]: string } = {}
+    const generalTerms: string[] = []
+
+    // Parse field-specific queries (e.g., "agent:John name:ABC")
+    const fieldPattern = /(\w+):([^\s]+)/g
+    let match
+    let lastIndex = 0
+
+    while ((match = fieldPattern.exec(query)) !== null) {
+      const [fullMatch, field, value] = match
+      fieldMatches[field] = value
+      // Collect general search terms (text not part of field:value patterns)
+      if (match.index > lastIndex) {
+        const generalTerm = query.substring(lastIndex, match.index).trim()
+        if (generalTerm) generalTerms.push(generalTerm)
+      }
+      lastIndex = match.index + fullMatch.length
+    }
+
+    // Add any remaining text as general search term
+    if (lastIndex < query.length) {
+      const remainingTerm = query.substring(lastIndex).trim()
+      if (remainingTerm) generalTerms.push(remainingTerm)
+    }
+
+    // If no field-specific search, treat entire query as general search
+    if (Object.keys(fieldMatches).length === 0 && generalTerms.length === 0) {
+      generalTerms.push(query)
+    }
+
+    // Check field-specific matches (AND logic - all must match)
+    for (const [field, value] of Object.entries(fieldMatches)) {
+      let fieldMatch = false
+
+      switch (field) {
+        case 'agent':
+          fieldMatch = account.salesAgentId?.toLowerCase().includes(value) || false
+          break
+        case 'name':
+          fieldMatch = account.name.toLowerCase().includes(value)
+          break
+        case 'code':
+          fieldMatch = account.code.toLowerCase().includes(value)
+          break
+        case 'email':
+          fieldMatch = account.contacts?.some(c => c.email.toLowerCase().includes(value)) || false
+          break
+        case 'contact':
+          fieldMatch = account.contacts?.some(c =>
+            c.name.toLowerCase().includes(value) ||
+            c.email.toLowerCase().includes(value) ||
+            (c.phone && c.phone.toLowerCase().includes(value))
+          ) || false
+          break
+        case 'phone':
+          fieldMatch = account.contacts?.some(c => c.phone?.toLowerCase().includes(value)) || false
+          break
+        case 'address':
+        case 'city':
+          fieldMatch = account.addresses?.some(a =>
+            a.city.toLowerCase().includes(value) ||
+            a.state.toLowerCase().includes(value) ||
+            a.line1.toLowerCase().includes(value) ||
+            (a.line2 && a.line2.toLowerCase().includes(value))
+          ) || false
+          break
+        case 'state':
+          fieldMatch = account.addresses?.some(a => a.state.toLowerCase().includes(value)) || false
+          break
+        case 'zip':
+        case 'postal':
+          fieldMatch = account.addresses?.some(a => a.postalCode.toLowerCase().includes(value)) || false
+          break
+      }
+
+      // If any required field doesn't match, exclude this account (AND logic)
+      if (!fieldMatch) {
+        return false
+      }
+    }
+
+    // Check general search terms (OR logic - any field can match)
+    if (generalTerms.length > 0) {
+      for (const term of generalTerms) {
+        const matchesAccountInfo =
+          account.name.toLowerCase().includes(term) ||
+          account.code.toLowerCase().includes(term) ||
+          (account.salesAgentId && account.salesAgentId.toLowerCase().includes(term))
+
+        const matchesContact = account.contacts?.some(contact =>
+          contact.name.toLowerCase().includes(term) ||
+          contact.email.toLowerCase().includes(term) ||
+          (contact.phone && contact.phone.toLowerCase().includes(term))
+        )
+
+        const matchesAddress = account.addresses?.some(address =>
+          address.line1.toLowerCase().includes(term) ||
+          (address.line2 && address.line2.toLowerCase().includes(term)) ||
+          address.city.toLowerCase().includes(term) ||
+          address.state.toLowerCase().includes(term) ||
+          address.postalCode.toLowerCase().includes(term)
+        )
+
+        // If any general term matches, include this account
+        if (matchesAccountInfo || matchesContact || matchesAddress) {
+          return true
+        }
+      }
+      // If we have general terms but none matched, exclude this account
+      return false
+    }
+
+    // If only field-specific matches and all passed, include this account
+    return true
+  })
+
+  return (
+    <div>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Accounts</h1>
+          <p className="mt-2 text-gray-600">Manage customer and seller accounts</p>
+        </div>
+        <Button
+          onClick={() => setShowCreateModal(true)}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          New Account
+        </Button>
+      </div>
+
+      {/* Search Bar and Filter */}
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                placeholder="Search accounts... Try: agent:John, name:ABC, agent:John name:ABC, email:test@example.com"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex items-center gap-2 sm:w-auto">
+              <button
+                onClick={() => setShowActiveOnly(!showActiveOnly)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md border transition-colors whitespace-nowrap ${
+                  showActiveOnly
+                    ? 'bg-blue-50 border-blue-200 text-blue-700'
+                    : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Filter className="h-4 w-4" />
+                {showActiveOnly ? 'Active Only' : 'Show All'}
+              </button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <p className="text-sm text-red-800">{error}</p>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="text-center py-12">
+          <p className="text-gray-600">Loading accounts...</p>
+        </div>
+      )}
+
+      {/* Accounts Table */}
+      {!isLoading && (
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="w-12 px-2 sm:px-4"></th>
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Code
+                    </th>
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Account Name
+                    </th>
+                    <th className="hidden lg:table-cell px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Orders
+                    </th>
+                    <th className="hidden md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Primary Contact
+                    </th>
+                    <th className="hidden xl:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Phone
+                    </th>
+                    <th className="hidden xl:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Email
+                    </th>
+                    <th className="hidden 2xl:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Primary Address
+                    </th>
+                    <th className="hidden lg:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Agent Name
+                    </th>
+                    <th className="hidden sm:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white">
+                  {filteredAccounts.map((account) => {
+                    const primaryContact = account.contacts?.find((c) => c.isPrimary) || account.contacts?.[0]
+                    const primaryAddress = account.addresses?.find((a) => a.isPrimary) || account.addresses?.[0]
+                    return (
+                      <React.Fragment key={account.id}>
+                        <tr
+                          onClick={() => router.push(`/accounts/${account.id}`)}
+                          className="border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
+                        >
+                          <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() =>
+                                setExpandedAccountId(
+                                  expandedAccountId === account.id ? null : account.id
+                                )
+                              }
+                              className="text-gray-400 hover:text-gray-600"
+                            >
+                              {expandedAccountId === account.id ? (
+                                <ChevronDown className="h-5 w-5" />
+                              ) : (
+                                <ChevronRight className="h-5 w-5" />
+                              )}
+                            </button>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Link
+                              href={`/accounts/${account.id}`}
+                              className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline font-mono"
+                            >
+                              {account.code}
+                            </Link>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Link
+                              href={`/accounts/${account.id}`}
+                              className="text-sm font-medium text-gray-900 hover:text-blue-600"
+                            >
+                              {account.name}
+                            </Link>
+                          </td>
+                          <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-center relative">
+                            <div className="inline-block relative">
+                              <div className="relative">
+                                <button
+                                  onClick={(e) => handleToggleOrders(account.id, e)}
+                                  className={`inline-flex items-center justify-center h-8 w-8 rounded-full transition-colors ${
+                                    openOrdersAccountId === account.id
+                                      ? 'bg-purple-100 text-purple-700'
+                                      : 'hover:bg-purple-50 text-purple-600 hover:text-purple-700'
+                                  }`}
+                                >
+                                  <FileText className="h-4 w-4" />
+                                </button>
+                                {outstandingInvoices[account.id] > 0 && (
+                                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                                    {outstandingInvoices[account.id]}
+                                  </span>
+                                )}
+                              </div>
+
+                              {openOrdersAccountId === account.id && (
+                                <div
+                                  className="absolute left-1/2 transform -translate-x-1/2 top-full mt-2 w-[1125px] bg-white rounded-lg shadow-2xl border border-gray-200 z-50 p-5"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <div className="flex items-center justify-between mb-4">
+                                    <h4 className="text-base font-semibold text-gray-900">Recent Orders</h4>
+                                    <Link
+                                      href={`/accounts/${account.id}`}
+                                      className="text-xs text-blue-600 hover:text-blue-800"
+                                    >
+                                      View All
+                                    </Link>
+                                  </div>
+                                  {loadingOrders === account.id ? (
+                                    <div className="text-center py-4 text-sm text-gray-500">
+                                      Loading orders...
+                                    </div>
+                                  ) : accountOrders[account.id]?.length > 0 ? (
+                                    <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                                      {accountOrders[account.id].map((order: any) => (
+                                        <div key={order.id} className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
+                                          {/* Header Row: Invoice, Status, Date */}
+                                          <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center gap-3">
+                                              <span className="text-sm text-gray-700">Invoice:</span>
+                                              <Link
+                                                href={`/orders/${order.id}`}
+                                                className="text-base font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                                              >
+                                                {order.orderNo}
+                                              </Link>
+                                              <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${
+                                                order.status === 'paid'
+                                                  ? 'bg-green-100 text-green-800'
+                                                  : 'bg-yellow-100 text-yellow-800'
+                                              }`}>
+                                                {order.status === 'paid' ? 'Paid' : order.status?.replace(/_/g, ' ').toUpperCase() || 'DRAFT'}
+                                              </span>
+                                            </div>
+                                            <div className="text-sm text-gray-600">
+                                              {new Date(order.orderDate).toLocaleDateString('en-US', {
+                                                month: 'numeric',
+                                                day: 'numeric',
+                                                year: 'numeric'
+                                              })}
+                                            </div>
+                                          </div>
+
+                                          {/* Buyer/Seller Row */}
+                                          <div className="flex items-center justify-between mb-5">
+                                            <div className="text-sm">
+                                              <span className="text-gray-700 font-semibold">Buyer:</span>{' '}
+                                              <Link
+                                                href={`/accounts/${order.buyerAccountId}`}
+                                                className="text-gray-900 hover:text-blue-600 hover:underline"
+                                              >
+                                                {order.buyerAccountName}
+                                              </Link>
+                                            </div>
+                                            <div className="text-sm text-right">
+                                              <span className="text-gray-700 font-semibold">Seller:</span>{' '}
+                                              <Link
+                                                href={`/accounts/${order.sellerAccountId}`}
+                                                className="text-gray-900 hover:text-blue-600 hover:underline"
+                                              >
+                                                {order.sellerAccountName}
+                                              </Link>
+                                            </div>
+                                          </div>
+
+                                          {/* Items Table */}
+                                          {order.lines && order.lines.length > 0 && (
+                                            <div className="mb-5">
+                                              <div className="border border-gray-200 rounded overflow-x-auto max-w-full">
+                                                <table className="w-full text-sm table-fixed">
+                                                  <colgroup>
+                                                    <col style={{width: '40%'}} />
+                                                    <col style={{width: '15%'}} />
+                                                    <col style={{width: '10%'}} />
+                                                    <col style={{width: '10%'}} />
+                                                    <col style={{width: '10%'}} />
+                                                    <col style={{width: '15%'}} />
+                                                  </colgroup>
+                                                  <thead className="border-b border-gray-200 bg-gray-50">
+                                                    <tr>
+                                                      <th className="px-2 py-2 text-left text-xs font-medium text-gray-700">Memo</th>
+                                                      <th className="px-2 py-2 text-left text-xs font-medium text-gray-700">Quantity</th>
+                                                      <th className="px-2 py-2 text-left text-xs font-medium text-gray-700">Price/lb</th>
+                                                      <th className="px-2 py-2 text-left text-xs font-medium text-gray-700">Total</th>
+                                                      <th className="px-2 py-2 text-left text-xs font-medium text-gray-700">Comm %</th>
+                                                      <th className="px-2 py-2 text-left text-xs font-medium text-gray-700">Comm Amt</th>
+                                                    </tr>
+                                                  </thead>
+                                                  <tbody className="bg-white">
+                                                    {order.lines.map((line: any, index: number) => {
+                                                      // Calculate quantity display: e.g., "200 cases × 30 lbs = 6,000 lbs"
+                                                      const quantity = parseFloat(line.quantity) || 0
+                                                      const unitSize = parseFloat(line.unitSize) || 0
+                                                      const totalWeight = parseFloat(line.totalWeight) || (quantity * unitSize)
+                                                      const uom = line.uom || 'CASE'
+                                                      const unitPrice = parseFloat(line.unitPrice) || 0
+                                                      const lineTotal = parseFloat(line.total) || 0
+
+                                                      let quantityDisplay = ''
+                                                      if (uom === 'CASE' && unitSize > 0) {
+                                                        quantityDisplay = `${quantity.toLocaleString()} cases × ${unitSize} lbs = ${totalWeight.toLocaleString()} lbs`
+                                                      } else if (uom === 'BAG' && unitSize > 0) {
+                                                        quantityDisplay = `${quantity.toLocaleString()} bags × ${unitSize} lbs = ${totalWeight.toLocaleString()} lbs`
+                                                      } else {
+                                                        quantityDisplay = `${quantity.toLocaleString()} ${uom.toLowerCase()}`
+                                                      }
+
+                                                      return (
+                                                        <tr key={line.id || index} className={index !== order.lines.length - 1 ? 'border-b border-gray-100' : ''}>
+                                                          <td className="px-2 py-2 text-gray-900 text-sm align-top">
+                                                            <div className="break-words whitespace-normal">
+                                                              {line.sizeGrade || line.productDescription || line.productCode || 'N/A'}
+                                                            </div>
+                                                          </td>
+                                                          <td className="px-2 py-2 text-gray-900 text-sm align-top">
+                                                            <div className="break-words whitespace-normal">{quantityDisplay}</div>
+                                                          </td>
+                                                          <td className="px-2 py-2 text-gray-900 text-sm align-top whitespace-nowrap">
+                                                            ${unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                          </td>
+                                                          <td className="px-2 py-2 text-gray-900 text-sm align-top whitespace-nowrap">
+                                                            ${lineTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                          </td>
+                                                          <td className="px-2 py-2 text-gray-900 text-sm align-top whitespace-nowrap">
+                                                            {line.commissionPct > 0 ? `${line.commissionPct}%` : '—'}
+                                                          </td>
+                                                          <td className="px-2 py-2 text-gray-900 text-sm align-top whitespace-nowrap">
+                                                            ${(parseFloat(line.commissionAmt) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                          </td>
+                                                        </tr>
+                                                      )
+                                                    })}
+                                                    {/* Table Total Row */}
+                                                    <tr className="border-t-2 border-gray-300 bg-gray-50">
+                                                      <td colSpan={3} className="px-2 py-2 text-right text-sm font-semibold text-gray-900">
+                                                        Total:
+                                                      </td>
+                                                      <td className="px-2 py-2 pr-6 text-gray-900 whitespace-nowrap font-semibold text-sm">
+                                                        ${order.lines.reduce((sum: number, line: any) => {
+                                                          return sum + (parseFloat(line.total) || 0)
+                                                        }, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                      </td>
+                                                      <td className="px-2 py-2 pl-6 text-right text-sm font-semibold text-gray-900">
+                                                        Total Comm:
+                                                      </td>
+                                                      <td className="px-2 py-2 text-gray-900 whitespace-nowrap font-semibold text-sm">
+                                                        ${order.lines.reduce((sum: number, line: any) => {
+                                                          return sum + (parseFloat(line.commissionAmt) || 0)
+                                                        }, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                      </td>
+                                                    </tr>
+                                                  </tbody>
+                                                </table>
+                                              </div>
+                                            </div>
+                                          )}
+
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="text-center py-4 text-sm text-gray-500">
+                                      No orders found
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
+                            {primaryContact ? (
+                              <div className="text-sm font-medium text-gray-900">
+                                {primaryContact.name}
+                              </div>
+                            ) : (
+                              <span className="text-sm text-gray-400">No contact</span>
+                            )}
+                          </td>
+                          <td className="hidden xl:table-cell px-6 py-4 whitespace-nowrap">
+                            {primaryContact?.phone ? (
+                              <a
+                                href={`tel:${primaryContact.phone}`}
+                                className="text-sm text-gray-900 hover:text-blue-600 hover:underline"
+                              >
+                                {primaryContact.phone}
+                              </a>
+                            ) : (
+                              <span className="text-sm text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="hidden xl:table-cell px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                            {primaryContact?.email ? (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    window.location.href = `mailto:${primaryContact.email}`
+                                  }}
+                                  className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                  title="Send email"
+                                >
+                                  <Mail className="h-4 w-4" />
+                                </button>
+                                <a
+                                  href={`mailto:${primaryContact.email}`}
+                                  className="text-sm text-gray-900 hover:text-blue-600 hover:underline"
+                                >
+                                  {primaryContact.email}
+                                </a>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="hidden 2xl:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {(() => {
+                              const primaryAddress = account.addresses?.find((a) => a.isPrimary) || account.addresses?.[0]
+                              return primaryAddress ? (
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {primaryAddress.city}, {primaryAddress.state}
+                                </div>
+                              ) : (
+                                <span className="text-gray-400">No address</span>
+                              )
+                            })()}
+                          </td>
+                          <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm text-gray-900">
+                              {account.salesAgentId || '—'}
+                            </span>
+                          </td>
+                          <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                account.active
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}
+                            >
+                              {account.active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                        </tr>
+                        {expandedAccountId === account.id && (
+                          <tr className="bg-gray-50">
+                            <td colSpan={10} className="px-6 py-4">
+                              <div className="grid grid-cols-2 gap-6">
+                                {/* Contacts */}
+                                <div>
+                                  <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                    <User className="h-4 w-4" />
+                                    Contacts ({account.contacts?.length || 0})
+                                  </h4>
+                                  {account.contacts && account.contacts.length > 0 ? (
+                                    <div className="space-y-2">
+                                      {account.contacts.map((contact) => (
+                                        <div
+                                          key={contact.id}
+                                          className="bg-white rounded-lg p-3 border border-gray-200"
+                                        >
+                                          <div className="flex items-start justify-between mb-1">
+                                            <span className="text-sm font-medium text-gray-900">
+                                              {contact.name}
+                                            </span>
+                                            {contact.isPrimary && (
+                                              <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                                                Primary
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div className="space-y-1">
+                                            <div className="flex items-center gap-2 text-xs text-gray-600">
+                                              <Mail className="h-3 w-3" />
+                                              <a
+                                                href={`mailto:${contact.email}`}
+                                                className="hover:text-blue-600"
+                                              >
+                                                {contact.email}
+                                              </a>
+                                            </div>
+                                            {contact.phone && (
+                                              <div className="flex items-center gap-2 text-xs text-gray-600">
+                                                <Phone className="h-3 w-3" />
+                                                <a
+                                                  href={`tel:${contact.phone}`}
+                                                  className="hover:text-blue-600"
+                                                >
+                                                  {contact.phone}
+                                                </a>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm text-gray-500">No contacts</p>
+                                  )}
+                                </div>
+
+                                {/* Addresses */}
+                                <div>
+                                  <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                    <MapPin className="h-4 w-4" />
+                                    Addresses ({account.addresses?.length || 0})
+                                  </h4>
+                                  {account.addresses && account.addresses.length > 0 ? (
+                                    <div className="space-y-2">
+                                      {account.addresses.map((address) => (
+                                        <div
+                                          key={address.id}
+                                          className="bg-white rounded-lg p-3 border border-gray-200"
+                                        >
+                                          <div className="flex items-start justify-between mb-1">
+                                            <span className="text-sm font-medium text-gray-900 capitalize">
+                                              {address.type}
+                                            </span>
+                                            {address.isPrimary && (
+                                              <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                                                Primary
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div className="text-xs text-gray-600 space-y-0.5">
+                                            <p>{address.line1}</p>
+                                            {address.line2 && <p>{address.line2}</p>}
+                                            <p>
+                                              {address.city}, {address.state} {address.postalCode}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm text-gray-500">No addresses</p>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {filteredAccounts.length === 0 && !isLoading && (
+              <div className="text-center py-12">
+                <Building2 className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No accounts found</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {searchQuery
+                    ? 'Try adjusting your search query'
+                    : 'Get started by creating a new account'}
+                </p>
+                {!searchQuery && (
+                  <Button
+                    onClick={() => setShowCreateModal(true)}
+                    className="mt-4 bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Account
+                  </Button>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Create Account Modal */}
+      {showCreateModal && (
+        <CreateAccountModal
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={handleAccountCreated}
+        />
+      )}
+
+      {/* Email Compose Modal */}
+      {showEmailModal && emailRecipient && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">Compose Email</h3>
+              <button
+                onClick={() => setShowEmailModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">To:</label>
+                <div className="flex items-center gap-2 px-3 py-2 border rounded bg-gray-50">
+                  <Mail className="h-4 w-4 text-gray-400" />
+                  <span className="text-sm font-medium">{emailRecipient.name}</span>
+                  <span className="text-sm text-gray-500">&lt;{emailRecipient.email}&gt;</span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Subject:</label>
+                <Input placeholder="Enter subject" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Message:</label>
+                <textarea
+                  className="w-full h-48 px-3 py-2 border rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Type your message here..."
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 p-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => setShowEmailModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                Send Email
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

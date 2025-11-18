@@ -9,6 +9,13 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'PACE CRM - Order Management',
   description: 'QuickBooks integrated order management system',
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/icon-16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/icon-32.png', sizes: '32x32', type: 'image/png' },
+    ],
+  },
 }
 
 export default function RootLayout({
@@ -17,7 +24,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      appearance={{
+        variables: { colorPrimary: '#3b82f6' }
+      }}
+      afterSignOutUrl="/sign-in"
+    >
       <html lang="en">
         <body className={inter.className}>
           <Providers>

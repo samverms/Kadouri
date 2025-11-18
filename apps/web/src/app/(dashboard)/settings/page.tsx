@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,10 +17,70 @@ import {
   Mail,
   FileText,
   DollarSign,
+  Loader2,
 } from 'lucide-react'
+
+interface QuickBooksStatus {
+  connected: boolean
+  realmId?: string
+  expiresAt?: string
+  isExpired?: boolean
+}
 
 export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
+  const [qbStatus, setQbStatus] = useState<QuickBooksStatus | null>(null)
+  const [qbLoading, setQbLoading] = useState(true)
+
+  useEffect(() => {
+    fetchQuickBooksStatus()
+  }, [])
+
+  const fetchQuickBooksStatus = async () => {
+    try {
+      setQbLoading(true)
+      const response = await fetch('http://localhost:2000/api/quickbooks/status', {
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setQbStatus(data)
+      } else {
+        setQbStatus({ connected: false })
+      }
+    } catch (error) {
+      console.error('Failed to fetch QuickBooks status:', error)
+      setQbStatus({ connected: false })
+    } finally {
+      setQbLoading(false)
+    }
+  }
+
+  const handleQuickBooksConnect = () => {
+    window.location.href = 'http://localhost:2000/api/quickbooks/connect'
+  }
+
+  const handleQuickBooksDisconnect = async () => {
+    try {
+      setQbLoading(true)
+      const response = await fetch('http://localhost:2000/api/quickbooks/disconnect', {
+        method: 'POST',
+        credentials: 'include',
+      })
+
+      if (response.ok) {
+        // Refresh status after disconnect
+        await fetchQuickBooksStatus()
+      } else {
+        alert('Failed to disconnect from QuickBooks')
+      }
+    } catch (error) {
+      console.error('Failed to disconnect:', error)
+      alert('Failed to disconnect from QuickBooks')
+    } finally {
+      setQbLoading(false)
+    }
+  }
 
   const handleSave = async (section: string) => {
     setIsSaving(true)
@@ -31,9 +91,9 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        <p className="mt-2 text-gray-600">Manage your application settings and preferences</p>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-blue-400">Settings</h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-300">Manage your application settings and preferences</p>
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
@@ -112,21 +172,21 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Email Notifications</p>
-                  <p className="text-sm text-gray-500">Receive email updates for order changes</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Receive email updates for order changes</p>
                 </div>
                 <input type="checkbox" defaultChecked className="h-4 w-4" />
               </div>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">QuickBooks Sync Alerts</p>
-                  <p className="text-sm text-gray-500">Get notified when sync completes or fails</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Get notified when sync completes or fails</p>
                 </div>
                 <input type="checkbox" defaultChecked className="h-4 w-4" />
               </div>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Low Stock Alerts</p>
-                  <p className="text-sm text-gray-500">Alert when product inventory is low</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Alert when product inventory is low</p>
                 </div>
                 <input type="checkbox" className="h-4 w-4" />
               </div>
@@ -210,30 +270,71 @@ export default function SettingsPage() {
               <CardDescription>Manage your QuickBooks connection and sync settings</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-full bg-green-100 p-2">
-                      <DollarSign className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Connection Status</p>
-                      <p className="text-sm text-gray-500">Connected to QuickBooks Online</p>
-                    </div>
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4">
+                {qbLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                    <span className="ml-2 text-sm text-gray-500">Checking connection status...</span>
                   </div>
-                  <Button variant="outline" size="sm">
-                    Disconnect
-                  </Button>
-                </div>
+                ) : qbStatus?.connected ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-full bg-green-100 p-2">
+                        <DollarSign className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Connection Status</p>
+                        <p className="text-sm text-gray-500">
+                          Connected to QuickBooks Online
+                          {qbStatus.isExpired && <span className="ml-2 text-red-600">(Token Expired)</span>}
+                        </p>
+                        {qbStatus.realmId && (
+                          <p className="text-xs text-gray-400 mt-1">Company ID: {qbStatus.realmId}</p>
+                        )}
+                        {qbStatus.expiresAt && !qbStatus.isExpired && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            Expires: {new Date(qbStatus.expiresAt).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleQuickBooksDisconnect}
+                      disabled={qbLoading}
+                    >
+                      Disconnect
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-full bg-gray-100 p-2">
+                        <DollarSign className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Connection Status</p>
+                        <p className="text-sm text-gray-500">Not connected to QuickBooks Online</p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={handleQuickBooksConnect}
+                    >
+                      Connect to QuickBooks
+                    </Button>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-gray-900">Sync Settings</h3>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Sync Settings</h3>
 
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">Auto-Sync Orders</p>
-                    <p className="text-sm text-gray-500">Automatically sync new orders to QuickBooks</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Automatically sync new orders to QuickBooks</p>
                   </div>
                   <input type="checkbox" defaultChecked className="h-4 w-4" />
                 </div>
@@ -241,7 +342,7 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">Two-Way Sync</p>
-                    <p className="text-sm text-gray-500">Sync changes from QuickBooks back to PACE</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Sync changes from QuickBooks back to PACE</p>
                   </div>
                   <input type="checkbox" className="h-4 w-4" />
                 </div>
@@ -262,7 +363,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="space-y-4 border-t pt-4">
-                <h3 className="text-sm font-semibold text-gray-900">Default Mappings</h3>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Default Mappings</h3>
 
                 <div className="space-y-2">
                   <Label htmlFor="defaultAccount">Default Income Account</Label>
@@ -384,7 +485,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div>
                   <p className="font-medium">Order Confirmation</p>
-                  <p className="text-sm text-gray-500">Sent when order is created</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Sent when order is created</p>
                 </div>
                 <Button variant="outline" size="sm">
                   Edit
@@ -393,7 +494,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div>
                   <p className="font-medium">Invoice Notification</p>
-                  <p className="text-sm text-gray-500">Sent when invoice is posted to QuickBooks</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Sent when invoice is posted to QuickBooks</p>
                 </div>
                 <Button variant="outline" size="sm">
                   Edit
@@ -402,7 +503,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div>
                   <p className="font-medium">Payment Receipt</p>
-                  <p className="text-sm text-gray-500">Sent when payment is received</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Sent when payment is received</p>
                 </div>
                 <Button variant="outline" size="sm">
                   Edit
@@ -438,7 +539,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Include QR Code</p>
-                  <p className="text-sm text-gray-500">Add QR code linking to order details</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Add QR code linking to order details</p>
                 </div>
                 <input type="checkbox" defaultChecked className="h-4 w-4" />
               </div>
@@ -446,7 +547,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Show Commission Details</p>
-                  <p className="text-sm text-gray-500">Display commission info on seller PDFs</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Display commission info on seller PDFs</p>
                 </div>
                 <input type="checkbox" defaultChecked className="h-4 w-4" />
               </div>
@@ -505,28 +606,28 @@ export default function SettingsPage() {
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="border-b border-gray-200 bg-gray-50">
+                  <thead className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                         Name
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                         Email
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                         Role
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                         Status
                       </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                      <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200 bg-white">
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-900">
                     <tr>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
+                      <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">
                         Admin User
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
@@ -549,7 +650,7 @@ export default function SettingsPage() {
                       </td>
                     </tr>
                     <tr>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
+                      <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">
                         John Agent
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
@@ -572,7 +673,7 @@ export default function SettingsPage() {
                       </td>
                     </tr>
                     <tr>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
+                      <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">
                         Sarah Viewer
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
@@ -611,8 +712,8 @@ export default function SettingsPage() {
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <h4 className="mb-3 font-semibold text-gray-900">Admin</h4>
-                  <ul className="space-y-2 text-sm text-gray-600">
+                  <h4 className="mb-3 font-semibold text-gray-900 dark:text-gray-100">Admin</h4>
+                  <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                     <li className="flex items-center gap-2">
                       <span className="text-green-600">✓</span> Full access to all features
                     </li>
@@ -625,8 +726,8 @@ export default function SettingsPage() {
                   </ul>
                 </div>
                 <div className="border-t pt-4">
-                  <h4 className="mb-3 font-semibold text-gray-900">Agent</h4>
-                  <ul className="space-y-2 text-sm text-gray-600">
+                  <h4 className="mb-3 font-semibold text-gray-900 dark:text-gray-100">Agent</h4>
+                  <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                     <li className="flex items-center gap-2">
                       <span className="text-green-600">✓</span> Create and edit orders
                     </li>
@@ -639,8 +740,8 @@ export default function SettingsPage() {
                   </ul>
                 </div>
                 <div className="border-t pt-4">
-                  <h4 className="mb-3 font-semibold text-gray-900">Read-Only</h4>
-                  <ul className="space-y-2 text-sm text-gray-600">
+                  <h4 className="mb-3 font-semibold text-gray-900 dark:text-gray-100">Read-Only</h4>
+                  <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                     <li className="flex items-center gap-2">
                       <span className="text-green-600">✓</span> View orders and reports
                     </li>

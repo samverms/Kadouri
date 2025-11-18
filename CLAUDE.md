@@ -86,6 +86,8 @@ Located in `apps/api/src/db/schema/`:
 - **sync.ts**: Tracks entity-to-QBO mappings (syncMaps table)
 - **users.ts**: User accounts with Clerk integration
 - **emails.ts**: Email templates and sent email tracking
+- **roles.ts**: RBAC system with roles, permissions, and role_permissions tables
+- **user-roles.ts**: Maps Clerk users to roles
 
 Key patterns:
 - All tables use UUID primary keys
@@ -130,18 +132,27 @@ modules/[domain]/
 - `modules/orders/` - Order entry and management
 - `modules/search/` - Global search functionality across entities
 - `modules/users/` - User management, MFA, and invitations
+- `modules/roles/` - Role-Based Access Control (RBAC) management
 
 Routes are registered in `apps/api/src/routes/index.ts` with authentication middleware from `@clerk/express`.
 
 **API Server Configuration** (`apps/api/src/main.ts`):
-- Port: 3001 (configurable via `PORT` env var)
+- Port: 2000 (configurable via `PORT` env var)
 - Middleware: Helmet (security), CORS, compression, JSON/URL-encoded body parsing
 - Error handling: Centralized via `errorHandler` middleware
 - Logging: Winston logger (`utils/logger.ts`)
 
 ### Authentication & Authorization
-- **Clerk** handles auth on both frontend and backend
+- **Clerk** handles authentication on both frontend and backend
 - Backend uses `@clerk/express` middleware (`authenticate` in routes/index.ts)
+- **RBAC System**: Complete role-based access control implementation
+  - 4 default roles: Admin, Sales, BackOffice, Accountant
+  - 50 permissions across 10 modules (dashboard, accounts, orders, products, invoices, contracts, email, reports, users, settings)
+  - 5 actions per module: view, create, edit, delete, export
+  - User roles stored in `user_roles` table mapping Clerk user IDs to roles
+  - Frontend hooks: `usePermission(module, action)` and `useUserRole()` in `src/hooks/usePermissions.ts`
+  - API endpoints in `modules/roles/` for role management
+  - UI at `/settings/roles` for managing role permissions
 - Environment variables required:
   - Frontend: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
   - Backend: `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`
@@ -165,9 +176,10 @@ Both `apps/web` and `apps/sales` share the same architecture:
 - `/invoices` - Invoice management
 - `/contracts` - Contract tracking
 - `/email/compose`, `/email/templates` - Email functionality
-- `/settings`, `/settings/security` - Settings and security
+- `/settings`, `/settings/security`, `/settings/roles` - Settings, security, and role management
 - `/users` - User management (admin only)
 - `/search` - Global search
+- `/accept-invitation` - New user invitation acceptance flow
 
 ### Shared Package
 `packages/shared/src/`:
@@ -210,6 +222,7 @@ npm install
 cd apps/api
 npm run migration:run          # Run database migrations
 npx tsx src/db/seed.ts        # Seed initial data (optional)
+npx tsx src/db/seed-roles.ts  # Seed RBAC roles and permissions (required for RBAC)
 cd ../..
 
 # 4. Start development servers
@@ -249,6 +262,42 @@ Order lifecycle: `draft` → `confirmed` → `posted_to_qb` → `paid`
 - QBO doc ID/number stored in `orders.qboDocId`/`qboDocNumber`
 - Status updates via webhook or manual `syncInvoiceStatus()`
 
+### Managing User Roles and Permissions
+The system has a complete RBAC implementation for fine-grained access control:
+
+**Default Roles**:
+- **Admin**: Full access to all modules and actions
+- **Sales**: Access to dashboard, accounts, orders, products, email, reports
+- **BackOffice**: Access to dashboard, accounts, orders, products, contracts, email
+- **Accountant**: View/edit/export for invoices and reports; view-only for accounts and orders
+
+**Working with Roles**:
+1. **View/Edit Permissions**: Navigate to `/settings/roles`
+   - Select a role from the left sidebar
+   - Toggle permissions by module and action (view, create, edit, delete, export)
+   - Click "Save Changes" to persist
+
+2. **Assign Role to User**: Currently done via database
+   ```sql
+   INSERT INTO user_roles (clerk_user_id, role_id)
+   VALUES ('clerk_user_xyz', 'role_uuid');
+   ```
+
+3. **Check Permissions in Frontend**:
+   ```typescript
+   import { usePermission } from '@/hooks/usePermissions'
+
+   const canEditAccounts = usePermission('accounts', 'edit')
+   {canEditAccounts && <Button>Edit</Button>}
+   ```
+
+4. **API Endpoints** (in `modules/roles/roles.routes.ts`):
+   - `GET /api/roles` - List all roles
+   - `GET /api/roles/:id` - Get role with permissions
+   - `GET /api/me/role` - Get current user's role & permissions
+   - `POST /api/roles/:id/permissions` - Assign permissions to role
+   - `POST /api/users/:clerkUserId/role` - Assign role to user
+
 ### PDF Generation
 Order PDFs are generated using Puppeteer with custom HTML templates:
 
@@ -281,6 +330,9 @@ Order PDFs are generated using Puppeteer with custom HTML templates:
 - **Logging**: Use Winston logger from `utils/logger.ts` for structured logging (automatically logs errors, requests)
 - **CORS Configuration**: Backend CORS is set to `http://localhost:2005` by default. Update `apps/api/src/main.ts` if needed for different origins.
 - **Clerk Auth**: All API routes except `/health` require authentication. Use `authenticate` middleware from `@clerk/express`.
+- **Database Schema Changes**: Always use migrations (`npm run migration:generate` then `npm run migration:run`) rather than `db:push` for production to preserve data and track schema history.
+- **No express-ws**: Never install or use `express-ws` package (per user constraints).
+- **File Naming**: Maintain consistent file naming when working on the same topic/feature to avoid confusion.
 
 ## Debugging
 
@@ -301,10 +353,11 @@ npm run db:studio    # Open Drizzle Studio on http://localhost:4983
 ```
 
 ### Common Issues
-- **Port conflicts**: Kill processes on ports 3000, 3001, or 3003 if already in use
+- **Port conflicts**: Kill processes on ports 2000, 2005, or 2010 if already in use
 - **Database connection**: Verify PostgreSQL is running and `DATABASE_URL` is correct
 - **Redis connection**: Verify Redis is running if using caching/job queues
 - **Clerk auth**: Ensure `CLERK_SECRET_KEY` matches between frontend and backend
+- **RBAC not working**: Ensure roles are seeded (`npx tsx src/db/seed-roles.ts`) and users are assigned roles in `user_roles` table
 
 ## Testing
 
@@ -312,4 +365,22 @@ npm run db:studio    # Open Drizzle Studio on http://localhost:4983
 - Run tests: `npm run test` (from root or apps/api)
 - Test files: `*.test.ts` or `*.spec.ts` pattern
 - **Note**: Test suite may be incomplete; always test manually after changes
-- always test before you say it is ready and check logs
+- **Critical**: Always test functionality before marking work as complete and check logs for errors
+- **Documentation**: Update Docusaurus documentation site (in `docs/`) when making significant changes
+
+## Documentation
+
+Project includes a Docusaurus documentation site:
+- **Location**: `docs/` directory in root
+- **Running locally**:
+  ```bash
+  cd docs
+  npm install  # or yarn
+  npm start    # or yarn start
+  ```
+  This will start the dev server (usually on http://localhost:3000)
+- **Building**: `npm run build` (from docs/)
+- Keep documentation in sync with code changes
+- Document all major features, APIs, and workflows
+- Currently contains default Docusaurus tutorial content - should be customized for PACE CRM
+- sql schema is at sqlschema.txt always review before writing sql

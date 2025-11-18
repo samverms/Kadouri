@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,18 +16,39 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  Star,
+  Box,
 } from 'lucide-react'
 
 interface Product {
   id: string
-  code: string
+  code?: string
   name: string
   variety?: string
   grade?: string
   category?: string
+  defaultUnitSize?: string
+  uom?: string
+  active: boolean
+  source?: string
   qboItemId?: string
+  createdAt: string
+  updatedAt: string
+  updatedBy?: string
+  variants?: ProductVariant[]
+}
+
+interface ProductVariant {
+  id: string
+  productId: string
+  sku?: string
+  size: string
+  sizeUnit: string
+  packageType: string
+  isDefault: boolean
   active: boolean
   createdAt: string
+  updatedAt: string
 }
 
 interface Transaction {
@@ -48,67 +69,103 @@ export default function ProductDetailPage() {
   const params = useParams()
   const productId = params.id as string
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'quickbooks'>(
+  const [activeTab, setActiveTab] = useState<'overview' | 'transactions'>(
     'overview'
   )
   const [transactionSearch, setTransactionSearch] = useState('')
   const [sortColumn, setSortColumn] = useState<string>('')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
-  // Mock product data - will be replaced with API call
-  const product: Product = {
-    id: productId,
-    code: 'PRD-001',
-    name: 'Almonds',
-    variety: 'Nonpareil',
-    grade: 'Premium',
-    category: 'Nuts',
-    qboItemId: 'QBO-ITEM-123',
-    active: true,
-    createdAt: '2025-01-15',
+  const [product, setProduct] = useState<Product | null>(null)
+  const [transactions, setTransactions] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [updatedByName, setUpdatedByName] = useState<string>('')
+
+  useEffect(() => {
+    fetchProductAndTransactions()
+  }, [productId])
+
+  const fetchProductAndTransactions = async () => {
+    setIsLoading(true)
+    try {
+      // Fetch product details
+      const productResponse = await fetch(`http://localhost:2000/api/products/${productId}`, {
+        credentials: 'include',
+      })
+
+      if (productResponse.ok) {
+        const productData = await productResponse.json()
+        setProduct(productData)
+
+        // Fetch user name if product has updatedBy
+        if (productData.updatedBy) {
+          fetchUserName(productData.updatedBy)
+        }
+      }
+
+      // Fetch transactions (orders) containing this product
+      const transactionsResponse = await fetch(`http://localhost:2000/api/invoices?productId=${productId}`, {
+        credentials: 'include',
+      })
+
+      if (transactionsResponse.ok) {
+        const transactionsData = await transactionsResponse.json()
+        setTransactions(transactionsData)
+      }
+    } catch (err) {
+      console.error('Fetch error:', err)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  // Mock transactions - will be replaced with API call
-  const transactions: Transaction[] = [
-    {
-      id: '1',
-      orderNo: 'ORD-2024-001',
-      date: '2024-12-15',
-      seller: 'Guerra Nut Shelling',
-      buyer: 'C&G ENTERPRISES',
-      product: 'Almonds - Nonpareil - Premium',
-      quantity: 1000,
-      unit: 'lbs',
-      price: 4.5,
-      total: 4500,
-      agent: 'John Smith',
-    },
-    {
-      id: '2',
-      orderNo: 'ORD-2024-015',
-      date: '2024-12-20',
-      seller: 'FAMOSO NUT COMPANY',
-      buyer: 'ANC001',
-      product: 'Almonds - Nonpareil - Premium',
-      quantity: 2000,
-      unit: 'lbs',
-      price: 4.75,
-      total: 9500,
-      agent: 'Sarah Johnson',
-    },
-    {
-      id: '3',
-      orderNo: 'ORD-2025-003',
-      date: '2025-01-05',
-      seller: 'Guerra Nut Shelling',
-      buyer: 'C&G ENTERPRISES',
-      product: 'Almonds - Nonpareil - Premium',
-      quantity: 1500,
-      unit: 'lbs',
-      price: 4.85,
-      total: 7275,
-      agent: 'John Smith',
-    },
+  const fetchUserName = async (userId: string) => {
+    try {
+      const response = await fetch(`http://localhost:2000/api/users/${userId}/name`, {
+        credentials: 'include',
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setUpdatedByName(data.name)
+      }
+    } catch (err) {
+      console.error('Failed to fetch user name:', err)
+      setUpdatedByName(userId) // Fallback to userId
+    }
+  }
+
+  // Helper to get full product name
+  const getFullName = () => {
+    if (!product) return ''
+    return [product.name, product.variety, product.grade].filter(Boolean).join(' - ')
+  }
+
+  // Helper to get category from product name
+  const getCategory = (productName: string) => {
+    const name = productName.toLowerCase()
+    if (name.includes('almond')) return 'Almonds'
+    if (name.includes('walnut')) return 'Walnuts'
+    if (name.includes('pecan')) return 'Pecans'
+    if (name.includes('pistachio')) return 'Pistachios'
+    return 'Other'
+  }
+
+  // Calculate usage statistics
+  const totalQuantity = transactions.reduce((sum, txn) => {
+    const productLines = txn.lines?.filter((line: any) => line.productId === productId) || []
+    return sum + productLines.reduce((lineSum: number, line: any) => lineSum + line.quantity, 0)
+  }, 0)
+
+  const totalRevenue = transactions.reduce((sum, txn) => {
+    const productLines = txn.lines?.filter((line: any) => line.productId === productId) || []
+    return sum + productLines.reduce((lineSum: number, line: any) => lineSum + line.total, 0)
+  }, 0)
+
+  const avgPrice = totalQuantity > 0 ? totalRevenue / totalQuantity : 0
+
+  // Mock transactions removed - using real data now
+  const mockTransactions: Transaction[] = [
   ]
 
   const handleSort = (column: string) => {
@@ -135,29 +192,37 @@ export default function ProductDetailPage() {
     .filter(
       (txn) =>
         txn.orderNo.toLowerCase().includes(transactionSearch.toLowerCase()) ||
-        txn.seller.toLowerCase().includes(transactionSearch.toLowerCase()) ||
-        txn.buyer.toLowerCase().includes(transactionSearch.toLowerCase()) ||
-        txn.agent.toLowerCase().includes(transactionSearch.toLowerCase())
+        txn.sellerAccountName.toLowerCase().includes(transactionSearch.toLowerCase()) ||
+        txn.buyerAccountName.toLowerCase().includes(transactionSearch.toLowerCase()) ||
+        (txn.agentName && txn.agentName.toLowerCase().includes(transactionSearch.toLowerCase()))
     )
     .sort((a, b) => {
       if (!sortColumn) return 0
 
-      let aVal: any = a[sortColumn as keyof Transaction]
-      let bVal: any = b[sortColumn as keyof Transaction]
+      let aVal: any
+      let bVal: any
 
-      if (sortColumn === 'date') {
-        aVal = new Date(aVal).getTime()
-        bVal = new Date(bVal).getTime()
+      if (sortColumn === 'seller') {
+        aVal = a.sellerAccountName
+        bVal = b.sellerAccountName
+      } else if (sortColumn === 'buyer') {
+        aVal = a.buyerAccountName
+        bVal = b.buyerAccountName
+      } else if (sortColumn === 'agent') {
+        aVal = a.agentName || ''
+        bVal = b.agentName || ''
+      } else if (sortColumn === 'date') {
+        aVal = new Date(a.orderDate).getTime()
+        bVal = new Date(b.orderDate).getTime()
+      } else {
+        aVal = (a as any)[sortColumn]
+        bVal = (b as any)[sortColumn]
       }
 
       if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1
       if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1
       return 0
     })
-
-  const fullProductName = [product.name, product.variety, product.grade]
-    .filter(Boolean)
-    .join(' - ')
 
   return (
     <div>
@@ -173,25 +238,28 @@ export default function ProductDetailPage() {
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-gray-900">{fullProductName}</h1>
-              <span
-                className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${
-                  product.active
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
-                }`}
-              >
-                {product.active ? 'Active' : 'Inactive'}
-              </span>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-blue-400">{product && getFullName()}</h1>
+              {product && (
+                <span
+                  className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${
+                    product.active
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}
+                >
+                  {product.active ? 'Active' : 'Inactive'}
+                </span>
+              )}
             </div>
-            <p className="text-gray-600">Product Code: {product.code}</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
-            <Button variant="outline" className="text-red-600">
+            <Link href={`/products/${productId}/edit`}>
+              <Button variant="outline">
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+            </Link>
+            <Button variant="outline" className="text-red-600" disabled>
               <Trash2 className="mr-2 h-4 w-4" />
               Delete
             </Button>
@@ -222,21 +290,18 @@ export default function ProductDetailPage() {
           >
             Transactions
           </button>
-          <button
-            onClick={() => setActiveTab('quickbooks')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'quickbooks'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            QuickBooks
-          </button>
         </nav>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="text-center py-12">
+          <p className="text-gray-600">Loading product details...</p>
+        </div>
+      )}
+
       {/* Tab Content */}
-      {activeTab === 'overview' && (
+      {!isLoading && product && activeTab === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Product Details */}
           <Card className="lg:col-span-2">
@@ -245,25 +310,31 @@ export default function ProductDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Product Code</label>
-                  <p className="mt-1 text-sm text-gray-900 font-mono">{product.code}</p>
-                </div>
+                {product.code && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Product Code</label>
+                    <p className="mt-1">
+                      <span className="inline-flex items-center rounded bg-blue-100 px-2.5 py-1 text-sm font-mono font-medium text-blue-800">
+                        {product.code}
+                      </span>
+                    </p>
+                  </div>
+                )}
                 <div>
                   <label className="text-sm font-medium text-gray-500">Full Name</label>
-                  <p className="mt-1 text-sm text-gray-900">{fullProductName}</p>
+                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{getFullName()}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Name</label>
-                  <p className="mt-1 text-sm text-gray-900">{product.name}</p>
+                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{product.name}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Variety</label>
-                  <p className="mt-1 text-sm text-gray-900">{product.variety || '-'}</p>
+                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{product.variety || '-'}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Grade</label>
-                  <p className="mt-1 text-sm text-gray-900">{product.grade || '-'}</p>
+                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{product.grade || '-'}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Category</label>
@@ -291,59 +362,94 @@ export default function ProductDetailPage() {
                     </span>
                   </p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Created</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {new Date(product.createdAt).toLocaleDateString()}
-                  </p>
+              </div>
+
+              {/* Compact metadata footer */}
+              <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-4 text-xs text-gray-500">
+                <span>Created {new Date(product.createdAt).toLocaleDateString()}</span>
+                <span>•</span>
+                <span>Updated {new Date(product.updatedAt).toLocaleDateString()}</span>
+                {updatedByName && (
+                  <>
+                    <span>•</span>
+                    <span>by {updatedByName}</span>
+                  </>
+                )}
+              </div>
+
+              {/* Product Variants - Moved to bottom of main card */}
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium text-gray-500">Product Variants</h3>
+                  <Link href={`/products/${productId}/edit`}>
+                    <Button variant="outline" size="sm" className="h-7 text-xs">
+                      <Edit className="mr-1.5 h-3 w-3" />
+                      Manage
+                    </Button>
+                  </Link>
                 </div>
+                {product.variants && product.variants.filter(v => v.active).length > 0 ? (
+                  <div className="space-y-1.5">
+                    {product.variants
+                      .filter(v => v.active)
+                      .map((variant) => (
+                        <div
+                          key={variant.id}
+                          className={`flex items-center gap-2 p-2 rounded text-sm ${
+                            variant.isDefault ? 'bg-blue-50 text-blue-900' : 'text-gray-700'
+                          }`}
+                        >
+                          {variant.isDefault && (
+                            <Star className="h-3.5 w-3.5 text-blue-600 fill-blue-600" />
+                          )}
+                          <span className="font-medium">
+                            {variant.size} {variant.sizeUnit} {variant.packageType}
+                          </span>
+                          {variant.isDefault && (
+                            <span className="text-xs text-blue-600">(default)</span>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400">No variants defined</p>
+                )}
               </div>
             </CardContent>
           </Card>
 
-          {/* QuickBooks Integration */}
-          <Card>
+          {/* Usage Statistics */}
+          <Card className="lg:col-span-3">
             <CardHeader>
-              <CardTitle>QuickBooks Integration</CardTitle>
+              <CardTitle>Usage Statistics</CardTitle>
             </CardHeader>
             <CardContent>
-              {product.qboItemId ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Item ID</label>
-                    <p className="mt-1 text-sm text-gray-900 font-mono">{product.qboItemId}</p>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <div className="text-sm font-medium text-blue-600">Total Orders</div>
+                  <div className="text-2xl font-bold text-blue-900 mt-1">
+                    {transactions.length}
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Sync Status</label>
-                    <p className="mt-1">
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                        Connected
-                      </span>
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Last Synced</label>
-                    <p className="mt-1 text-sm text-gray-900">
-                      {new Date().toLocaleDateString()}
-                    </p>
-                  </div>
-                  <Button variant="outline" className="w-full">
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    View in QuickBooks
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    Sync Now
-                  </Button>
                 </div>
-              ) : (
-                <div className="text-center py-4">
-                  <Package className="mx-auto h-12 w-12 text-gray-400 mb-3" />
-                  <p className="text-sm text-gray-600 mb-4">Not synced with QuickBooks</p>
-                  <Button className="bg-blue-600 hover:bg-blue-700">
-                    Sync to QuickBooks
-                  </Button>
+                <div className="bg-green-50 rounded-lg p-4">
+                  <div className="text-sm font-medium text-green-600">Total Quantity</div>
+                  <div className="text-2xl font-bold text-green-900 mt-1">
+                    {totalQuantity.toLocaleString()} lbs
+                  </div>
                 </div>
-              )}
+                <div className="bg-purple-50 rounded-lg p-4">
+                  <div className="text-sm font-medium text-purple-600">Total Revenue</div>
+                  <div className="text-2xl font-bold text-purple-900 mt-1">
+                    ${totalRevenue.toLocaleString(undefined, {maximumFractionDigits: 0})}
+                  </div>
+                </div>
+                <div className="bg-orange-50 rounded-lg p-4">
+                  <div className="text-sm font-medium text-orange-600">Avg Price</div>
+                  <div className="text-2xl font-bold text-orange-900 mt-1">
+                    ${avgPrice.toFixed(2)}/lb
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -353,73 +459,93 @@ export default function ProductDetailPage() {
               <CardTitle>Recent Transactions</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Order #
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Seller
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Buyer
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Quantity
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Total
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Agent
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {transactions.slice(0, 5).map((txn) => (
-                      <tr key={txn.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Link
-                            href={`/orders/${txn.id}`}
-                            className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                          >
-                            {txn.orderNo}
-                          </Link>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {new Date(txn.date).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {txn.seller}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {txn.buyer}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {txn.quantity.toLocaleString()} {txn.unit}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          ${txn.total.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {txn.agent}
-                        </td>
+              {transactions.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Order #
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Date
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Seller
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Buyer
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Quantity
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Total
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {transactions.slice(0, 5).map((txn) => {
+                        const productLines = txn.lines?.filter((line: any) => line.productId === productId) || []
+                        const quantity = productLines.reduce((sum: number, line: any) => sum + line.quantity, 0)
+                        const total = productLines.reduce((sum: number, line: any) => sum + line.total, 0)
+
+                        return (
+                          <tr key={txn.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <Link
+                                href={`/orders/${txn.id}`}
+                                className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                {txn.orderNo}
+                              </Link>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                              {new Date(txn.orderDate).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 text-sm">
+                              <Link
+                                href={`/accounts/${txn.sellerAccountId}`}
+                                className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                {txn.sellerAccountName}
+                              </Link>
+                            </td>
+                            <td className="px-6 py-4 text-sm">
+                              <Link
+                                href={`/accounts/${txn.buyerAccountId}`}
+                                className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                {txn.buyerAccountName}
+                              </Link>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                              {quantity.toLocaleString()} lbs
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                              ${total.toLocaleString()}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Package className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No transactions found</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    This product hasn't been used in any orders yet
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
       )}
 
-      {activeTab === 'transactions' && (
+      {!isLoading && product && activeTab === 'transactions' && (
         <div>
           {/* Search Bar */}
           <Card className="mb-6">
@@ -485,46 +611,63 @@ export default function ProductDetailPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredTransactions.map((txn) => (
-                      <tr key={txn.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Link
-                            href={`/orders/${txn.id}`}
-                            className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                          >
-                            {txn.orderNo}
-                          </Link>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {new Date(txn.date).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {txn.seller}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {txn.buyer}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {txn.quantity.toLocaleString()} {txn.unit}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          ${txn.price.toFixed(2)}/{txn.unit}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          ${txn.total.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {txn.agent}
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredTransactions.map((txn) => {
+                      const productLines = txn.lines?.filter((line: any) => line.productId === productId) || []
+                      const quantity = productLines.reduce((sum: number, line: any) => sum + line.quantity, 0)
+                      const total = productLines.reduce((sum: number, line: any) => sum + line.total, 0)
+                      const avgPrice = quantity > 0 ? total / quantity : 0
+
+                      return (
+                        <tr key={txn.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Link
+                              href={`/orders/${txn.id}`}
+                              className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              {txn.orderNo}
+                            </Link>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                            {new Date(txn.orderDate).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 text-sm">
+                            <Link
+                              href={`/accounts/${txn.sellerAccountId}`}
+                              className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              {txn.sellerAccountName}
+                            </Link>
+                          </td>
+                          <td className="px-6 py-4 text-sm">
+                            <Link
+                              href={`/accounts/${txn.buyerAccountId}`}
+                              className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              {txn.buyerAccountName}
+                            </Link>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                            {quantity.toLocaleString()} lbs
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                            ${avgPrice.toFixed(2)}/lb
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                            ${total.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                            {txn.agentName || 'N/A'}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
               {filteredTransactions.length === 0 && (
                 <div className="text-center py-12">
                   <Package className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">
+                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
                     No transactions found
                   </h3>
                   <p className="mt-1 text-sm text-gray-500">
@@ -539,100 +682,6 @@ export default function ProductDetailPage() {
         </div>
       )}
 
-      {activeTab === 'quickbooks' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>QuickBooks Integration Details</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {product.qboItemId ? (
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      QuickBooks Item ID
-                    </label>
-                    <p className="mt-1 text-sm text-gray-900 font-mono">{product.qboItemId}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Sync Status</label>
-                    <p className="mt-1">
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                        Connected & Synced
-                      </span>
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Last Sync</label>
-                    <p className="mt-1 text-sm text-gray-900">
-                      {new Date().toLocaleString()}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Sync Frequency</label>
-                    <p className="mt-1 text-sm text-gray-900">Real-time</p>
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-200 pt-6">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-4">
-                    QuickBooks Item Details
-                  </h4>
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Item Name:</span>
-                      <span className="text-sm font-medium text-gray-900">{fullProductName}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Item Type:</span>
-                      <span className="text-sm font-medium text-gray-900">Inventory</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Category:</span>
-                      <span className="text-sm font-medium text-gray-900 capitalize">
-                        {product.category}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Status:</span>
-                      <span className="text-sm font-medium text-gray-900">
-                        {product.active ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <Button variant="outline" className="flex-1">
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    View in QuickBooks
-                  </Button>
-                  <Button variant="outline" className="flex-1">
-                    Sync Now
-                  </Button>
-                  <Button variant="outline" className="flex-1 text-red-600">
-                    Disconnect
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Not Connected to QuickBooks
-                </h3>
-                <p className="text-sm text-gray-600 mb-6 max-w-md mx-auto">
-                  Connect this product to QuickBooks to enable automatic syncing of inventory,
-                  pricing, and transaction data.
-                </p>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  Connect to QuickBooks
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }

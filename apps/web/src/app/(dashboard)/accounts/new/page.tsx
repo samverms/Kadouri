@@ -178,7 +178,7 @@ export default function NewAccountPage() {
           })),
       }
 
-      const response = await fetch('http://localhost:3001/api/accounts', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}/api/accounts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -212,7 +212,7 @@ export default function NewAccountPage() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Accounts
         </Button>
-        <h1 className="text-3xl font-bold text-gray-900">Create New Account</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-blue-400">Create New Account</h1>
         <p className="mt-2 text-gray-600">Add a new customer or seller account</p>
       </div>
 
@@ -287,7 +287,7 @@ export default function NewAccountPage() {
             {contacts.map((contact, index) => (
               <div key={contact.id} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium text-gray-900">Contact {index + 1}</h4>
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100">Contact {index + 1}</h4>
                   {contacts.length > 1 && (
                     <Button
                       type="button"
@@ -372,7 +372,7 @@ export default function NewAccountPage() {
             {addresses.map((address, index) => (
               <div key={address.id} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium text-gray-900">Address {index + 1}</h4>
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100">Address {index + 1}</h4>
                   {addresses.length > 1 && (
                     <Button
                       type="button"

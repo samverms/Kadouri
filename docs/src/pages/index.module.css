@@ -3,21 +3,231 @@
  * and scoped locally.
  */
 
+/* Hero Section */
 .heroBanner {
-  padding: 4rem 0;
+  padding: 6rem 0 4rem;
   text-align: center;
   position: relative;
   overflow: hidden;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
 }
 
-@media screen and (max-width: 996px) {
-  .heroBanner {
-    padding: 2rem;
-  }
+.heroTitle {
+  font-size: 4rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.heroSubtitle {
+  font-size: 1.75rem;
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+  opacity: 0.95;
+}
+
+.heroDescription {
+  font-size: 1.25rem;
+  max-width: 700px;
+  margin: 0 auto 2.5rem;
+  opacity: 0.9;
+  line-height: 1.6;
 }
 
 .buttons {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* Key Features Section */
+.highlights {
+  padding: 4rem 0;
+  background-color: var(--ifm-background-color);
+}
+
+.sectionTitle {
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 3rem;
+  color: var(--ifm-heading-color);
+}
+
+.featureCard {
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.featureIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.featureTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  text-align: center;
+  color: var(--ifm-heading-color);
+}
+
+.featureDescription {
+  font-size: 1rem;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--ifm-color-emphasis-700);
+}
+
+/* Tech Stack Section */
+.techStack {
+  padding: 4rem 0;
+  background: linear-gradient(to bottom, var(--ifm-background-color), var(--ifm-background-surface-color));
+}
+
+.techCard {
+  background: var(--ifm-card-background-color);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 12px;
+  padding: 2rem;
+  height: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.techCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.techCategory {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #667eea;
+  text-align: center;
+}
+
+.techList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.techList li {
+  padding: 0.5rem 0;
+  text-align: center;
+  color: var(--ifm-color-emphasis-700);
+  font-size: 1rem;
+}
+
+.techList li::before {
+  content: '✓ ';
+  color: #667eea;
+  font-weight: bold;
+  margin-right: 0.5rem;
+}
+
+/* Quick Start Section */
+.quickStart {
+  padding: 4rem 0 5rem;
+  background-color: var(--ifm-background-color);
+}
+
+.codeBlock {
+  max-width: 800px;
+  margin: 0 auto 2rem;
+  background: var(--ifm-code-background);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.codeBlock pre {
+  padding: 2rem;
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  overflow-x: auto;
+  background: transparent;
+}
+
+.quickStartLinks {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 996px) {
+  .heroTitle {
+    font-size: 3rem;
+  }
+
+  .heroSubtitle {
+    font-size: 1.5rem;
+  }
+
+  .heroDescription {
+    font-size: 1.1rem;
+  }
+
+  .sectionTitle {
+    font-size: 2rem;
+  }
+
+  .featureCard {
+    margin-bottom: 2rem;
+  }
+
+  .buttons {
+    flex-direction: column;
+  }
+
+  .buttons > * {
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .heroBanner {
+    padding: 4rem 0 3rem;
+  }
+
+  .heroTitle {
+    font-size: 2.5rem;
+  }
+
+  .heroSubtitle {
+    font-size: 1.25rem;
+  }
+
+  .heroDescription {
+    font-size: 1rem;
+    padding: 0 1rem;
+  }
+
+  .codeBlock pre {
+    padding: 1.5rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Dark Mode Adjustments */
+[data-theme='dark'] .heroBanner {
+  background: linear-gradient(135deg, #5568d3 0%, #6a4c93 100%);
+}
+
+[data-theme='dark'] .techCard {
+  background: var(--ifm-background-surface-color);
+  border-color: var(--ifm-color-emphasis-300);
+}
+
+[data-theme='dark'] .codeBlock {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }

@@ -31,7 +31,7 @@ export default function LogoutPage() {
         <Card className="w-full max-w-md border-gray-200 shadow-xl">
           <CardContent className="p-12 text-center">
             <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Signing you out...</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Signing you out...</h2>
             <p className="text-gray-600">Please wait while we securely log you out</p>
           </CardContent>
         </Card>
@@ -54,7 +54,7 @@ export default function LogoutPage() {
               priority
             />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">You've been signed out</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-blue-400">You've been signed out</h1>
           <p className="text-gray-600 mt-2">Come back soon!</p>
         </div>
 
@@ -66,7 +66,7 @@ export default function LogoutPage() {
             </div>
 
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Successfully Signed Out</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Successfully Signed Out</h2>
               <p className="text-gray-600">Your session has been securely ended. All your data is safe.</p>
             </div>
 

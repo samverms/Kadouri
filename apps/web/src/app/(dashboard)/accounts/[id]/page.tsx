@@ -457,9 +457,9 @@ export default function AccountDetailPage() {
       case 'confirmed':
         return 'bg-yellow-100 text-yellow-800'
       case 'draft':
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gray-100 text-gray-800 dark:text-gray-200'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gray-100 text-gray-800 dark:text-gray-200'
     }
   }
 
@@ -503,7 +503,7 @@ export default function AccountDetailPage() {
       <div>
         <Link
           href="/accounts"
-          className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4"
+          className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 dark:hover:text-gray-100 mb-4"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Accounts
@@ -520,7 +520,7 @@ export default function AccountDetailPage() {
       <div>
         <Link
           href="/accounts"
-          className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4"
+          className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 dark:hover:text-gray-100 mb-4"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Accounts
@@ -538,7 +538,7 @@ export default function AccountDetailPage() {
       <div className="mb-6">
         <Link
           href="/accounts"
-          className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4"
+          className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 dark:hover:text-gray-100 mb-4"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Accounts
@@ -549,7 +549,7 @@ export default function AccountDetailPage() {
               <Building2 className="h-6 w-6 text-blue-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{account.name}</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-blue-400">{account.name}</h1>
               <p className="text-sm text-gray-600 mt-1">
                 Code: <span className="font-mono">{account.code}</span>
                 {account.qboCustomerId && (
@@ -676,11 +676,11 @@ export default function AccountDetailPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-medium text-gray-500">Account Code</label>
-                    <p className="text-sm text-gray-900 font-mono">{account.code}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100 font-mono">{account.code}</p>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-gray-500">Created Date</label>
-                    <p className="text-sm text-gray-900">
+                    <p className="text-sm text-gray-900 dark:text-gray-100">
                       {new Date(account.createdAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -688,7 +688,7 @@ export default function AccountDetailPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-medium text-gray-500">Account Name</label>
-                    <p className="text-sm text-gray-900">{account.name}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{account.name}</p>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-gray-500 mb-1 block">Status</label>
@@ -713,7 +713,7 @@ export default function AccountDetailPage() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500">Sales Agent</label>
-                  <p className="text-sm text-gray-900">
+                  <p className="text-sm text-gray-900 dark:text-gray-100">
                     {salesAgentName || account.salesAgentId || 'Not assigned'}
                   </p>
                 </div>
@@ -757,7 +757,7 @@ export default function AccountDetailPage() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500">Brokers</label>
-                  <p className="text-sm text-gray-900">
+                  <p className="text-sm text-gray-900 dark:text-gray-100">
                     {account.brokerIds && account.brokerIds.length > 0
                       ? `${account.brokerIds.length} broker(s) assigned`
                       : 'No brokers assigned'}
@@ -777,7 +777,7 @@ export default function AccountDetailPage() {
                       <label className="text-sm font-medium text-gray-700">
                         QuickBooks Customer ID
                       </label>
-                      <p className="mt-1 text-sm text-gray-900 font-mono">
+                      <p className="mt-1 text-sm text-gray-900 dark:text-gray-100 font-mono">
                         {account.qboCustomerId}
                       </p>
                     </div>
@@ -935,13 +935,13 @@ export default function AccountDetailPage() {
                           </Link>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">
+                          <div className="text-sm text-gray-900 dark:text-gray-100">
                             {txn.lines?.[0]?.productDescription || 'Multiple Products'}
                           </div>
                           <div className="text-xs text-gray-500">{txn.lines?.length || 0} items</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm font-medium text-gray-900">
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             ${txn.totalAmount?.toLocaleString() || '0'}
                           </span>
                         </td>
@@ -954,7 +954,7 @@ export default function AccountDetailPage() {
                           <span className="text-sm text-gray-600">{txn.agentName || 'N/A'}</span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-900">
+                          <span className="text-sm text-gray-900 dark:text-gray-100">
                             ${txn.lines?.reduce((sum: number, line: any) => sum + (parseFloat(line.commissionAmt) || 0), 0).toFixed(2) || '0'}
                           </span>
                         </td>
@@ -1000,7 +1000,7 @@ export default function AccountDetailPage() {
                                   <span className="text-sm text-gray-600">Buyer: </span>
                                   <Link
                                     href={`/accounts/${txn.buyerAccountId}`}
-                                    className="text-sm font-medium text-gray-900 hover:text-blue-600 hover:underline"
+                                    className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 hover:underline"
                                   >
                                     {txn.buyerAccountName}
                                   </Link>
@@ -1009,7 +1009,7 @@ export default function AccountDetailPage() {
                                   <span className="text-sm text-gray-600">Seller: </span>
                                   <Link
                                     href={`/accounts/${txn.sellerAccountId}`}
-                                    className="text-sm font-medium text-gray-900 hover:text-blue-600 hover:underline"
+                                    className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 hover:underline"
                                   >
                                     {txn.sellerAccountName}
                                   </Link>
@@ -1032,16 +1032,16 @@ export default function AccountDetailPage() {
                                     <tbody>
                                       {txn.lines?.map((line: any, index: number) => (
                                         <tr key={line.id || index} className={index !== (txn.lines?.length || 0) - 1 ? 'border-b border-gray-100' : ''}>
-                                          <td className="px-3 py-2 text-sm text-gray-900">
+                                          <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
                                             {line.productCode || line.productDescription || 'Unknown Product'}
                                           </td>
-                                          <td className="px-3 py-2 text-sm text-center text-gray-900">
+                                          <td className="px-3 py-2 text-sm text-center text-gray-900 dark:text-gray-100">
                                             {line.quantity?.toLocaleString() || 0} lbs
                                           </td>
-                                          <td className="px-3 py-2 text-sm text-center text-gray-900">
+                                          <td className="px-3 py-2 text-sm text-center text-gray-900 dark:text-gray-100">
                                             {line.commissionPct > 0 ? `${line.commissionPct}%` : '-'}
                                           </td>
-                                          <td className="px-3 py-2 text-sm text-right text-gray-900">
+                                          <td className="px-3 py-2 text-sm text-right text-gray-900 dark:text-gray-100">
                                             {line.total?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                                           </td>
                                         </tr>
@@ -1053,8 +1053,8 @@ export default function AccountDetailPage() {
 
                               {/* Total */}
                               <div className="flex justify-between items-center pt-3 border-t border-gray-300">
-                                <div className="text-lg font-semibold text-gray-900">Total:</div>
-                                <div className="text-xl font-bold text-gray-900">
+                                <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">Total:</div>
+                                <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
                                   ${txn.totalAmount?.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}
                                 </div>
                               </div>

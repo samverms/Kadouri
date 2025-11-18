@@ -2,6 +2,7 @@
 // Updated table layout with AG Grid-style features: column menus, visibility, grouping, aggregation
 import React, { useState, useEffect, Fragment, useMemo, useRef } from 'react'
 import Link from 'next/link'
+import { useAuth } from '@clerk/nextjs'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { DateRangePicker } from '@/components/ui/date-picker'
@@ -53,6 +54,7 @@ interface ColumnVisibility {
 }
 
 export default function InvoicesPage() {
+  const { getToken } = useAuth()
   const { showToast } = useToast()
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedInvoiceIds, setExpandedInvoiceIds] = useState<Set<string>>(new Set())
@@ -97,20 +99,36 @@ export default function InvoicesPage() {
   const [showColumnVisibilityPanel, setShowColumnVisibilityPanel] = useState(false)
   const columnVisibilityRef = useRef<HTMLDivElement>(null)
 
-  // Column grouping state
+  // Column grouping state (multi-select like orders page)
   const [groupByColumn, setGroupByColumn] = useState<string | null>(null)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  const [showGroupingPanel, setShowGroupingPanel] = useState(false)
+  const groupingPanelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetchInvoices()
-  }, [])
+  }, [searchQuery])
 
   const fetchInvoices = async () => {
     setIsLoading(true)
     setError('')
     try {
-      const response = await fetch('http://localhost:2000/api/invoices', {
+      const token = await getToken()
+
+      // Build query parameters
+      const params = new URLSearchParams()
+      if (searchQuery) {
+        params.append('search', searchQuery)
+      }
+      params.append('limit', '1000') // Increase limit to fetch more invoices
+
+      const url = `http://localhost:2000/api/invoices${params.toString() ? '?' + params.toString() : ''}`
+
+      const response = await fetch(url, {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       })
 
       if (!response.ok) {
@@ -184,6 +202,7 @@ export default function InvoicesPage() {
 
   // Clear all column filters
   const clearAllFilters = () => {
+    // Clear column filters
     setColumnFilters({
       invoiceNumber: '',
       orderNumber: '',
@@ -194,9 +213,18 @@ export default function InvoicesPage() {
       amount: '',
       status: ''
     })
+    // Clear date range
     setDateRangeStart(null)
     setDateRangeEnd(null)
-    showToast('All filters cleared', 'info')
+    // Clear grouping
+    setGroupByColumn(null)
+    setExpandedGroups(new Set())
+    // Clear sorting
+    setSortColumn(null)
+    setSortDirection('asc')
+    // Clear search
+    setSearchQuery('')
+    showToast('All filters and settings reset', 'info')
   }
 
   // Check if any column filters are active
@@ -226,6 +254,102 @@ export default function InvoicesPage() {
     })
   }
 
+  // Helper function to set date preset (Today, This Week, etc.)
+  const setDatePreset = (preset: string) => {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    let start: Date | null = null
+    let end: Date | null = null
+
+    switch (preset) {
+      case 'today':
+        start = today
+        end = new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1)
+        break
+      case 'thisWeek': {
+        const dayOfWeek = today.getDay()
+        const startOfWeek = new Date(today)
+        startOfWeek.setDate(today.getDate() - dayOfWeek)
+        start = startOfWeek
+        end = new Date(startOfWeek.getTime() + 7 * 24 * 60 * 60 * 1000 - 1)
+        break
+      }
+      case 'thisMonth': {
+        start = new Date(today.getFullYear(), today.getMonth(), 1)
+        end = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999)
+        break
+      }
+      case 'thisQuarter': {
+        const quarter = Math.floor(today.getMonth() / 3)
+        start = new Date(today.getFullYear(), quarter * 3, 1)
+        end = new Date(today.getFullYear(), quarter * 3 + 3, 0, 23, 59, 59, 999)
+        break
+      }
+      case 'thisYear': {
+        start = new Date(today.getFullYear(), 0, 1)
+        end = new Date(today.getFullYear(), 11, 31, 23, 59, 59, 999)
+        break
+      }
+    }
+
+    setDateRangeStart(start)
+    setDateRangeEnd(end)
+    setOpenColumnMenu(null) // Close the menu after selecting
+  }
+
+  // Helper function to bucket dates into ranges (for grouping)
+  const getDateRangeBucket = (date: Date): string => {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const invoiceDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+
+    const diffTime = today.getTime() - invoiceDate.getTime()
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+
+    // Today
+    if (diffDays === 0) return '01_Today'
+
+    // Yesterday
+    if (diffDays === 1) return '02_Yesterday'
+
+    // This Week (last 7 days)
+    if (diffDays <= 7) return '03_This Week'
+
+    // Last Week (8-14 days ago)
+    if (diffDays <= 14) return '04_Last Week'
+
+    // This Month
+    if (invoiceDate.getMonth() === today.getMonth() && invoiceDate.getFullYear() === today.getFullYear()) {
+      return '05_This Month'
+    }
+
+    // Last Month
+    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+    if (invoiceDate.getMonth() === lastMonth.getMonth() && invoiceDate.getFullYear() === lastMonth.getFullYear()) {
+      return '06_Last Month'
+    }
+
+    // This Quarter
+    const currentQuarter = Math.floor(today.getMonth() / 3)
+    const invoiceQuarter = Math.floor(invoiceDate.getMonth() / 3)
+    if (invoiceQuarter === currentQuarter && invoiceDate.getFullYear() === today.getFullYear()) {
+      return '07_This Quarter'
+    }
+
+    // This Year
+    if (invoiceDate.getFullYear() === today.getFullYear()) {
+      return '08_This Year'
+    }
+
+    // Last Year
+    if (invoiceDate.getFullYear() === today.getFullYear() - 1) {
+      return '09_Last Year'
+    }
+
+    // Older
+    return '10_Older'
+  }
+
   // Get value for grouping
   const getGroupValue = (invoice: Invoice, column: string): string => {
     switch (column) {
@@ -238,8 +362,18 @@ export default function InvoicesPage() {
       case 'agent':
         return invoice.agentName || 'No Agent'
       case 'date':
-        const date = new Date(invoice.orderDate)
-        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+        if (!invoice.orderDate) return 'No Date'
+        const exactDate = new Date(invoice.orderDate)
+        return exactDate.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        })
+      case 'dateRange':
+        if (!invoice.orderDate) return 'No Date'
+        const invoiceDate = new Date(invoice.orderDate)
+        const bucket = getDateRangeBucket(invoiceDate)
+        return bucket.substring(3) // Remove the "01_", "02_" prefix
       default:
         return 'Unknown'
     }
@@ -381,16 +515,17 @@ export default function InvoicesPage() {
     return result
   }, [invoices, columnFilters, searchQuery, sortColumn, sortDirection, dateRangeStart, dateRangeEnd])
 
-  // Group invoices if grouping is enabled
-  const groupedInvoices = useMemo(() => {
-    if (!groupByColumn) {
-      return null
+  // Helper function to create nested groups recursively
+  const createNestedGroups = (invoices: Invoice[], columns: string[], parentKey: string = ''): any => {
+    if (columns.length === 0) {
+      return invoices
     }
 
+    const [currentColumn, ...remainingColumns] = columns
     const groups = new Map<string, Invoice[]>()
 
-    processedInvoices.forEach(invoice => {
-      const groupValue = getGroupValue(invoice, groupByColumn)
+    invoices.forEach(invoice => {
+      const groupValue = getGroupValue(invoice, currentColumn)
       if (!groups.has(groupValue)) {
         groups.set(groupValue, [])
       }
@@ -402,7 +537,27 @@ export default function InvoicesPage() {
       a[0].localeCompare(b[0])
     )
 
-    return sortedGroups
+    return sortedGroups.map(([groupKey, groupInvoices]) => {
+      const fullKey = parentKey ? `${parentKey}>${currentColumn}:${groupKey}` : `${currentColumn}:${groupKey}`
+      return {
+        key: fullKey,
+        displayKey: groupKey,
+        column: currentColumn,
+        invoices: groupInvoices,
+        children: remainingColumns.length > 0
+          ? createNestedGroups(groupInvoices, remainingColumns, fullKey)
+          : null
+      }
+    })
+  }
+
+  // Group invoices if grouping is enabled (supports multi-level grouping)
+  const groupedInvoices = useMemo(() => {
+    if (!groupByColumn) {
+      return null
+    }
+
+    return createNestedGroups(processedInvoices, [groupByColumn])
   }, [processedInvoices, groupByColumn])
 
   // Calculate aggregations
@@ -440,9 +595,9 @@ export default function InvoicesPage() {
       case 'confirmed':
         return 'bg-yellow-100 text-yellow-800'
       case 'draft':
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gray-100 text-gray-800 dark:text-gray-200'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gray-100 text-gray-800 dark:text-gray-200'
     }
   }
 
@@ -454,11 +609,7 @@ export default function InvoicesPage() {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
+    return new Date(dateString).toLocaleDateString('en-US', { year: '2-digit', month: '2-digit', day: '2-digit' })
   }
 
   // Column menu component
@@ -591,7 +742,7 @@ export default function InvoicesPage() {
             </td>
           )}
           {columnVisibility.date && (
-            <td className="px-4 py-3 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
+            <td className="px-3 py-2 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-2 text-sm text-gray-900 dark:text-gray-100">
                 <Calendar className="h-4 w-4 text-gray-400" />
                 {formatDate(invoice.orderDate)}
@@ -599,7 +750,7 @@ export default function InvoicesPage() {
             </td>
           )}
           {columnVisibility.seller && (
-            <td className="px-4 py-3 border-r border-gray-200 dark:border-gray-700">
+            <td className="px-3 py-2 border-r border-gray-200 dark:border-gray-700">
               <Link href={`/accounts/${invoice.sellerAccountId}`} className="text-sm hover:underline">
                 <div className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">{invoice.sellerAccountName}</div>
                 <div className="text-gray-500 dark:text-gray-400 font-mono text-xs">{invoice.sellerAccountCode}</div>
@@ -607,7 +758,7 @@ export default function InvoicesPage() {
             </td>
           )}
           {columnVisibility.buyer && (
-            <td className="px-4 py-3 border-r border-gray-200 dark:border-gray-700">
+            <td className="px-3 py-2 border-r border-gray-200 dark:border-gray-700">
               <Link href={`/accounts/${invoice.buyerAccountId}`} className="text-sm hover:underline">
                 <div className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">{invoice.buyerAccountName}</div>
                 <div className="text-gray-500 dark:text-gray-400 font-mono text-xs">{invoice.buyerAccountCode}</div>
@@ -615,7 +766,7 @@ export default function InvoicesPage() {
             </td>
           )}
           {columnVisibility.agent && (
-            <td className="px-4 py-3 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
+            <td className="px-3 py-2 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-2 text-sm text-gray-900 dark:text-gray-100">
                 {invoice.agentName ? (
                   <>
@@ -629,7 +780,7 @@ export default function InvoicesPage() {
             </td>
           )}
           {columnVisibility.amount && (
-            <td className="px-4 py-3 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
+            <td className="px-3 py-2 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
                 <DollarSign className="h-4 w-4 text-green-600" />
                 {formatCurrency(invoice.totalAmount)}
@@ -637,7 +788,7 @@ export default function InvoicesPage() {
             </td>
           )}
           {columnVisibility.status && (
-            <td className="px-4 py-3 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
+            <td className="px-3 py-2 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
               <span
                 className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(
                   invoice.status
@@ -648,7 +799,7 @@ export default function InvoicesPage() {
             </td>
           )}
           {columnVisibility.lines && (
-            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+            <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
               <div className="flex items-center gap-2">
                 <Package className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                 {invoice.lines?.length || 0} items
@@ -658,7 +809,7 @@ export default function InvoicesPage() {
         </tr>
         {expandedInvoiceIds.has(invoice.id) && (
           <tr className="bg-gray-50 dark:bg-gray-800">
-            <td colSpan={10} className="px-6 py-4">
+            <td colSpan={10} className="px-3 py-2">
               <div className="bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                 {/* Header Row with Invoice, Date, Buyer, and Seller */}
                 <div className="flex items-start justify-between mb-4">
@@ -780,13 +931,13 @@ export default function InvoicesPage() {
 
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
             <Receipt className="h-8 w-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Invoices</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-blue-400">Invoices</h1>
           </div>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">View and manage QuickBooks invoices</p>
+          <p className="mt-2 text-gray-600 dark:text-gray-300">View and manage QuickBooks invoices</p>
         </div>
         <div className="text-sm text-gray-500">
           {invoices.length} total invoices
@@ -794,13 +945,13 @@ export default function InvoicesPage() {
       </div>
 
       {/* Search Bar and Filters */}
-      <Card className="mb-6">
+      <Card className="mb-4">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
+            <div className="relative w-full sm:w-[70%]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
-                placeholder="Search by invoice number, order number, seller, buyer..."
+                placeholder="Search invoices..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -915,10 +1066,10 @@ export default function InvoicesPage() {
               <table className="w-full">
                 <thead>
                   {/* Header Row */}
-                  <tr className="border-b border-gray-300 dark:border-gray-600">
-                    <th className="w-12 px-2 sm:px-4 bg-gray-50 dark:bg-gray-800"></th>
+                  <tr className="border-b border-gray-300 dark:border-gray-700">
+                    <th className="w-12 px-2 sm:px-4 bg-gray-50 dark:bg-transparent"></th>
                     {columnVisibility.invoiceNumber && (
-                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-transparent border-r border-gray-200 dark:border-gray-700">
                         <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                           <span>Invoice #</span>
                           <ColumnMenu column="invoiceNumber" label="Invoice #" />
@@ -926,7 +1077,7 @@ export default function InvoicesPage() {
                       </th>
                     )}
                     {columnVisibility.orderNumber && (
-                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-transparent border-r border-gray-200 dark:border-gray-700">
                         <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                           <span>Order #</span>
                           <ColumnMenu column="orderNumber" label="Order #" />
@@ -934,7 +1085,7 @@ export default function InvoicesPage() {
                       </th>
                     )}
                     {columnVisibility.date && (
-                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-transparent border-r border-gray-200 dark:border-gray-700">
                         <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                           <span>Date</span>
                           <ColumnMenu column="date" label="Date" />
@@ -942,7 +1093,7 @@ export default function InvoicesPage() {
                       </th>
                     )}
                     {columnVisibility.seller && (
-                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-transparent border-r border-gray-200 dark:border-gray-700">
                         <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                           <span>Seller</span>
                           <ColumnMenu column="seller" label="Seller" />
@@ -950,7 +1101,7 @@ export default function InvoicesPage() {
                       </th>
                     )}
                     {columnVisibility.buyer && (
-                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-transparent border-r border-gray-200 dark:border-gray-700">
                         <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                           <span>Buyer</span>
                           <ColumnMenu column="buyer" label="Buyer" />
@@ -958,7 +1109,7 @@ export default function InvoicesPage() {
                       </th>
                     )}
                     {columnVisibility.agent && (
-                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-transparent border-r border-gray-200 dark:border-gray-700">
                         <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                           <span>Agent</span>
                           <ColumnMenu column="agent" label="Agent" />
@@ -966,7 +1117,7 @@ export default function InvoicesPage() {
                       </th>
                     )}
                     {columnVisibility.amount && (
-                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-transparent border-r border-gray-200 dark:border-gray-700">
                         <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                           <span>Amount</span>
                           <ColumnMenu column="amount" label="Amount" />
@@ -974,7 +1125,7 @@ export default function InvoicesPage() {
                       </th>
                     )}
                     {columnVisibility.status && (
-                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-transparent border-r border-gray-200 dark:border-gray-700">
                         <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                           <span>Status</span>
                           <ColumnMenu column="status" label="Status" />
@@ -982,7 +1133,7 @@ export default function InvoicesPage() {
                       </th>
                     )}
                     {columnVisibility.lines && (
-                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-gray-800">
+                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-transparent">
                         <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Lines</span>
                       </th>
                     )}

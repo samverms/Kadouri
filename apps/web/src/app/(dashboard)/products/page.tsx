@@ -7,27 +7,43 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
 import { DateRangePicker } from '@/components/ui/date-picker'
-import { Plus, Search, Package, ChevronRight, ChevronDown, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Edit2, Trash2, Copy, Menu, Eye, EyeOff, Layers, X, Filter, FilterX } from 'lucide-react'
+import { Plus, Search, Package, ChevronRight, ChevronDown, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Edit2, Trash2, Copy, Menu, Eye, EyeOff, Layers, X, Filter, FilterX, CheckCircle, XCircle } from 'lucide-react'
+
+interface ProductVariant {
+  id: string
+  productId: string
+  sku?: string
+  size: string
+  sizeUnit: string
+  packageType: string
+  isDefault: boolean
+  active: boolean
+}
 
 interface Product {
   id: string
+  code?: string
   name: string
   variety?: string
   grade?: string
   active: boolean
+  source?: string
+  archivedAt?: string
+  archivedBy?: string
   createdAt: string
+  updatedAt: string
   uom?: string
   qboItemId?: string
-  code?: string
   category?: string
+  variants?: ProductVariant[]
 }
 
 interface ColumnVisibility {
   fullName: boolean
-  name: boolean
   variety: boolean
   grade: boolean
   category: boolean
+  defaultVariant: boolean
   uom: boolean
   active: boolean
 }
@@ -35,7 +51,6 @@ interface ColumnVisibility {
 export default function ProductsPage() {
   const { showToast } = useToast()
   const [searchQuery, setSearchQuery] = useState('')
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [expandedProductId, setExpandedProductId] = useState<string | null>(null)
   const [sortField, setSortField] = useState<keyof Product | 'fullName' | 'category'>('name')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
@@ -52,7 +67,6 @@ export default function ProductsPage() {
   // Column filters state
   const [columnFilters, setColumnFilters] = useState({
     fullName: '',
-    name: '',
     variety: '',
     grade: '',
     category: '',
@@ -63,19 +77,21 @@ export default function ProductsPage() {
   // Column visibility state
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({
     fullName: true,
-    name: true,
     variety: true,
     grade: true,
     category: true,
+    defaultVariant: true,
     uom: false,
     active: true
   })
   const [showColumnVisibilityPanel, setShowColumnVisibilityPanel] = useState(false)
   const columnVisibilityRef = useRef<HTMLDivElement>(null)
 
-  // Column grouping state
-  const [groupByColumn, setGroupByColumn] = useState<string | null>(null)
+  // Column grouping state (multi-select like orders page)
+  const [groupByColumn, setGroupByColumn] = useState<string[]>([])
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  const [showGroupingPanel, setShowGroupingPanel] = useState(false)
+  const groupingPanelRef = useRef<HTMLDivElement>(null)
 
   // Show active filter
   const [showActiveOnly, setShowActiveOnly] = useState(true)
@@ -86,13 +102,14 @@ export default function ProductsPage() {
 
   useEffect(() => {
     fetchProducts()
-  }, [])
+  }, [showActiveOnly])
 
   const fetchProducts = async () => {
     setIsLoading(true)
     setError('')
     try {
-      const response = await fetch('http://localhost:2000/api/products', {
+      const includeInactive = !showActiveOnly
+      const response = await fetch(`http://localhost:2000/api/products?includeInactive=${includeInactive}`, {
         credentials: 'include',
       })
 
@@ -180,6 +197,7 @@ export default function ProductsPage() {
 
   // Clear all column filters
   const clearAllFilters = () => {
+    // Clear column filters
     setColumnFilters({
       fullName: '',
       name: '',
@@ -189,9 +207,18 @@ export default function ProductsPage() {
       uom: '',
       active: ''
     })
+    // Clear date range
     setDateRangeStart(null)
     setDateRangeEnd(null)
-    showToast('All filters cleared', 'info')
+    // Clear grouping
+    setGroupByColumn([])
+    setExpandedGroups(new Set())
+    // Clear sorting
+    setSortField('name')
+    setSortDirection('asc')
+    // Clear search
+    setSearchQuery('')
+    showToast('All filters and settings reset', 'info')
   }
 
   // Check if any column filters are active
@@ -272,6 +299,129 @@ export default function ProductsPage() {
     return 'Other'
   }
 
+  // Helper function to format relative time
+  const getRelativeTime = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / (1000 * 60))
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffDays < 7) return `${diffDays}d ago`
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`
+    return `${Math.floor(diffDays / 365)}y ago`
+  }
+
+  // Helper function to get default variant display
+  const getDefaultVariant = (product: Product) => {
+    if (!product.variants || product.variants.length === 0) return '-'
+    const defaultVariant = product.variants.find(v => v.isDefault)
+    if (!defaultVariant) return product.variants[0] ?
+      `${product.variants[0].size} ${product.variants[0].sizeUnit} ${product.variants[0].packageType}` : '-'
+    return `${defaultVariant.size} ${defaultVariant.sizeUnit} ${defaultVariant.packageType}`
+  }
+
+  // Helper function to set date preset (Today, This Week, etc.)
+  const setDatePreset = (preset: string) => {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    let start: Date | null = null
+    let end: Date | null = null
+
+    switch (preset) {
+      case 'today':
+        start = today
+        end = new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1)
+        break
+      case 'thisWeek': {
+        const dayOfWeek = today.getDay()
+        const startOfWeek = new Date(today)
+        startOfWeek.setDate(today.getDate() - dayOfWeek)
+        start = startOfWeek
+        end = new Date(startOfWeek.getTime() + 7 * 24 * 60 * 60 * 1000 - 1)
+        break
+      }
+      case 'thisMonth': {
+        start = new Date(today.getFullYear(), today.getMonth(), 1)
+        end = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999)
+        break
+      }
+      case 'thisQuarter': {
+        const quarter = Math.floor(today.getMonth() / 3)
+        start = new Date(today.getFullYear(), quarter * 3, 1)
+        end = new Date(today.getFullYear(), quarter * 3 + 3, 0, 23, 59, 59, 999)
+        break
+      }
+      case 'thisYear': {
+        start = new Date(today.getFullYear(), 0, 1)
+        end = new Date(today.getFullYear(), 11, 31, 23, 59, 59, 999)
+        break
+      }
+    }
+
+    setDateRangeStart(start)
+    setDateRangeEnd(end)
+    setOpenColumnMenu(null) // Close the menu after selecting
+  }
+
+  // Helper function to bucket dates into ranges (for grouping)
+  const getDateRangeBucket = (date: Date): string => {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const productDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+
+    const diffTime = today.getTime() - productDate.getTime()
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+
+    // Today
+    if (diffDays === 0) return '01_Today'
+
+    // Yesterday
+    if (diffDays === 1) return '02_Yesterday'
+
+    // This Week (last 7 days)
+    if (diffDays <= 7) return '03_This Week'
+
+    // Last Week (8-14 days ago)
+    if (diffDays <= 14) return '04_Last Week'
+
+    // This Month
+    if (productDate.getMonth() === today.getMonth() && productDate.getFullYear() === today.getFullYear()) {
+      return '05_This Month'
+    }
+
+    // Last Month
+    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+    if (productDate.getMonth() === lastMonth.getMonth() && productDate.getFullYear() === lastMonth.getFullYear()) {
+      return '06_Last Month'
+    }
+
+    // This Quarter
+    const currentQuarter = Math.floor(today.getMonth() / 3)
+    const productQuarter = Math.floor(productDate.getMonth() / 3)
+    if (productQuarter === currentQuarter && productDate.getFullYear() === today.getFullYear()) {
+      return '07_This Quarter'
+    }
+
+    // This Year
+    if (productDate.getFullYear() === today.getFullYear()) {
+      return '08_This Year'
+    }
+
+    // Last Year
+    if (productDate.getFullYear() === today.getFullYear() - 1) {
+      return '09_Last Year'
+    }
+
+    // Older
+    return '10_Older'
+  }
+
   // Get value for grouping
   const getGroupValue = (product: Product, column: string): string => {
     switch (column) {
@@ -285,6 +435,19 @@ export default function ProductsPage() {
         return product.grade || 'No Grade'
       case 'uom':
         return product.uom || 'No UOM'
+      case 'date':
+        if (!product.createdAt) return 'No Date'
+        const exactDate = new Date(product.createdAt)
+        return exactDate.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        })
+      case 'dateRange':
+        if (!product.createdAt) return 'No Date'
+        const productDate = new Date(product.createdAt)
+        const bucket = getDateRangeBucket(productDate)
+        return bucket.substring(3) // Remove the "01_", "02_" prefix
       default:
         return 'Unknown'
     }
@@ -294,10 +457,7 @@ export default function ProductsPage() {
   const processedProducts = useMemo(() => {
     let result = [...products]
 
-    // Apply active status filter
-    if (showActiveOnly) {
-      result = result.filter(product => product.active)
-    }
+    // Note: Active/Inactive filtering now handled by API
 
     // Apply date range filter (on createdAt)
     if (dateRangeStart || dateRangeEnd) {
@@ -417,16 +577,17 @@ export default function ProductsPage() {
     return result
   }, [products, showActiveOnly, columnFilters, searchQuery, sortField, sortDirection, dateRangeStart, dateRangeEnd])
 
-  // Group products if grouping is enabled
-  const groupedProducts = useMemo(() => {
-    if (!groupByColumn) {
-      return null
+  // Helper function to create nested groups recursively
+  const createNestedGroups = (products: Product[], columns: string[], parentKey: string = ''): any => {
+    if (columns.length === 0) {
+      return products
     }
 
+    const [currentColumn, ...remainingColumns] = columns
     const groups = new Map<string, Product[]>()
 
-    processedProducts.forEach(product => {
-      const groupValue = getGroupValue(product, groupByColumn)
+    products.forEach(product => {
+      const groupValue = getGroupValue(product, currentColumn)
       if (!groups.has(groupValue)) {
         groups.set(groupValue, [])
       }
@@ -438,7 +599,27 @@ export default function ProductsPage() {
       a[0].localeCompare(b[0])
     )
 
-    return sortedGroups
+    return sortedGroups.map(([groupKey, groupProducts]) => {
+      const fullKey = parentKey ? `${parentKey}>${currentColumn}:${groupKey}` : `${currentColumn}:${groupKey}`
+      return {
+        key: fullKey,
+        displayKey: groupKey,
+        column: currentColumn,
+        products: groupProducts,
+        children: remainingColumns.length > 0
+          ? createNestedGroups(groupProducts, remainingColumns, fullKey)
+          : null
+      }
+    })
+  }
+
+  // Group products if grouping is enabled (supports multi-level grouping)
+  const groupedProducts = useMemo(() => {
+    if (groupByColumn.length === 0) {
+      return null
+    }
+
+    return createNestedGroups(processedProducts, groupByColumn)
   }, [processedProducts, groupByColumn])
 
   // Calculate aggregations
@@ -458,6 +639,7 @@ export default function ProductsPage() {
   const ColumnMenu = React.memo(({ column, label }: { column: string, label: string }) => {
     const isOpen = openColumnMenu === column
     const filterValue = columnFilters[column as keyof typeof columnFilters] || ''
+    const hasFilter = filterValue !== '' || (column === 'date' && (dateRangeStart !== null || dateRangeEnd !== null))
 
     return (
       <div className="relative inline-block" ref={isOpen ? columnMenuRef : null}>
@@ -469,77 +651,148 @@ export default function ProductsPage() {
           className="p-0.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
           title="Column menu"
         >
-          <Menu className="h-3 w-3" />
+          {hasFilter ? <FilterX className="h-3 w-3 text-blue-600" /> : <Menu className="h-3 w-3" />}
         </button>
 
         {isOpen && (
           <div
-            className="absolute left-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+            className={`absolute ${column === 'date' ? 'right-0' : 'left-0'} top-full mt-1 ${column === 'date' ? 'min-w-[500px] max-w-[min(600px,calc(100vw-2rem))] max-h-[80vh] overflow-auto' : 'w-56'} bg-white rounded-lg shadow-lg border border-gray-200 z-40`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-3 space-y-2">
-              {/* Filter input */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Filter</label>
-                {column === 'active' ? (
-                  <select
-                    value={filterValue}
-                    onChange={(e) => handleColumnFilterChange(column, e.target.value)}
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    autoFocus
-                  >
-                    <option value="">All</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                ) : (
-                  <Input
-                    placeholder={`Filter ${label.toLowerCase()}...`}
-                    value={filterValue}
-                    onChange={(e) => handleColumnFilterChange(column, e.target.value)}
-                    className="text-sm h-8"
-                    autoFocus
-                  />
-                )}
-              </div>
+              {/* Special handling for date column */}
+              {column === 'date' ? (
+                <>
+                  <label className="block text-xs font-medium text-teal-700 dark:text-teal-300 mb-1">
+                    Quick Presets
+                  </label>
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => setDatePreset('today')}
+                      className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded transition-colors"
+                    >
+                      Today
+                    </button>
+                    <button
+                      onClick={() => setDatePreset('thisWeek')}
+                      className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded transition-colors"
+                    >
+                      This Week
+                    </button>
+                    <button
+                      onClick={() => setDatePreset('thisMonth')}
+                      className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded transition-colors"
+                    >
+                      This Month
+                    </button>
+                    <button
+                      onClick={() => setDatePreset('thisQuarter')}
+                      className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded transition-colors"
+                    >
+                      This Quarter
+                    </button>
+                    <button
+                      onClick={() => setDatePreset('thisYear')}
+                      className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded transition-colors"
+                    >
+                      This Year
+                    </button>
+                  </div>
 
-              {/* Sort options */}
-              <div className="border-t border-gray-200 pt-2">
-                <button
-                  onClick={() => {
-                    handleSort(column as any)
-                    setSortDirection('asc')
-                    setOpenColumnMenu(null)
-                  }}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded"
-                >
-                  <ArrowUp className="h-3 w-3" />
-                  Sort Ascending
-                </button>
-                <button
-                  onClick={() => {
-                    handleSort(column as any)
-                    setSortDirection('desc')
-                    setOpenColumnMenu(null)
-                  }}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded"
-                >
-                  <ArrowDown className="h-3 w-3" />
-                  Sort Descending
-                </button>
-                {sortField === column && (
-                  <button
-                    onClick={() => {
-                      setSortField('name')
-                      setOpenColumnMenu(null)
-                    }}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded"
-                  >
-                    <X className="h-3 w-3" />
-                    Clear Sort
-                  </button>
-                )}
-              </div>
+                  <div className="border-t border-teal-200 dark:border-teal-700 pt-2 mt-2">
+                    <label className="block text-xs font-medium text-teal-700 dark:text-teal-300 mb-2">
+                      Custom Range
+                    </label>
+                    <DateRangePicker
+                      startDate={dateRangeStart}
+                      endDate={dateRangeEnd}
+                      onStartDateChange={setDateRangeStart}
+                      onEndDateChange={setDateRangeEnd}
+                    />
+                  </div>
+
+                  {(dateRangeStart || dateRangeEnd) && (
+                    <div className="border-t border-teal-200 dark:border-teal-700 pt-2 mt-2">
+                      <button
+                        onClick={() => {
+                          setDateRangeStart(null)
+                          setDateRangeEnd(null)
+                          setOpenColumnMenu(null)
+                        }}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                        Clear Date Filter
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* Filter input for non-date columns */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Filter</label>
+                    {column === 'active' ? (
+                      <select
+                        value={filterValue}
+                        onChange={(e) => handleColumnFilterChange(column, e.target.value)}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        autoFocus
+                      >
+                        <option value="">All</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    ) : (
+                      <Input
+                        placeholder={`Filter ${label.toLowerCase()}...`}
+                        value={filterValue}
+                        onChange={(e) => handleColumnFilterChange(column, e.target.value)}
+                        className="text-sm h-8"
+                        autoFocus
+                      />
+                    )}
+                  </div>
+
+                  {/* Sort options */}
+                  <div className="border-t border-gray-200 pt-2">
+                    <button
+                      onClick={() => {
+                        handleSort(column as any)
+                        setSortDirection('asc')
+                        setOpenColumnMenu(null)
+                      }}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                    >
+                      <ArrowUp className="h-3 w-3" />
+                      Sort Ascending
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleSort(column as any)
+                        setSortDirection('desc')
+                        setOpenColumnMenu(null)
+                      }}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                    >
+                      <ArrowDown className="h-3 w-3" />
+                      Sort Descending
+                    </button>
+                    {sortField === column && (
+                      <button
+                        onClick={() => {
+                          setSortField('name')
+                          setOpenColumnMenu(null)
+                        }}
+                        className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                      >
+                        <X className="h-3 w-3" />
+                        Clear Sort
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -549,10 +802,17 @@ export default function ProductsPage() {
 
   // Render product row
   const renderProductRow = (product: Product) => {
+    const isArchived = !product.active
+    const isQuickBooks = product.source === 'quickbooks_import'
+
     return (
       <Fragment key={product.id}>
         <tr
-          className="border-b border-gray-200 hover:bg-blue-50/50 transition-colors"
+          className={`border-b border-gray-200 transition-colors ${
+            isArchived
+              ? 'bg-gray-50/50 hover:bg-gray-100/50 opacity-60'
+              : 'hover:bg-blue-50/50'
+          }`}
         >
           <td className="px-4 py-3">
             <button
@@ -572,17 +832,26 @@ export default function ProductsPage() {
           </td>
           {columnVisibility.fullName && (
             <td className="px-4 py-3 border-r border-gray-200">
-              <Link
-                href={`/products/${product.id}`}
-                className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
-              >
-                {getFullName(product)}
-              </Link>
-            </td>
-          )}
-          {columnVisibility.name && (
-            <td className="px-4 py-3 text-sm text-gray-900 border-r border-gray-200">
-              {product.name}
+              <div className="flex items-center gap-2">
+                {product.code && (
+                  <span className="inline-flex items-center rounded bg-blue-100 px-2 py-0.5 text-xs font-mono font-medium text-blue-800">
+                    {product.code}
+                  </span>
+                )}
+                <Link
+                  href={`/products/${product.id}`}
+                  className={`text-sm font-medium hover:underline ${
+                    isArchived ? 'text-gray-500' : 'text-blue-600 hover:text-blue-800'
+                  }`}
+                >
+                  {product.name}
+                </Link>
+                {isQuickBooks && isArchived && (
+                  <span className="inline-flex items-center rounded bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
+                    QB Import
+                  </span>
+                )}
+              </div>
             </td>
           )}
           {columnVisibility.variety && (
@@ -597,9 +866,18 @@ export default function ProductsPage() {
           )}
           {columnVisibility.category && (
             <td className="px-4 py-3 border-r border-gray-200">
-              <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
-                {getCategory(product.name)}
-              </span>
+              {product.category ? (
+                <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
+                  {product.category}
+                </span>
+              ) : (
+                <span className="text-gray-400 text-xs">-</span>
+              )}
+            </td>
+          )}
+          {columnVisibility.defaultVariant && (
+            <td className="px-4 py-3 text-sm text-gray-700 border-r border-gray-200">
+              {getDefaultVariant(product)}
             </td>
           )}
           {columnVisibility.uom && (
@@ -608,49 +886,25 @@ export default function ProductsPage() {
             </td>
           )}
           {columnVisibility.active && (
-            <td className="px-4 py-3 text-center border-r border-gray-200">
+            <td className="px-3 py-2 text-center border-r border-gray-200">
               {product.active ? (
-                <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                  Active
-                </span>
+                <CheckCircle className="h-5 w-5 text-green-600 mx-auto" />
               ) : (
-                <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-                  Inactive
-                </span>
+                <XCircle className="h-5 w-5 text-red-600 mx-auto" />
               )}
             </td>
           )}
-          <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-            <div className="flex gap-2 justify-end">
-              <Link href={`/products/${product.id}`}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  title="Edit product"
-                >
-                  <Edit2 className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                onClick={() => handleDeleteProduct(product.id, getFullName(product))}
-                title="Delete product"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
+          <td className="px-3 py-2 text-sm text-gray-600 border-r border-gray-200">
+            {product.updatedAt ? new Date(product.updatedAt).toLocaleDateString('en-US', { year: '2-digit', month: '2-digit', day: '2-digit' }) : '-'}
           </td>
         </tr>
         {expandedProductId === product.id && (
           <tr className="bg-gray-50">
-            <td colSpan={10} className="px-6 py-4">
+            <td colSpan={10} className="px-3 py-2">
               <div className="grid grid-cols-2 gap-6">
                 {/* Product Details */}
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
                     Product Details
                   </h4>
                   <div className="bg-white rounded-lg p-4 border border-gray-200 space-y-3">
@@ -659,7 +913,7 @@ export default function ProductsPage() {
                         <label className="text-xs font-medium text-gray-500 uppercase">
                           Product Code
                         </label>
-                        <p className="text-sm text-gray-900 font-mono mt-1">
+                        <p className="text-sm text-gray-900 dark:text-gray-100 font-mono mt-1">
                           {product.code}
                         </p>
                       </div>
@@ -668,25 +922,17 @@ export default function ProductsPage() {
                       <label className="text-xs font-medium text-gray-500 uppercase">
                         Full Name
                       </label>
-                      <p className="text-sm text-gray-900 mt-1">
+                      <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
                         {getFullName(product)}
                       </p>
                     </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase">
-                        Category
-                      </label>
-                      <p className="text-sm text-gray-900 mt-1 capitalize">
-                        {getCategory(product.name)}
-                      </p>
-                    </div>
-                    {product.uom && (
+                    {product.category && (
                       <div>
                         <label className="text-xs font-medium text-gray-500 uppercase">
-                          Unit of Measure
+                          Category
                         </label>
-                        <p className="text-sm text-gray-900 mt-1">
-                          {product.uom}
+                        <p className="text-sm text-gray-900 dark:text-gray-100 mt-1">
+                          {product.category}
                         </p>
                       </div>
                     )}
@@ -709,45 +955,47 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                {/* QuickBooks Integration */}
+                {/* Product Variants */}
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">
-                    QuickBooks Integration
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                    Product Variants
                   </h4>
                   <div className="bg-white rounded-lg p-4 border border-gray-200">
-                    {product.qboItemId ? (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-xs font-medium text-gray-500 uppercase">
-                            QuickBooks Item ID
-                          </label>
-                          <p className="text-sm text-gray-900 font-mono mt-1">
-                            {product.qboItemId}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-gray-500 uppercase">
-                            Sync Status
-                          </label>
-                          <p className="mt-1">
-                            <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                              Connected
-                            </span>
-                          </p>
-                        </div>
-                        <Button variant="outline" size="sm" className="w-full mt-2">
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          View in QuickBooks
-                        </Button>
+                    {product.variants && product.variants.length > 0 ? (
+                      <div className="space-y-2">
+                        {product.variants.map((variant) => (
+                          <div
+                            key={variant.id}
+                            className={`flex items-center justify-between p-2.5 rounded-md border ${
+                              variant.isDefault
+                                ? 'bg-blue-50 border-blue-200'
+                                : 'bg-gray-50 border-gray-200'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {variant.isDefault && (
+                                <span className="inline-flex items-center rounded-full bg-blue-600 px-2 py-0.5 text-xs font-medium text-white">
+                                  Default
+                                </span>
+                              )}
+                              <span className="text-sm font-medium text-gray-900">
+                                {variant.size} {variant.sizeUnit}
+                              </span>
+                              <span className="text-sm text-gray-600">
+                                {variant.packageType}
+                              </span>
+                            </div>
+                            {!variant.active && (
+                              <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     ) : (
-                      <div className="text-center py-4">
-                        <p className="text-sm text-gray-600 mb-3">
-                          Not synced with QuickBooks
-                        </p>
-                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                          Sync to QuickBooks
-                        </Button>
+                      <div className="text-center py-6 text-gray-400">
+                        <p className="text-sm">No variants defined</p>
                       </div>
                     )}
                   </div>
@@ -760,48 +1008,230 @@ export default function ProductsPage() {
     )
   }
 
+  // Recursive function to render nested groups
+  const renderNestedGroups = (groups: any[], level: number = 0): any => {
+    return groups.map(group => (
+      <React.Fragment key={group.key}>
+        <tr
+          className={`border-b ${
+            level === 0
+              ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700'
+              : level === 1
+              ? 'bg-purple-50 dark:bg-purple-900/30 border-purple-200 dark:border-purple-700'
+              : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+          }`}
+        >
+          <td colSpan={11} style={{ paddingLeft: `${(level + 1) * 16}px` }} className="py-3">
+            <button
+              onClick={() => toggleGroupExpansion(group.key)}
+              className="flex items-center gap-2 w-full text-left hover:opacity-80 transition-opacity"
+            >
+              {expandedGroups.has(group.key) ? (
+                <ChevronDown
+                  className={`h-4 w-4 ${
+                    level === 0
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : level === 1
+                      ? 'text-purple-600 dark:text-purple-400'
+                      : 'text-gray-600 dark:text-gray-400'
+                  }`}
+                />
+              ) : (
+                <ChevronRight
+                  className={`h-4 w-4 ${
+                    level === 0
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : level === 1
+                      ? 'text-purple-600 dark:text-purple-400'
+                      : 'text-gray-600 dark:text-gray-400'
+                  }`}
+                />
+              )}
+              <span
+                className={`text-sm font-semibold ${
+                  level === 0
+                    ? 'text-blue-900 dark:text-blue-200'
+                    : level === 1
+                    ? 'text-purple-900 dark:text-purple-200'
+                    : 'text-gray-900 dark:text-gray-200'
+                }`}
+              >
+                {group.column}: {group.displayKey}
+              </span>
+              <span
+                className={`text-xs ml-2 ${
+                  level === 0
+                    ? 'text-blue-700 dark:text-blue-300'
+                    : level === 1
+                    ? 'text-purple-700 dark:text-purple-300'
+                    : 'text-gray-700 dark:text-gray-300'
+                }`}
+              >
+                ({group.products.length} {group.products.length === 1 ? 'product' : 'products'})
+              </span>
+            </button>
+          </td>
+        </tr>
+        {expandedGroups.has(group.key) &&
+          (group.children
+            ? renderNestedGroups(group.children, level + 1)
+            : group.products.map((product: Product) => renderProductRow(product)))}
+      </React.Fragment>
+    ))
+  }
+
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Products</h1>
-          <p className="mt-2 text-gray-600">Manage your product catalog and inventory</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-blue-400">Products</h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-300">Manage your product catalog and inventory</p>
         </div>
-        <Button
-          onClick={() => setShowCreateDialog(true)}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          New Product
-        </Button>
+        <Link href="/products/new">
+          <Button className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="mr-2 h-4 w-4" />
+            New Product
+          </Button>
+        </Link>
       </div>
 
       {/* Search Bar and Filters */}
-      <Card className="mb-6">
+      <Card className="mb-4">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
+            <div className="relative w-full sm:w-[70%]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
-                placeholder="Search products by name, variety, grade, or category..."
+                placeholder="Search products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
             </div>
             <div className="flex items-center gap-2 sm:w-auto">
-              {/* Column Visibility Button */}
+              {/* Active Toggle Button - Shows/Hides Archived Products */}
+              <button
+                onClick={() => setShowActiveOnly(!showActiveOnly)}
+                className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border transition-all ${
+                  showActiveOnly
+                    ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700 shadow-md'
+                    : 'bg-orange-600 text-white border-orange-600 hover:bg-orange-700 shadow-md'
+                }`}
+                title={showActiveOnly ? "Click to show archived QuickBooks products (589 items)" : "Hiding archived products - click to show"}
+              >
+                {showActiveOnly ? (
+                  <>
+                    <Eye className="h-4 w-4" />
+                    <span className="text-sm font-medium">Active Only</span>
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="h-4 w-4" />
+                    <span className="text-sm font-medium">Showing All</span>
+                  </>
+                )}
+              </button>
+
+              {/* Group By Multi-Select - Icon Only */}
+              <div className="relative" ref={groupingPanelRef}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowGroupingPanel(!showGroupingPanel)
+                  }}
+                  className={`flex items-center justify-center p-2.5 rounded-lg border transition-all ${
+                    groupByColumn.length > 0
+                      ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700 shadow-md'
+                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                  }`}
+                  title="Group products"
+                >
+                  <Layers className="h-5 w-5" />
+                  {groupByColumn.length > 0 && (
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-purple-600 rounded-full">
+                      {groupByColumn.length}
+                    </span>
+                  )}
+                </button>
+
+                {showGroupingPanel && (
+                  <div
+                    className="absolute right-0 top-full mt-1 w-72 max-w-[calc(100vw-2rem)] max-h-[80vh] overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-3"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                      <Layers className="h-4 w-4" />
+                      Group By (Multi-Select)
+                    </h4>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Select multiple columns to create nested groups
+                    </p>
+                    <div className="space-y-1.5">
+                      {[
+                        { value: 'category', label: 'Category' },
+                        { value: 'active', label: 'Status' },
+                        { value: 'variety', label: 'Variety' },
+                        { value: 'grade', label: 'Grade' },
+                        { value: 'uom', label: 'UOM' },
+                        { value: 'date', label: 'Created Date (Exact)' },
+                        { value: 'dateRange', label: 'Created Date (Range)' }
+                      ].map(({ value, label }, index) => {
+                        const isSelected = groupByColumn.includes(value)
+                        const selectionIndex = groupByColumn.indexOf(value)
+
+                        return (
+                          <label key={value} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1.5 rounded group">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {
+                                if (isSelected) {
+                                  // Remove this column
+                                  setGroupByColumn(groupByColumn.filter(c => c !== value))
+                                } else {
+                                  // Add this column
+                                  setGroupByColumn([...groupByColumn, value])
+                                }
+                              }}
+                              className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                            />
+                            <span className="text-sm text-gray-700 flex-1">{label}</span>
+                            {isSelected && (
+                              <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-semibold">
+                                {selectionIndex + 1}
+                              </span>
+                            )}
+                          </label>
+                        )
+                      })}
+                    </div>
+                    {groupByColumn.length > 0 && (
+                      <button
+                        onClick={() => {
+                          setGroupByColumn([])
+                          setExpandedGroups(new Set())
+                        }}
+                        className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                        Clear Grouping
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Column Visibility Button - Icon Only */}
               <div className="relative" ref={showColumnVisibilityPanel ? columnVisibilityRef : null}>
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
                     setShowColumnVisibilityPanel(!showColumnVisibilityPanel)
                   }}
-                  className="flex items-center gap-2 px-4 py-2 rounded-md border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors whitespace-nowrap"
+                  className="flex items-center justify-center p-2.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-all"
                   title="Toggle column visibility"
                 >
-                  <Eye className="h-4 w-4" />
-                  Columns
+                  <Eye className="h-5 w-5" />
                 </button>
 
                 {showColumnVisibilityPanel && (
@@ -809,7 +1239,7 @@ export default function ProductsPage() {
                     className="absolute right-0 top-full mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-3"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2">Show/Hide Columns</h4>
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Show/Hide Columns</h4>
                     <div className="space-y-1.5">
                       {Object.entries(columnVisibility).map(([key, visible]) => (
                         <label key={key} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1.5 rounded">
@@ -829,48 +1259,7 @@ export default function ProductsPage() {
                 )}
               </div>
 
-              {/* Group By Dropdown */}
-              <div className="relative">
-                <select
-                  value={groupByColumn || ''}
-                  onChange={(e) => {
-                    setGroupByColumn(e.target.value || null)
-                    setExpandedGroups(new Set())
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 rounded-md border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors whitespace-nowrap text-sm appearance-none pr-8"
-                  title="Group by column"
-                >
-                  <option value="">No Grouping</option>
-                  <option value="category">Group by Category</option>
-                  <option value="active">Group by Status</option>
-                  <option value="variety">Group by Variety</option>
-                  <option value="grade">Group by Grade</option>
-                </select>
-                <Layers className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              </div>
-
-              <button
-                onClick={() => setShowActiveOnly(!showActiveOnly)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md border transition-colors whitespace-nowrap ${
-                  showActiveOnly
-                    ? 'bg-blue-50 border-blue-200 text-blue-700'
-                    : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Filter className="h-4 w-4" />
-                {showActiveOnly ? 'Active Only' : 'Show All'}
-              </button>
-
-              {/* Date Range Filter */}
-              <div className="flex items-center gap-2">
-                <DateRangePicker
-                  startDate={dateRangeStart}
-                  endDate={dateRangeEnd}
-                  onStartDateChange={setDateRangeStart}
-                  onEndDateChange={setDateRangeEnd}
-                />
-              </div>
-
+              {/* Clear All Filters Button - Icon Only */}
               {hasAnyFilters && (
                 <button
                   onClick={clearAllFilters}
@@ -878,7 +1267,6 @@ export default function ProductsPage() {
                   title="Clear all filters"
                 >
                   <FilterX className="h-5 w-5" />
-                  Clear Filters
                 </button>
               )}
             </div>
@@ -900,71 +1288,6 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* Create Product Dialog */}
-      {showCreateDialog && (
-        <Card className="mb-6 border-blue-200 bg-blue-50">
-          <CardHeader>
-            <CardTitle>Create New Product</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Product Name <span className="text-red-500">*</span>
-                  </label>
-                  <Input placeholder="e.g., Almonds" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Product Code
-                  </label>
-                  <Input placeholder="Auto-generated if left blank" />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Variety
-                  </label>
-                  <Input placeholder="e.g., Nonpareil" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Grade
-                  </label>
-                  <Input placeholder="e.g., Premium" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Category
-                  </label>
-                  <select className="w-full rounded-md border border-gray-300 px-3 py-2">
-                    <option value="">Select category</option>
-                    <option value="nuts">Nuts</option>
-                    <option value="dried-fruit">Dried Fruit</option>
-                    <option value="seeds">Seeds</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                  Create Product
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowCreateDialog(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Products Table */}
       {!isLoading && (
         <Card>
@@ -973,99 +1296,76 @@ export default function ProductsPage() {
               <table className="w-full">
                 <thead>
                   {/* Header Row */}
-                  <tr className="border-b border-gray-300">
-                    <th className="w-12 px-2 sm:px-4 bg-gray-50"></th>
+                  <tr className="border-b border-gray-300 dark:border-gray-700">
+                    <th className="w-12 px-2 sm:px-4 bg-gray-50 dark:bg-transparent"></th>
                     {columnVisibility.fullName && (
-                      <th className="px-4 py-2 text-left bg-gray-50 border-r border-gray-200">
-                        <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
+                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-transparent border-r border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                           <span>Product Full Name</span>
                           <ColumnMenu column="fullName" label="Product Full Name" />
                         </div>
                       </th>
                     )}
-                    {columnVisibility.name && (
-                      <th className="px-4 py-2 text-left bg-gray-50 border-r border-gray-200">
-                        <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
-                          <span>Short Name</span>
-                          <ColumnMenu column="name" label="Short Name" />
-                        </div>
-                      </th>
-                    )}
                     {columnVisibility.variety && (
-                      <th className="px-4 py-2 text-left bg-gray-50 border-r border-gray-200">
-                        <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
+                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-transparent border-r border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                           <span>Variety</span>
                           <ColumnMenu column="variety" label="Variety" />
                         </div>
                       </th>
                     )}
                     {columnVisibility.grade && (
-                      <th className="px-4 py-2 text-left bg-gray-50 border-r border-gray-200">
-                        <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
+                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-transparent border-r border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                           <span>Grade</span>
                           <ColumnMenu column="grade" label="Grade" />
                         </div>
                       </th>
                     )}
                     {columnVisibility.category && (
-                      <th className="px-4 py-2 text-left bg-gray-50 border-r border-gray-200">
-                        <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
+                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-transparent border-r border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                           <span>Category</span>
                           <ColumnMenu column="category" label="Category" />
                         </div>
                       </th>
                     )}
+                    {columnVisibility.defaultVariant && (
+                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-transparent border-r border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          <span>Default Variant</span>
+                          <ColumnMenu column="defaultVariant" label="Default Variant" />
+                        </div>
+                      </th>
+                    )}
                     {columnVisibility.uom && (
-                      <th className="px-4 py-2 text-left bg-gray-50 border-r border-gray-200">
-                        <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
+                      <th className="px-4 py-2 text-left bg-gray-50 dark:bg-transparent border-r border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                           <span>UOM</span>
                           <ColumnMenu column="uom" label="UOM" />
                         </div>
                       </th>
                     )}
                     {columnVisibility.active && (
-                      <th className="px-4 py-2 text-center bg-gray-50 border-r border-gray-200">
-                        <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
+                      <th className="px-4 py-2 text-center bg-gray-50 dark:bg-transparent border-r border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
                           <span>Status</span>
                           <ColumnMenu column="active" label="Status" />
                         </div>
                       </th>
                     )}
-                    <th className="px-4 py-2 text-right bg-gray-50 text-xs font-semibold text-gray-700">
-                      Actions
+                    <th className="px-4 py-2 text-left bg-gray-50 dark:bg-transparent border-r border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
+                        <span>Last Updated</span>
+                        <ColumnMenu column="date" label="Last Updated" />
+                      </div>
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white">
-                  {groupByColumn && groupedProducts ? (
-                    // Render grouped products
-                    groupedProducts.map(([groupKey, groupProducts]) => (
-                      <React.Fragment key={groupKey}>
-                        {/* Group Header Row */}
-                        <tr className="bg-blue-50 border-b border-blue-200">
-                          <td colSpan={10} className="px-4 py-3">
-                            <button
-                              onClick={() => toggleGroupExpansion(groupKey)}
-                              className="flex items-center gap-2 w-full text-left"
-                            >
-                              {expandedGroups.has(groupKey) ? (
-                                <ChevronDown className="h-4 w-4 text-blue-600" />
-                              ) : (
-                                <ChevronRight className="h-4 w-4 text-blue-600" />
-                              )}
-                              <span className="text-sm font-semibold text-blue-900">
-                                {groupKey}
-                              </span>
-                              <span className="text-xs text-blue-700 ml-2">
-                                ({groupProducts.length} {groupProducts.length === 1 ? 'product' : 'products'})
-                              </span>
-                            </button>
-                          </td>
-                        </tr>
-                        {/* Group Rows */}
-                        {expandedGroups.has(groupKey) && groupProducts.map(product => renderProductRow(product))}
-                      </React.Fragment>
-                    ))
+                  {groupByColumn.length > 0 && groupedProducts ? (
+                    // Render nested grouped products
+                    renderNestedGroups(groupedProducts)
                   ) : (
                     // Render ungrouped products
                     processedProducts.map(product => renderProductRow(product))
@@ -1078,7 +1378,7 @@ export default function ProductsPage() {
                       <td colSpan={10} className="px-4 py-3">
                         <div className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-6">
-                            <span className="font-semibold text-gray-900">
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">
                               Total Products: <span className="text-blue-600">{aggregations.totalProducts}</span>
                             </span>
                             <span className="text-gray-700">
@@ -1088,9 +1388,9 @@ export default function ProductsPage() {
                               Inactive: <span className="text-red-600 font-medium">{aggregations.inactiveProducts}</span>
                             </span>
                           </div>
-                          {groupByColumn && (
+                          {groupByColumn.length > 0 && (
                             <span className="text-gray-600 text-xs italic">
-                              Grouped by {groupByColumn}
+                              Grouped by {groupByColumn.join(' > ')}
                             </span>
                           )}
                         </div>
@@ -1103,7 +1403,7 @@ export default function ProductsPage() {
             {processedProducts.length === 0 && !isLoading && (
               <div className="text-center py-12">
                 <Package className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No products found</h3>
+                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No products found</h3>
                 <p className="mt-1 text-sm text-gray-500">
                   {searchQuery || hasActiveColumnFilters
                     ? 'Try adjusting your search query or filters'

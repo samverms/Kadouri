@@ -1,0 +1,2137 @@
+'use client'
+
+import React, { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useToast } from '@/components/ui/toast'
+import {
+  Plus,
+  ArrowLeft,
+  Save,
+  Trash2,
+} from 'lucide-react'
+
+interface OrderLine {
+  id: string
+  productId: string
+  product: string
+  variety: string
+  size: string
+  grade: string
+  quantity: number
+  unitSize: number
+  unitSizeUnit: string
+  totalWeight: number
+  unitPrice: number
+  total: number
+  variantId?: string // NEW
+  packageType?: string // NEW
+}
+
+interface ProductVariant {
+  id: string
+  productId: string
+  sku?: string
+  size: string
+  sizeUnit: string
+  packageType: string
+  isDefault: boolean
+  active: boolean
+}
+
+interface Product {
+  id: string
+  code?: string
+  name: string
+  variety?: string
+  size?: string
+  grade?: string
+  defaultUnitSize?: string
+  uom?: string
+  active: boolean
+  variants?: ProductVariant[] // NEW
+}
+
+interface Address {
+  id: string
+  type: string
+  line1: string
+  line2?: string
+  city: string
+  state: string
+  postalCode: string
+  country: string
+  isPrimary: boolean
+}
+
+interface Contact {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  isPrimary: boolean
+}
+
+interface Account {
+  id: string
+  code?: string
+  name: string
+  city?: string
+  state?: string
+  addresses?: Address[]
+  contacts?: Contact[]
+}
+
+export default function NewOrderPage() {
+  const router = useRouter()
+  const { showToast } = useToast()
+
+  // Order state
+  const [orderLines, setOrderLines] = useState<OrderLine[]>([])
+  const [commissionRate, setCommissionRate] = useState(0)
+  const [numPallets, setNumPallets] = useState('')
+  const [conditions, setConditions] = useState('')
+  const [paymentTerms, setPaymentTerms] = useState('')
+  const [otherRemarks, setOtherRemarks] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Product search state
+  const [activeSearchLineId, setActiveSearchLineId] = useState<string | null>(null)
+  const [productSearchQuery, setProductSearchQuery] = useState<{ [lineId: string]: string }>({})
+  const inputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
+  const productDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Variant selection state
+  const [showVariantModal, setShowVariantModal] = useState(false)
+  const [variantModalLineId, setVariantModalLineId] = useState<string | null>(null)
+  const [variantModalProduct, setVariantModalProduct] = useState<Product | null>(null)
+
+  // Account selection state
+  const [accounts, setAccounts] = useState<Account[]>([])
+  const [selectedSeller, setSelectedSeller] = useState<Account | null>(null)
+  const [selectedBuyer, setSelectedBuyer] = useState<Account | null>(null)
+  const [sellerCodeSearch, setSellerCodeSearch] = useState('')
+  const [sellerNameSearch, setSellerNameSearch] = useState('')
+  const [buyerCodeSearch, setBuyerCodeSearch] = useState('')
+  const [buyerNameSearch, setBuyerNameSearch] = useState('')
+  const [showSellerDropdown, setShowSellerDropdown] = useState(false)
+  const [showBuyerDropdown, setShowBuyerDropdown] = useState(false)
+  const sellerCodeRef = useRef<HTMLInputElement>(null)
+  const sellerNameRef = useRef<HTMLInputElement>(null)
+  const buyerCodeRef = useRef<HTMLInputElement>(null)
+  const buyerNameRef = useRef<HTMLInputElement>(null)
+  const sellerDropdownRef = useRef<HTMLDivElement>(null)
+  const buyerDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Selected addresses and contacts (NEW: Multiple addresses per account)
+  const [selectedSellerBillingAddress, setSelectedSellerBillingAddress] = useState<Address | null>(null)
+  const [selectedSellerPickupAddress, setSelectedSellerPickupAddress] = useState<Address | null>(null)
+  const [selectedBuyerBillingAddress, setSelectedBuyerBillingAddress] = useState<Address | null>(null)
+  const [selectedBuyerShippingAddress, setSelectedBuyerShippingAddress] = useState<Address | null>(null)
+  const [selectedSellerContact, setSelectedSellerContact] = useState<Contact | null>(null)
+  const [selectedBuyerContact, setSelectedBuyerContact] = useState<Contact | null>(null)
+
+  // Will Pick Up checkbox state
+  const [isPickup, setIsPickup] = useState(false)
+
+  // Agent and Broker state
+  const [agents, setAgents] = useState<Array<{ id: string; name: string; email: string }>>([])
+  const [brokers, setBrokers] = useState<Array<{ id: string; name: string; email: string }>>([])
+  const [selectedAgent, setSelectedAgent] = useState<{ id: string; name: string } | null>(null)
+  const [selectedBroker, setSelectedBroker] = useState<{ id: string; name: string } | null>(null)
+
+  // Memo field state
+  const [autoGeneratedMemo, setAutoGeneratedMemo] = useState('')
+  const [memoOverride, setMemoOverride] = useState('')
+  const [isMemoManual, setIsMemoManual] = useState(false)
+
+  // Contract draw state
+  const [matchingContracts, setMatchingContracts] = useState<any[]>([])
+  const [selectedContract, setSelectedContract] = useState<any | null>(null)
+  const [contractDrawQuantity, setContractDrawQuantity] = useState(0)
+
+  // Modal states
+  const [showAddAddressModal, setShowAddAddressModal] = useState(false)
+  const [showAddContactModal, setShowAddContactModal] = useState(false)
+  const [modalAccountType, setModalAccountType] = useState<'seller' | 'buyer'>('seller')
+  const [showAddAgentModal, setShowAddAgentModal] = useState(false)
+  const [showAddBrokerModal, setShowAddBrokerModal] = useState(false)
+
+  // New address form state
+  const [newAddress, setNewAddress] = useState({
+    type: 'billing',
+    line1: '',
+    line2: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    country: 'US',
+    isPrimary: false,
+  })
+
+  // New contact form state
+  const [newContact, setNewContact] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    isPrimary: false,
+  })
+
+  // New agent/broker form state
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    phone: '',
+  })
+
+  // Products list - fetched from API
+  const [products, setProducts] = useState<Product[]>([])
+
+  // Fetch accounts, products, agents, and brokers on mount
+  useEffect(() => {
+    fetchAccounts()
+    fetchProducts()
+    fetchAgentsAndBrokers()
+  }, [])
+
+  // Auto-generate memo when order lines or pickup status changes
+  useEffect(() => {
+    if (!isMemoManual && orderLines.length > 0) {
+      const memoLines = orderLines.map(line => {
+        const deliveryMode = isPickup ? 'Pick up' : 'Shipping'
+        return `${line.quantity} ${line.packageType || 'cases'} ${line.product} ${line.variety ? line.variety : ''} ${line.unitSize}${line.unitSizeUnit} $${line.unitPrice}/${line.unitSizeUnit} ${deliveryMode}`.trim()
+      })
+      setAutoGeneratedMemo(memoLines.join('\n'))
+    }
+  }, [orderLines, isPickup, isMemoManual])
+
+  // Fetch matching contracts when seller, buyer, and first product line changes
+  useEffect(() => {
+    const fetchMatchingContracts = async () => {
+      if (selectedSeller && selectedBuyer && orderLines.length > 0 && orderLines[0].productId) {
+        try {
+          const response = await fetch(
+            `http://localhost:2000/api/contracts/match?sellerId=${selectedSeller.id}&buyerId=${selectedBuyer.id}&productId=${orderLines[0].productId}`,
+            { credentials: 'include' }
+          )
+
+          if (response.ok) {
+            const contracts = await response.json()
+            setMatchingContracts(contracts)
+
+            // Auto-select first contract if available and not already selected
+            if (contracts.length > 0 && !selectedContract) {
+              setSelectedContract(contracts[0])
+              // Auto-calculate total weight from order lines
+              const totalWeight = orderLines.reduce((sum, line) => sum + line.totalWeight, 0)
+              setContractDrawQuantity(totalWeight)
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching matching contracts:', error)
+        }
+      } else {
+        setMatchingContracts([])
+        setSelectedContract(null)
+        setContractDrawQuantity(0)
+      }
+    }
+
+    fetchMatchingContracts()
+  }, [selectedSeller, selectedBuyer, orderLines])
+
+  const fetchAccounts = async () => {
+    try {
+      const response = await fetch('http://localhost:2000/api/accounts?limit=10000', {
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch accounts')
+      }
+
+      const data = await response.json()
+      setAccounts(data)
+    } catch (err) {
+      console.error('Fetch accounts error:', err)
+    }
+  }
+
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch('http://localhost:2000/api/products?includeInactive=false', {
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch products')
+      }
+
+      const data = await response.json()
+      setProducts(data)
+    } catch (err) {
+      console.error('Fetch products error:', err)
+    }
+  }
+
+  const fetchAgentsAndBrokers = async () => {
+    try {
+      // Fetch agents
+      const agentsResponse = await fetch('http://localhost:2000/api/agents', {
+        credentials: 'include',
+      })
+      if (agentsResponse.ok) {
+        const agentsData = await agentsResponse.json()
+        setAgents(agentsData)
+      }
+
+      // Fetch brokers
+      const brokersResponse = await fetch('http://localhost:2000/api/brokers', {
+        credentials: 'include',
+      })
+      if (brokersResponse.ok) {
+        const brokersData = await brokersResponse.json()
+        setBrokers(brokersData)
+      }
+    } catch (err) {
+      console.error('Fetch agents/brokers error:', err)
+    }
+  }
+
+  // Account filtering and selection functions
+  const getFilteredSellerAccounts = () => {
+    if (!sellerCodeSearch && !sellerNameSearch) return []
+
+    return accounts.filter(account => {
+      const codeMatch = sellerCodeSearch && account.code?.toLowerCase().includes(sellerCodeSearch.toLowerCase())
+      const nameMatch = sellerNameSearch && account.name?.toLowerCase().includes(sellerNameSearch.toLowerCase())
+      return codeMatch || nameMatch
+    }).slice(0, 10)
+  }
+
+  const getFilteredBuyerAccounts = () => {
+    if (!buyerCodeSearch && !buyerNameSearch) return []
+
+    return accounts.filter(account => {
+      const codeMatch = buyerCodeSearch && account.code?.toLowerCase().includes(buyerCodeSearch.toLowerCase())
+      const nameMatch = buyerNameSearch && account.name?.toLowerCase().includes(buyerNameSearch.toLowerCase())
+      return codeMatch || nameMatch
+    }).slice(0, 10)
+  }
+
+  const handleSelectSeller = async (account: Account) => {
+    // Fetch full account details with addresses and contacts
+    try {
+      const response = await fetch(`http://localhost:2000/api/accounts/${account.id}`, {
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch account details')
+      }
+
+      const fullAccount = await response.json()
+      setSelectedSeller(fullAccount)
+      setSellerCodeSearch(fullAccount.code || '')
+      setSellerNameSearch(fullAccount.name || '')
+      setShowSellerDropdown(false)
+
+      // Auto-select primary address and contact if available
+      const primaryAddress = fullAccount.addresses?.find((addr: Address) => addr.isPrimary)
+      const primaryContact = fullAccount.contacts?.find((contact: Contact) => contact.isPrimary)
+
+      if (primaryAddress) {
+        setSelectedSellerBillingAddress(primaryAddress)
+        setSelectedSellerPickupAddress(primaryAddress)
+      }
+      if (primaryContact) setSelectedSellerContact(primaryContact)
+    } catch (err) {
+      console.error('Error fetching seller details:', err)
+      showToast('Failed to load seller details', 'error')
+    }
+  }
+
+  const handleSelectBuyer = async (account: Account) => {
+    // Fetch full account details with addresses and contacts
+    try {
+      const response = await fetch(`http://localhost:2000/api/accounts/${account.id}`, {
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch account details')
+      }
+
+      const fullAccount = await response.json()
+      setSelectedBuyer(fullAccount)
+      setBuyerCodeSearch(fullAccount.code || '')
+      setBuyerNameSearch(fullAccount.name || '')
+      setShowBuyerDropdown(false)
+
+      // Auto-select primary address and contact if available
+      const primaryAddress = fullAccount.addresses?.find((addr: Address) => addr.isPrimary)
+      const primaryContact = fullAccount.contacts?.find((contact: Contact) => contact.isPrimary)
+
+      if (primaryAddress) {
+        setSelectedBuyerBillingAddress(primaryAddress)
+        setSelectedBuyerShippingAddress(primaryAddress)
+      }
+      if (primaryContact) setSelectedBuyerContact(primaryContact)
+    } catch (err) {
+      console.error('Error fetching buyer details:', err)
+      showToast('Failed to load buyer details', 'error')
+    }
+  }
+
+  const handleSellerCodeChange = (value: string) => {
+    setSellerCodeSearch(value)
+    setShowSellerDropdown(true)
+    if (selectedSeller && value !== selectedSeller.code) {
+      setSelectedSeller(null)
+      setSellerNameSearch('')
+    }
+  }
+
+  const handleSellerNameChange = (value: string) => {
+    setSellerNameSearch(value)
+    setShowSellerDropdown(true)
+    if (selectedSeller && value !== selectedSeller.name) {
+      setSelectedSeller(null)
+      setSellerCodeSearch('')
+    }
+  }
+
+  const handleBuyerCodeChange = (value: string) => {
+    setBuyerCodeSearch(value)
+    setShowBuyerDropdown(true)
+    if (selectedBuyer && value !== selectedBuyer.code) {
+      setSelectedBuyer(null)
+      setBuyerNameSearch('')
+    }
+  }
+
+  const handleBuyerNameChange = (value: string) => {
+    setBuyerNameSearch(value)
+    setShowBuyerDropdown(true)
+    if (selectedBuyer && value !== selectedBuyer.name) {
+      setSelectedBuyer(null)
+      setBuyerCodeSearch('')
+    }
+  }
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+
+      // Check if click is on product input
+      const isInput = Object.values(inputRefs.current).some(input => input && input.contains(target))
+
+      // Only close if clicking truly outside (not on input)
+      // The dropdown itself uses stopPropagation to prevent closing when clicked
+      if (!isInput && activeSearchLineId) {
+        setActiveSearchLineId(null)
+      }
+
+      // Close seller/buyer dropdowns
+      const isSellerInput = sellerCodeRef.current?.contains(target) || sellerNameRef.current?.contains(target)
+      const isBuyerInput = buyerCodeRef.current?.contains(target) || buyerNameRef.current?.contains(target)
+      const isSellerDropdown = sellerDropdownRef.current?.contains(target)
+      const isBuyerDropdown = buyerDropdownRef.current?.contains(target)
+
+      if (!isSellerInput && !isSellerDropdown && showSellerDropdown) {
+        setShowSellerDropdown(false)
+      }
+      if (!isBuyerInput && !isBuyerDropdown && showBuyerDropdown) {
+        setShowBuyerDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [activeSearchLineId, showSellerDropdown, showBuyerDropdown])
+
+  // Product filtering
+  const getFilteredProducts = (lineId: string) => {
+    const query = productSearchQuery[lineId]
+    if (!query || query.trim() === '') return products
+    return products.filter((product) =>
+      `${product.name} ${product.variety}`.toLowerCase().includes(query.toLowerCase())
+    )
+  }
+
+  // Order line management
+  const addOrderLine = () => {
+    const newLine: OrderLine = {
+      id: String(Date.now()),
+      productId: '',
+      product: '',
+      variety: '',
+      size: '',
+      grade: '',
+      quantity: 0,
+      unitSize: 0,
+      unitSizeUnit: 'LBS',
+      totalWeight: 0,
+      unitPrice: 0,
+      total: 0,
+    }
+    setOrderLines([...orderLines, newLine])
+  }
+
+  const removeOrderLine = (id: string) => {
+    setOrderLines(orderLines.filter((line) => line.id !== id))
+  }
+
+  const handleProductSelect = (lineId: string, product: Product) => {
+    // Check if product has active variants
+    const activeVariants = product.variants?.filter(v => v.active) || []
+
+    if (activeVariants.length > 0) {
+      // Show variant selection modal
+      setVariantModalLineId(lineId)
+      setVariantModalProduct(product)
+      setShowVariantModal(true)
+      setProductSearchQuery({ ...productSearchQuery, [lineId]: '' })
+      setActiveSearchLineId(null)
+    } else {
+      // No variants, proceed with normal product selection
+      applyProductToLine(lineId, product, null)
+    }
+  }
+
+  const applyProductToLine = (lineId: string, product: Product, variant: ProductVariant | null) => {
+    const updatedLines = orderLines.map((line) => {
+      if (line.id === lineId) {
+        // Build product name with code if available
+        const productName = product.code ? `${product.code} - ${product.name}` : product.name
+
+        return {
+          ...line,
+          productId: product.id,
+          product: productName,
+          variety: product.variety || '',
+          size: product.size || '',
+          grade: product.grade || '',
+          // If variant is selected, use variant details
+          variantId: variant?.id,
+          packageType: variant?.packageType,
+          unitSize: variant ? parseFloat(variant.size) : (product.defaultUnitSize ? parseFloat(product.defaultUnitSize) : line.unitSize),
+          unitSizeUnit: variant ? variant.sizeUnit : (product.uom || line.unitSizeUnit),
+        }
+      }
+      return line
+    })
+    setOrderLines(updatedLines)
+    setProductSearchQuery({ ...productSearchQuery, [lineId]: '' })
+    setActiveSearchLineId(null)
+
+    // Recalculate totals for the updated line
+    const updatedLine = updatedLines.find(l => l.id === lineId)
+    if (updatedLine) {
+      const totalWeight = updatedLine.quantity * updatedLine.unitSize
+      const total = totalWeight * updatedLine.unitPrice
+      updateOrderLine(lineId, 'totalWeight', totalWeight)
+      updateOrderLine(lineId, 'total', total)
+    }
+  }
+
+  const handleVariantSelect = (variant: ProductVariant) => {
+    if (variantModalLineId && variantModalProduct) {
+      applyProductToLine(variantModalLineId, variantModalProduct, variant)
+      setShowVariantModal(false)
+      setVariantModalLineId(null)
+      setVariantModalProduct(null)
+    }
+  }
+
+  const handleSkipVariantSelection = () => {
+    if (variantModalLineId && variantModalProduct) {
+      applyProductToLine(variantModalLineId, variantModalProduct, null)
+      setShowVariantModal(false)
+      setVariantModalLineId(null)
+      setVariantModalProduct(null)
+    }
+  }
+
+  const updateOrderLine = (id: string, field: keyof OrderLine, value: any) => {
+    setOrderLines(
+      orderLines.map((line) => {
+        if (line.id === id) {
+          const updatedLine = { ...line, [field]: value }
+
+          // Auto-calculate total weight (quantity * unitSize)
+          if (field === 'quantity' || field === 'unitSize') {
+            updatedLine.totalWeight = updatedLine.quantity * updatedLine.unitSize
+          }
+
+          // Auto-calculate total (totalWeight * unitPrice)
+          if (field === 'quantity' || field === 'unitSize' || field === 'unitPrice') {
+            updatedLine.totalWeight = updatedLine.quantity * updatedLine.unitSize
+            updatedLine.total = updatedLine.totalWeight * updatedLine.unitPrice
+          }
+
+          return updatedLine
+        }
+        return line
+      })
+    )
+  }
+
+  const calculateGrandTotal = () => {
+    return orderLines.reduce((sum, line) => sum + line.total, 0)
+  }
+
+  const calculateCommissionAmount = () => {
+    const grandTotal = calculateGrandTotal()
+    return (grandTotal * commissionRate) / 100
+  }
+
+  // Handle add new address
+  const handleAddAddress = async () => {
+    const targetAccount = modalAccountType === 'seller' ? selectedSeller : selectedBuyer
+
+    if (!targetAccount) {
+      showToast('Please select an account first', 'info')
+      return
+    }
+
+    try {
+      const response = await fetch(`http://localhost:2000/api/accounts/${targetAccount.id}/addresses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(newAddress),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create address')
+      }
+
+      const createdAddress = await response.json()
+
+      // Update the selected account with the new address
+      if (modalAccountType === 'seller' && selectedSeller) {
+        const updatedSeller = {
+          ...selectedSeller,
+          addresses: [...(selectedSeller.addresses || []), createdAddress],
+        }
+        setSelectedSeller(updatedSeller)
+        // Set the appropriate address based on type
+        if (createdAddress.type === 'billing') {
+          setSelectedSellerBillingAddress(createdAddress)
+        } else if (createdAddress.type === 'pickup') {
+          setSelectedSellerPickupAddress(createdAddress)
+        }
+      } else if (modalAccountType === 'buyer' && selectedBuyer) {
+        const updatedBuyer = {
+          ...selectedBuyer,
+          addresses: [...(selectedBuyer.addresses || []), createdAddress],
+        }
+        setSelectedBuyer(updatedBuyer)
+        // Set the appropriate address based on type
+        if (createdAddress.type === 'billing') {
+          setSelectedBuyerBillingAddress(createdAddress)
+        } else if (createdAddress.type === 'shipping') {
+          setSelectedBuyerShippingAddress(createdAddress)
+        }
+      }
+
+      // Reset form and close modal
+      setNewAddress({
+        type: 'billing',
+        line1: '',
+        line2: '',
+        city: '',
+        state: '',
+        postalCode: '',
+        country: 'US',
+        isPrimary: false,
+      })
+      setShowAddAddressModal(false)
+      showToast('Address added successfully', 'success')
+    } catch (err: any) {
+      console.error('Error adding address:', err)
+      showToast(`Failed to add address: ${err.message}`, 'error')
+    }
+  }
+
+  // Handle add new contact
+  const handleAddContact = async () => {
+    const targetAccount = modalAccountType === 'seller' ? selectedSeller : selectedBuyer
+
+    if (!targetAccount) {
+      showToast('Please select an account first', 'info')
+      return
+    }
+
+    try {
+      const response = await fetch(`http://localhost:2000/api/accounts/${targetAccount.id}/contacts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(newContact),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create contact')
+      }
+
+      const createdContact = await response.json()
+
+      // Update the selected account with the new contact
+      if (modalAccountType === 'seller' && selectedSeller) {
+        const updatedSeller = {
+          ...selectedSeller,
+          contacts: [...(selectedSeller.contacts || []), createdContact],
+        }
+        setSelectedSeller(updatedSeller)
+        setSelectedSellerContact(createdContact)
+      } else if (modalAccountType === 'buyer' && selectedBuyer) {
+        const updatedBuyer = {
+          ...selectedBuyer,
+          contacts: [...(selectedBuyer.contacts || []), createdContact],
+        }
+        setSelectedBuyer(updatedBuyer)
+        setSelectedBuyerContact(createdContact)
+      }
+
+      // Reset form and close modal
+      setNewContact({
+        name: '',
+        email: '',
+        phone: '',
+        isPrimary: false,
+      })
+      setShowAddContactModal(false)
+      showToast('Contact added successfully', 'success')
+    } catch (err: any) {
+      console.error('Error adding contact:', err)
+      showToast(`Failed to add contact: ${err.message}`, 'error')
+    }
+  }
+
+  // Handle add new agent
+  const handleAddAgent = async () => {
+    if (!newUser.name) {
+      showToast('Please fill in agent name', 'info')
+      return
+    }
+
+    if (!selectedSeller) {
+      showToast('Please select a seller first to associate the agent', 'info')
+      return
+    }
+
+    try {
+      const response = await fetch(`http://localhost:2000/api/agents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: newUser.name,
+          email: newUser.email,
+          phone: newUser.phone,
+          accountId: selectedSeller.id,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to create agent')
+
+      const createdAgent = await response.json()
+
+      const newAgent = {
+        id: createdAgent.id,
+        name: createdAgent.name,
+        email: createdAgent.email,
+      }
+      setAgents([...agents, newAgent])
+      setSelectedAgent({ id: newAgent.id, name: newAgent.name })
+
+      setNewUser({ name: '', email: '', phone: '' })
+      setShowAddAgentModal(false)
+      showToast(`Agent added and associated with ${selectedSeller.name}`, 'success')
+    } catch (err: any) {
+      showToast(`Failed to add agent: ${err.message}`, 'error')
+    }
+  }
+
+  // Handle add new broker
+  const handleAddBroker = async () => {
+    if (!newUser.name) {
+      showToast('Please fill in broker name', 'info')
+      return
+    }
+
+    if (!selectedSeller) {
+      showToast('Please select a seller first to associate the broker', 'info')
+      return
+    }
+
+    try {
+      // Create broker in database
+      const response = await fetch(`http://localhost:2000/api/brokers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: newUser.name,
+          email: newUser.email,
+          phone: newUser.phone,
+          accountId: selectedSeller.id, // Associate with seller
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create broker')
+      }
+
+      const createdBroker = await response.json()
+
+      // Add to brokers list for immediate use
+      const newBroker = {
+        id: createdBroker.id,
+        name: createdBroker.name,
+        email: createdBroker.email,
+      }
+      setBrokers([...brokers, newBroker])
+      setSelectedBroker({ id: newBroker.id, name: newBroker.name })
+
+      // Reset form and close modal
+      setNewUser({
+        name: '',
+        email: '',
+        phone: '',
+      })
+      setShowAddBrokerModal(false)
+      showToast(`Broker added and associated with ${selectedSeller.name}`, 'success')
+    } catch (err: any) {
+      console.error('Error adding broker:', err)
+      showToast(`Failed to add broker: ${err.message}`, 'error')
+    }
+  }
+
+  // Save order
+  const handleSave = async () => {
+    if (!selectedSeller || !selectedBuyer) {
+      showToast('Please select both seller and buyer', 'info')
+      return
+    }
+
+    if (orderLines.length === 0) {
+      showToast('Please add at least one product line', 'info')
+      return
+    }
+
+    setIsSaving(true)
+
+    try {
+      const orderData = {
+        sellerId: selectedSeller.id,
+        buyerId: selectedBuyer.id,
+        sellerBillingAddressId: selectedSellerBillingAddress?.id,
+        sellerPickupAddressId: selectedSellerPickupAddress?.id,
+        buyerBillingAddressId: selectedBuyerBillingAddress?.id,
+        buyerShippingAddressId: selectedBuyerShippingAddress?.id,
+        isPickup,
+        agentUserId: selectedAgent?.id,
+        agentName: selectedAgent?.name,
+        brokerUserId: selectedBroker?.id,
+        brokerName: selectedBroker?.name,
+        contractId: selectedContract?.id,
+        contractNo: selectedContract?.contractNumber,
+        contractDrawQuantity: selectedContract ? contractDrawQuantity : undefined,
+        memo: isMemoManual ? memoOverride : autoGeneratedMemo,
+        palletCount: numPallets ? parseInt(numPallets) : undefined,
+        terms: paymentTerms,
+        notes: `${conditions}\n${otherRemarks}`.trim(),
+        status: 'draft',
+        lines: orderLines.map(line => ({
+          productId: line.productId,
+          variantId: line.variantId || undefined,
+          packageType: line.packageType || undefined,
+          sizeGrade: `${line.size} ${line.grade}`,
+          quantity: line.quantity,
+          unitSize: line.unitSize,
+          uom: line.unitSizeUnit,
+          totalWeight: line.totalWeight,
+          unitPrice: line.unitPrice,
+          commissionPct: commissionRate / 100,
+        })),
+      }
+
+      const response = await fetch('http://localhost:2000/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(orderData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || 'Failed to create order')
+      }
+
+      const newOrder = await response.json()
+      showToast('Order created successfully', 'success')
+      setTimeout(() => router.push(`/orders/${newOrder.id}`), 500)
+    } catch (err: any) {
+      console.error('Save order error:', err)
+      showToast(`Error: ${err.message}`, 'error')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <Link href="/orders">
+            <Button variant="outline" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Orders
+            </Button>
+          </Link>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-blue-400">Create New Order</h1>
+        </div>
+
+        <Button onClick={handleSave} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700">
+          <Save className="h-4 w-4 mr-2" />
+          {isSaving ? 'Saving...' : 'Save Order'}
+        </Button>
+      </div>
+
+      {/* Order Entry Form */}
+      <Card className="mb-4">
+        <CardHeader className="py-4">
+          <CardTitle className="text-lg font-bold">Order Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form className="space-y-4">
+            {/* Seller and Buyer Side-by-Side */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Seller Section */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 p-4 rounded-lg">
+                <h3 className="text-base font-bold text-blue-900 dark:text-blue-300 mb-3">Seller</h3>
+
+                <div className="space-y-3">
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      Account <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <Input
+                        ref={sellerCodeRef}
+                        type="text"
+                        value={sellerCodeSearch}
+                        onChange={(e) => handleSellerCodeChange(e.target.value)}
+                        onFocus={() => setShowSellerDropdown(true)}
+                        placeholder="Code..."
+                        className="flex-1 bg-white dark:bg-gray-800"
+                      />
+
+                      <Input
+                        ref={sellerNameRef}
+                        type="text"
+                        value={sellerNameSearch}
+                        onChange={(e) => handleSellerNameChange(e.target.value)}
+                        onFocus={() => setShowSellerDropdown(true)}
+                        placeholder="Account name..."
+                        className="flex-[2] bg-white dark:bg-gray-800"
+                      />
+                    </div>
+
+                    {/* Seller Dropdown */}
+                    {showSellerDropdown && (sellerCodeSearch || sellerNameSearch) && (
+                      <div
+                        ref={sellerDropdownRef}
+                        className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-700 rounded-md shadow-lg max-h-60 overflow-auto"
+                      >
+                        {getFilteredSellerAccounts().length > 0 ? (
+                          getFilteredSellerAccounts().map((account) => (
+                            <div
+                              key={account.id}
+                              className="px-3 py-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50 border-b dark:border-gray-700 last:border-b-0"
+                              onClick={() => handleSelectSeller(account)}
+                            >
+                              <div className="flex gap-2">
+                                <span className="font-medium text-blue-900 dark:text-blue-300">{account.code}</span>
+                                <span className="text-gray-700 dark:text-gray-400">-</span>
+                                <span className="text-gray-900 dark:text-white">{account.name}</span>
+                              </div>
+                              {account.city && account.state && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                  {account.city}, {account.state}
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-gray-500 dark:text-gray-400 text-sm">No accounts found</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Seller Billing Address */}
+                  {selectedSeller && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        Billing Address <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <select
+                          className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-white"
+                          value={selectedSellerBillingAddress?.id || ''}
+                          onChange={(e) => {
+                            const address = selectedSeller.addresses?.find(a => a.id === e.target.value)
+                            setSelectedSellerBillingAddress(address || null)
+                          }}
+                        >
+                          <option value="">Select billing address...</option>
+                          {selectedSeller.addresses?.filter(a => a.type === 'billing').map((addr) => (
+                            <option key={addr.id} value={addr.id}>
+                              {addr.line1}, {addr.city}, {addr.state} {addr.postalCode}
+                            </option>
+                          ))}
+                        </select>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            setModalAccountType('seller')
+                            setShowAddAddressModal(true)
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Seller Pickup Address */}
+                  {selectedSeller && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        Pickup Address <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <select
+                          className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-white"
+                          value={selectedSellerPickupAddress?.id || ''}
+                          onChange={(e) => {
+                            const address = selectedSeller.addresses?.find(a => a.id === e.target.value)
+                            setSelectedSellerPickupAddress(address || null)
+                          }}
+                        >
+                          <option value="">Select pickup address...</option>
+                          {selectedSeller.addresses?.filter(a => a.type === 'pickup').map((addr) => (
+                            <option key={addr.id} value={addr.id}>
+                              {addr.line1}, {addr.city}, {addr.state} {addr.postalCode}
+                            </option>
+                          ))}
+                        </select>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            setModalAccountType('seller')
+                            setNewAddress({ ...newAddress, type: 'pickup' })
+                            setShowAddAddressModal(true)
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Seller Contact */}
+                  {selectedSeller && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        Contact
+                      </label>
+                      <div className="flex gap-2">
+                        <select
+                          className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-white"
+                          value={selectedSellerContact?.id || ''}
+                          onChange={(e) => {
+                            const contact = selectedSeller.contacts?.find(c => c.id === e.target.value)
+                            setSelectedSellerContact(contact || null)
+                          }}
+                        >
+                          <option value="">Select contact...</option>
+                          {selectedSeller.contacts?.map((contact) => (
+                            <option key={contact.id} value={contact.id}>
+                              {contact.name} - {contact.email} {contact.phone ? `- ${contact.phone}` : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            setModalAccountType('seller')
+                            setShowAddContactModal(true)
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Buyer Section */}
+              <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 p-4 rounded-lg">
+                <h3 className="text-base font-bold text-green-900 dark:text-green-300 mb-3">Buyer</h3>
+
+                <div className="space-y-3">
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      Account <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <Input
+                        ref={buyerCodeRef}
+                        type="text"
+                        value={buyerCodeSearch}
+                        onChange={(e) => handleBuyerCodeChange(e.target.value)}
+                        onFocus={() => setShowBuyerDropdown(true)}
+                        placeholder="Code..."
+                        className="flex-1 bg-white dark:bg-gray-800"
+                      />
+
+                      <Input
+                        ref={buyerNameRef}
+                        type="text"
+                        value={buyerNameSearch}
+                        onChange={(e) => handleBuyerNameChange(e.target.value)}
+                        onFocus={() => setShowBuyerDropdown(true)}
+                        placeholder="Account name..."
+                        className="flex-[2] bg-white dark:bg-gray-800"
+                      />
+                    </div>
+
+                    {/* Buyer Dropdown */}
+                    {showBuyerDropdown && (buyerCodeSearch || buyerNameSearch) && (
+                      <div
+                        ref={buyerDropdownRef}
+                        className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 rounded-md shadow-lg max-h-60 overflow-auto"
+                      >
+                        {getFilteredBuyerAccounts().length > 0 ? (
+                          getFilteredBuyerAccounts().map((account) => (
+                            <div
+                              key={account.id}
+                              className="px-3 py-2 cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/50 border-b dark:border-gray-700 last:border-b-0"
+                              onClick={() => handleSelectBuyer(account)}
+                            >
+                              <div className="flex gap-2">
+                                <span className="font-medium text-green-900 dark:text-green-300">{account.code}</span>
+                                <span className="text-gray-700 dark:text-gray-400">-</span>
+                                <span className="text-gray-900 dark:text-white">{account.name}</span>
+                              </div>
+                              {account.city && account.state && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                  {account.city}, {account.state}
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-gray-500 dark:text-gray-400 text-sm">No accounts found</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Will Pick Up Checkbox */}
+                  {selectedBuyer && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="isPickup"
+                        checked={isPickup}
+                        onChange={(e) => setIsPickup(e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      />
+                      <label htmlFor="isPickup" className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                        Will Pick Up
+                      </label>
+                    </div>
+                  )}
+
+                  {/* Buyer Billing Address */}
+                  {selectedBuyer && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        Billing Address <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <select
+                          className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-white"
+                          value={selectedBuyerBillingAddress?.id || ''}
+                          onChange={(e) => {
+                            const address = selectedBuyer.addresses?.find(a => a.id === e.target.value)
+                            setSelectedBuyerBillingAddress(address || null)
+                          }}
+                        >
+                          <option value="">Select billing address...</option>
+                          {selectedBuyer.addresses?.filter(a => a.type === 'billing').map((addr) => (
+                            <option key={addr.id} value={addr.id}>
+                              {addr.line1}, {addr.city}, {addr.state} {addr.postalCode}
+                            </option>
+                          ))}
+                        </select>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            setModalAccountType('buyer')
+                            setShowAddAddressModal(true)
+                          }}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Buyer Shipping Address (only show if not pickup) */}
+                  {selectedBuyer && !isPickup && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        Shipping Address <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <select
+                          className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-white"
+                          value={selectedBuyerShippingAddress?.id || ''}
+                          onChange={(e) => {
+                            const address = selectedBuyer.addresses?.find(a => a.id === e.target.value)
+                            setSelectedBuyerShippingAddress(address || null)
+                          }}
+                        >
+                          <option value="">Select shipping address...</option>
+                          {selectedBuyer.addresses?.filter(a => a.type === 'shipping').map((addr) => (
+                            <option key={addr.id} value={addr.id}>
+                              {addr.line1}, {addr.city}, {addr.state} {addr.postalCode}
+                            </option>
+                          ))}
+                        </select>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            setModalAccountType('buyer')
+                            setNewAddress({ ...newAddress, type: 'shipping' })
+                            setShowAddAddressModal(true)
+                          }}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Buyer Contact */}
+                  {selectedBuyer && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        Contact
+                      </label>
+                      <div className="flex gap-2">
+                        <select
+                          className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-white"
+                          value={selectedBuyerContact?.id || ''}
+                          onChange={(e) => {
+                            const contact = selectedBuyer.contacts?.find(c => c.id === e.target.value)
+                            setSelectedBuyerContact(contact || null)
+                          }}
+                        >
+                          <option value="">Select contact...</option>
+                          {selectedBuyer.contacts?.map((contact) => (
+                            <option key={contact.id} value={contact.id}>
+                              {contact.name} - {contact.email} {contact.phone ? `- ${contact.phone}` : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            setModalAccountType('buyer')
+                            setShowAddContactModal(true)
+                          }}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Agent and Broker Section */}
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              {/* Agent Dropdown */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  Agent <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-white"
+                    value={selectedAgent?.id || ''}
+                    onChange={(e) => {
+                      if (e.target.value === 'ADD_NEW') {
+                        setShowAddAgentModal(true)
+                      } else {
+                        const agent = agents.find(a => a.id === e.target.value)
+                        setSelectedAgent(agent ? { id: agent.id, name: agent.name } : null)
+                      }
+                    }}
+                  >
+                    <option value="">Select agent...</option>
+                    {agents.map((agent) => (
+                      <option key={agent.id} value={agent.id}>
+                        {agent.name} - {agent.email}
+                      </option>
+                    ))}
+                    <option value="ADD_NEW" className="text-blue-600 font-medium">+ Add New Agent</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Broker Dropdown (Optional) */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  Broker (Optional)
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-white"
+                    value={selectedBroker?.id || ''}
+                    onChange={(e) => {
+                      if (e.target.value === 'ADD_NEW') {
+                        setShowAddBrokerModal(true)
+                      } else {
+                        const broker = brokers.find(b => b.id === e.target.value)
+                        setSelectedBroker(broker ? { id: broker.id, name: broker.name } : null)
+                      }
+                    }}
+                  >
+                    <option value="">Select broker...</option>
+                    {brokers.map((broker) => (
+                      <option key={broker.id} value={broker.id}>
+                        {broker.name} - {broker.email}
+                      </option>
+                    ))}
+                    <option value="ADD_NEW" className="text-blue-600 font-medium">+ Add New Broker</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Product List */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Product List</CardTitle>
+          <Button type="button" onClick={addOrderLine} className="bg-indigo-600 hover:bg-indigo-700">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Item
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="border rounded-lg overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Line</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Product / Variety</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Size / Grade</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Quantity</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Unit Size</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Total Weight</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Unit Price</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Total</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                {orderLines.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                      No items added yet. Click "Add Item" to start adding products.
+                    </td>
+                  </tr>
+                ) : (
+                  orderLines.map((line, index) => (
+                    <tr key={line.id} className="hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                      <td className="px-4 py-4 text-sm font-bold text-gray-700 dark:text-gray-300 align-middle">
+                        <div className="flex items-center justify-center w-8 h-8 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-full">
+                          {index + 1}
+                        </div>
+                      </td>
+
+                      {/* Product / Variety - Typeahead */}
+                      <td className="px-4 py-4">
+                        <div className="space-y-2 relative">
+                          <input
+                            ref={(el) => { inputRefs.current[line.id] = el }}
+                            type="text"
+                            value={productSearchQuery[line.id] || line.product || ''}
+                            onChange={(e) => {
+                              setProductSearchQuery({ ...productSearchQuery, [line.id]: e.target.value })
+                              setActiveSearchLineId(line.id)
+                              if (line.product) {
+                                updateOrderLine(line.id, 'product', '')
+                                updateOrderLine(line.id, 'productId', '')
+                              }
+                            }}
+                            onFocus={() => {
+                              setActiveSearchLineId(line.id)
+                            }}
+                            className="w-full px-2 py-1 text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400"
+                            placeholder="Type to search products..."
+                          />
+
+                          {/* Product Dropdown - Inline */}
+                          {activeSearchLineId === line.id && getFilteredProducts(line.id).length > 0 && (
+                            <div
+                              className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-700 rounded-md shadow-lg max-h-60 overflow-auto"
+                              onMouseDown={(e) => {
+                                // Prevent the click-outside handler from closing the dropdown
+                                e.stopPropagation()
+                              }}
+                            >
+                              {getFilteredProducts(line.id).map((product) => (
+                                <div
+                                  key={product.id}
+                                  className="px-3 py-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50 border-b dark:border-gray-700 last:border-b-0"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    handleProductSelect(line.id, product)
+                                    setActiveSearchLineId(null)
+                                  }}
+                                >
+                                  <div className="font-medium text-gray-900 dark:text-white">
+                                    {product.name} - {product.variety}
+                                  </div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    {product.size} | {product.grade}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="px-2 py-1 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                            {line.variety || 'Variety (auto-filled)'}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Size / Grade - Auto-filled from product */}
+                      <td className="px-4 py-4">
+                        <div className="space-y-2">
+                          <div className="px-3 py-2 text-sm font-medium text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                            {line.size || 'Size (auto-filled)'}
+                          </div>
+                          <div className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                            {line.grade || 'Grade (auto-filled)'}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Quantity - Editable */}
+                      <td className="px-4 py-4 align-middle">
+                        <input
+                          type="number"
+                          value={line.quantity || ''}
+                          onChange={(e) => updateOrderLine(line.id, 'quantity', parseFloat(e.target.value) || 0)}
+                          className="w-24 px-2 py-1 text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-right focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400"
+                          placeholder="0"
+                        />
+                      </td>
+
+                      {/* Unit Size - Editable */}
+                      <td className="px-4 py-4 align-middle">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            value={line.unitSize || ''}
+                            onChange={(e) => updateOrderLine(line.id, 'unitSize', parseFloat(e.target.value) || 0)}
+                            className="w-20 px-3 py-2 text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-right focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                            placeholder="0"
+                          />
+                          <select
+                            value={line.unitSizeUnit}
+                            onChange={(e) => updateOrderLine(line.id, 'unitSizeUnit', e.target.value)}
+                            className="px-3 py-2 text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                          >
+                            <option value="LBS">LBS</option>
+                            <option value="KG">KG</option>
+                            <option value="TON">TON</option>
+                          </select>
+                        </div>
+                      </td>
+
+                      {/* Total Weight - Calculated */}
+                      <td className="px-4 py-4 align-middle">
+                        <div className="px-4 py-2 text-sm font-bold text-gray-900 dark:text-white bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 rounded-md text-right">
+                          {line.totalWeight > 0 ? `${line.totalWeight.toLocaleString()} ${line.unitSizeUnit}` : '—'}
+                        </div>
+                      </td>
+
+                      {/* Unit Price - Editable */}
+                      <td className="px-4 py-4 align-middle">
+                        <div className="flex items-center gap-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2">
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={line.unitPrice || ''}
+                            onChange={(e) => updateOrderLine(line.id, 'unitPrice', parseFloat(e.target.value) || 0)}
+                            className="w-20 text-right text-sm text-gray-900 dark:text-white bg-transparent focus:outline-none"
+                            placeholder="0.00"
+                          />
+                          <span className="text-xs text-gray-500 dark:text-gray-400">/{line.unitSizeUnit}</span>
+                        </div>
+                      </td>
+
+                      {/* Total - Calculated */}
+                      <td className="px-4 py-4 align-middle">
+                        <div className="px-4 py-2 text-base font-bold text-green-900 dark:text-green-300 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-2 border-green-200 dark:border-green-700 rounded-md text-right">
+                          {line.total > 0 ? `$${line.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                        </div>
+                      </td>
+
+                      {/* Delete Button */}
+                      <td className="px-4 py-4 text-center align-middle">
+                        <button
+                          type="button"
+                          onClick={() => removeOrderLine(line.id)}
+                          className="p-2 text-red-600 hover:text-white hover:bg-red-600 rounded-lg transition-all"
+                          title="Remove item"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Grand Total and Commission */}
+          <div className="mt-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <div className="flex justify-between items-start">
+              {/* Commission Section */}
+              <div className="flex items-center gap-4">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Commission Rate:</label>
+                <div className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2">
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    className="w-16 text-right text-sm font-medium text-gray-900 dark:text-white bg-transparent focus:outline-none"
+                    value={commissionRate}
+                    onChange={(e) => setCommissionRate(parseFloat(e.target.value) || 0)}
+                    placeholder="0"
+                  />
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">%</span>
+                </div>
+                <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-md px-4 py-2">
+                  <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Commission Amount:</span>
+                  <span className="text-base font-bold text-blue-900 dark:text-blue-200">
+                    ${calculateCommissionAmount().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Grand Total */}
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-2 border-green-200 dark:border-green-700 rounded-lg px-6 py-3">
+                <div className="text-xs font-medium text-green-700 dark:text-green-400 uppercase tracking-wide mb-1">Grand Total</div>
+                <div className="text-2xl font-bold text-green-900 dark:text-green-300">
+                  ${calculateGrandTotal().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Memo Field */}
+      <Card className="mt-4">
+        <CardHeader className="py-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-bold">Order Memo</CardTitle>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="isMemoManual"
+                checked={isMemoManual}
+                onChange={(e) => setIsMemoManual(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="isMemoManual" className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                Manual Edit
+              </label>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isMemoManual ? (
+            <textarea
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-white min-h-[100px]"
+              value={memoOverride}
+              onChange={(e) => setMemoOverride(e.target.value)}
+              placeholder="Enter custom memo..."
+            />
+          ) : (
+            <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-3 py-2 min-h-[100px] whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
+              {autoGeneratedMemo || 'Add product lines to auto-generate memo...'}
+            </div>
+          )}
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            {isMemoManual
+              ? 'Custom memo mode: Edit freely. Uncheck "Manual Edit" to revert to auto-generated memo.'
+              : 'Auto-generated from order lines. Check "Manual Edit" to customize.'}
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Contract Draw Section */}
+      {matchingContracts.length > 0 && (
+        <Card className="mt-4 border-2 border-purple-200 dark:border-purple-700">
+          <CardHeader className="py-4 bg-purple-50 dark:bg-purple-900/20">
+            <CardTitle className="text-lg font-bold text-purple-900 dark:text-purple-300">
+              Contract Draw Available
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="space-y-4">
+              {/* Contract Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Select Contract
+                </label>
+                <select
+                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-white"
+                  value={selectedContract?.id || ''}
+                  onChange={(e) => {
+                    const contract = matchingContracts.find(c => c.id === e.target.value)
+                    setSelectedContract(contract || null)
+                  }}
+                >
+                  <option value="">None - Create standalone order</option>
+                  {matchingContracts.map((contract) => (
+                    <option key={contract.id} value={contract.id}>
+                      {contract.contractNumber} - {parseFloat(contract.remainingQuantity).toFixed(2)} {contract.unit} available
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Contract Details */}
+              {selectedContract && (
+                <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-700 rounded-lg p-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Contract Number</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedContract.contractNumber}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Price per {selectedContract.unit}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">${parseFloat(selectedContract.pricePerUnit).toFixed(4)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Total Quantity</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {parseFloat(selectedContract.totalQuantity).toFixed(2)} {selectedContract.unit}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Remaining Quantity</p>
+                      <p className="text-sm font-semibold text-purple-900 dark:text-purple-300">
+                        {parseFloat(selectedContract.remainingQuantity).toFixed(2)} {selectedContract.unit}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Draw Quantity</p>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max={parseFloat(selectedContract.remainingQuantity)}
+                        value={contractDrawQuantity}
+                        onChange={(e) => setContractDrawQuantity(parseFloat(e.target.value) || 0)}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        After this draw: {(parseFloat(selectedContract.remainingQuantity) - contractDrawQuantity).toFixed(2)} {selectedContract.unit} remaining
+                      </p>
+                    </div>
+                  </div>
+                  {contractDrawQuantity > parseFloat(selectedContract.remainingQuantity) && (
+                    <div className="mt-3 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded text-xs text-red-700 dark:text-red-300">
+                      ⚠️ Draw quantity exceeds available contract quantity
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+
+      {/* Add Address Modal */}
+      {showAddAddressModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Add New Address for {modalAccountType === 'seller' ? 'Seller' : 'Buyer'}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-4">
+                <div>
+                  <Label>Address Type *</Label>
+                  <select
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-white"
+                    value={newAddress.type}
+                    onChange={(e) => setNewAddress({ ...newAddress, type: e.target.value })}
+                  >
+                    <option value="billing">Billing</option>
+                    <option value="shipping">Shipping</option>
+                    <option value="warehouse">Warehouse</option>
+                    <option value="pickup">Pickup</option>
+                  </select>
+                </div>
+
+                <div>
+                  <Label>Address Line 1 *</Label>
+                  <Input
+                    value={newAddress.line1}
+                    onChange={(e) => setNewAddress({ ...newAddress, line1: e.target.value })}
+                    placeholder="123 Main St"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Address Line 2</Label>
+                  <Input
+                    value={newAddress.line2}
+                    onChange={(e) => setNewAddress({ ...newAddress, line2: e.target.value })}
+                    placeholder="Suite 100"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>City *</Label>
+                    <Input
+                      value={newAddress.city}
+                      onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
+                      placeholder="Los Angeles"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label>State *</Label>
+                    <Input
+                      value={newAddress.state}
+                      onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value.toUpperCase() })}
+                      placeholder="CA"
+                      maxLength={2}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Postal Code *</Label>
+                    <Input
+                      value={newAddress.postalCode}
+                      onChange={(e) => setNewAddress({ ...newAddress, postalCode: e.target.value })}
+                      placeholder="90001"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Country *</Label>
+                    <Input
+                      value={newAddress.country}
+                      onChange={(e) => setNewAddress({ ...newAddress, country: e.target.value.toUpperCase() })}
+                      placeholder="US"
+                      maxLength={2}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isPrimaryAddress"
+                    checked={newAddress.isPrimary}
+                    onChange={(e) => setNewAddress({ ...newAddress, isPrimary: e.target.checked })}
+                    className="rounded border-gray-300 dark:border-gray-600"
+                  />
+                  <Label htmlFor="isPrimaryAddress" className="cursor-pointer">Set as primary address</Label>
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddAddressModal(false)
+                      setNewAddress({
+                        type: 'billing',
+                        line1: '',
+                        line2: '',
+                        city: '',
+                        state: '',
+                        postalCode: '',
+                        country: 'US',
+                        isPrimary: false,
+                      })
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleAddAddress}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Add Address
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Add Contact Modal */}
+      {showAddContactModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Add New Contact for {modalAccountType === 'seller' ? 'Seller' : 'Buyer'}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-4">
+                <div>
+                  <Label>Contact Name *</Label>
+                  <Input
+                    value={newContact.name}
+                    onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Email *</Label>
+                  <Input
+                    type="email"
+                    value={newContact.email}
+                    onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
+                    placeholder="john@example.com"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Phone</Label>
+                  <Input
+                    type="tel"
+                    value={newContact.phone}
+                    onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isPrimaryContact"
+                    checked={newContact.isPrimary}
+                    onChange={(e) => setNewContact({ ...newContact, isPrimary: e.target.checked })}
+                    className="rounded border-gray-300 dark:border-gray-600"
+                  />
+                  <Label htmlFor="isPrimaryContact" className="cursor-pointer">Set as primary contact</Label>
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddContactModal(false)
+                      setNewContact({
+                        name: '',
+                        email: '',
+                        phone: '',
+                        isPrimary: false,
+                      })
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleAddContact}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Add Contact
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Add Agent Modal */}
+      {showAddAgentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Add New Agent</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-4">
+                <div>
+                  <Label>Name *</Label>
+                  <Input
+                    value={newUser.name}
+                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Email *</Label>
+                  <Input
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    placeholder="john@example.com"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Phone</Label>
+                  <Input
+                    type="tel"
+                    value={newUser.phone}
+                    onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddAgentModal(false)
+                      setNewUser({
+                        name: '',
+                        email: '',
+                        phone: '',
+                      })
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleAddAgent}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Add Agent
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Add Broker Modal */}
+      {showAddBrokerModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Add New Broker</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-4">
+                <div>
+                  <Label>Name *</Label>
+                  <Input
+                    value={newUser.name}
+                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Email *</Label>
+                  <Input
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    placeholder="john@example.com"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Phone</Label>
+                  <Input
+                    type="tel"
+                    value={newUser.phone}
+                    onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddBrokerModal(false)
+                      setNewUser({
+                        name: '',
+                        email: '',
+                        phone: '',
+                      })
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleAddBroker}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Add Broker
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Variant Selection Modal */}
+      {showVariantModal && variantModalProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-lg">
+            <CardHeader>
+              <CardTitle className="text-lg">Select Variant</CardTitle>
+              <p className="text-sm text-gray-500 mt-1">
+                {variantModalProduct.code} - {variantModalProduct.name}
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {variantModalProduct.variants
+                  ?.filter(v => v.active)
+                  .map((variant) => (
+                    <button
+                      key={variant.id}
+                      onClick={() => handleVariantSelect(variant)}
+                      className={`w-full text-left p-3 rounded border-2 transition-all ${
+                        variant.isDefault
+                          ? 'border-blue-500 bg-blue-50 hover:bg-blue-100'
+                          : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-900">
+                          {variant.size} {variant.sizeUnit} {variant.packageType}
+                        </span>
+                        {variant.isDefault && (
+                          <span className="text-xs text-blue-600 font-medium">
+                            (default)
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+              </div>
+
+              <div className="mt-4 flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleSkipVariantSelection}
+                  className="flex-1"
+                >
+                  Use Default
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowVariantModal(false)
+                    setVariantModalLineId(null)
+                    setVariantModalProduct(null)
+                  }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
+  )
+}

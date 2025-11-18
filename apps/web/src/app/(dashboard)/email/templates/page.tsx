@@ -46,10 +46,10 @@ export default function EmailTemplatesPage() {
 
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Email Templates</h1>
-          <p className="mt-2 text-gray-600">Create and manage email templates with dynamic variables</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-blue-400">Email Templates</h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-300">Create and manage email templates with dynamic variables</p>
         </div>
         <Button
           onClick={() => setShowCreateForm(true)}
@@ -61,7 +61,7 @@ export default function EmailTemplatesPage() {
       </div>
 
       {showCreateForm && (
-        <Card className="mb-6 border-blue-200 bg-blue-50">
+        <Card className="mb-4 border-blue-200 bg-blue-50">
           <CardHeader>
             <CardTitle>Create New Template</CardTitle>
             <CardDescription>Design an email template with dynamic variables</CardDescription>

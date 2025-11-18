@@ -10,7 +10,7 @@ export default function Dashboard() {
 
   if (!isLoaded) {
     return (
-      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     )
@@ -74,17 +74,17 @@ export default function Dashboard() {
   const availableSections = sections.filter((section) => section.roles.includes(userRole))
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="min-h-screen">
       <div className="mx-auto max-w-7xl px-4 py-8">
         {/* Welcome Section */}
-        <div className="mb-12">
+        <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">Welcome back, {userName}!</h1>
-              <p className="mt-2 text-lg text-gray-600">
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-blue-400">Welcome back, {userName}!</h1>
+              <p className="mt-2 text-lg text-gray-600 dark:text-gray-300">
                 You're signed in as <span className="font-semibold">{roleLabels[userRole as keyof typeof roleLabels]}</span>
               </p>
-              <p className="mt-1 text-gray-500">Choose a section to get started with your CRM</p>
+              <p className="mt-1 text-gray-500 dark:text-gray-400">Choose a section to get started with your CRM</p>
             </div>
             {mfaEnabled && (
               <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3">
@@ -111,8 +111,8 @@ export default function Dashboard() {
                     <div className={`mb-6 rounded-full ${section.bgColor} p-6`}>
                       <Icon className={`h-12 w-12 ${section.color}`} />
                     </div>
-                    <h3 className="mb-3 text-xl font-semibold text-gray-900">{section.title}</h3>
-                    <p className="text-sm text-gray-600">{section.description}</p>
+                    <h3 className="mb-3 text-xl font-semibold text-gray-900 dark:text-gray-100">{section.title}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{section.description}</p>
                   </CardContent>
                 </Card>
               </Link>
