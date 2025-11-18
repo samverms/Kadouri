@@ -1,5 +1,5 @@
 {
-  "name": "pace-crm-fullstack",
+  "name": "pace-crm-api",
   "version": "1.0.0",
   "private": true,
   "engines": {
@@ -7,11 +7,7 @@
     "npm": "10.x"
   },
   "scripts": {
-    "heroku-postbuild": "cd packages/shared && npm install && npm run build && cd ../../apps/api && npm install --production=false && npm link ../../packages/shared && npm run build && cd ../web && npm install && npm link ../../packages/shared && npm run build",
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "next": "^16.0.1"
+    "heroku-postbuild": "cd packages/shared && npm install && npm run build && cd ../../apps/api && npm install --production=false && npm link ../../packages/shared && npm run build",
+    "start": "node apps/api/dist/main.js"
   }
 }
