@@ -9,8 +9,8 @@ const nextConfig = {
     API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
   },
   typescript: {
-    // Disable type checking during build - will fix errors incrementally
-    ignoreBuildErrors: true,
+    // Only disable type checking on Heroku - keep enabled for local development
+    ignoreBuildErrors: process.env.NODE_ENV === 'production' && process.env.HEROKU === 'true',
   },
 }
 
