@@ -46,9 +46,9 @@ export default function ComposeEmailPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Compose Email</h1>
-        <p className="mt-2 text-gray-600">Send emails using your connected Outlook account</p>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-blue-400">Compose Email</h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-300">Send emails using your connected Outlook account</p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -85,9 +85,9 @@ export default function ComposeEmailPage() {
               ))}
             </div>
 
-            <div className="mt-6 border-t pt-6">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Outlook Connection</h3>
-              <div className="rounded-lg border border-gray-200 p-3 bg-gray-50">
+            <div className="mt-6 border-t dark:border-gray-700 pt-6">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Outlook Connection</h3>
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-gray-400" />
                   <span className="text-sm text-gray-600">Not Connected</span>
@@ -131,7 +131,7 @@ export default function ComposeEmailPage() {
                   type="email"
                   placeholder="cc@example.com"
                   value={cc}
-                  onChange={(e) => setCc(e.target.value)}
+                  onChange={(e) => setCC(e.target.value)}
                 />
               </div>
 
