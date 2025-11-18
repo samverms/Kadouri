@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { UserPlus, Eye, EyeOff, Loader2, CheckCircle2, Shield, AlertCircle } from 'lucide-react'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
 
 export default function AcceptInvitationPage() {
   const router = useRouter()
@@ -213,7 +213,7 @@ export default function AcceptInvitationPage() {
               <div className="flex-1">
                 <p className="text-sm font-medium text-green-900">You've been invited!</p>
                 <p className="text-sm text-green-800 mt-1">
-                  <strong>{invitationData.invitedBy}</strong> invited you to join as{' '}
+                  You've been invited to join as{' '}
                   <strong className="capitalize">{invitationData.role}</strong>
                 </p>
                 <p className="text-xs text-green-700 mt-2 flex items-center gap-1">
