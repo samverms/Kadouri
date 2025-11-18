@@ -1405,7 +1405,7 @@ export default function ProductsPage() {
                 </p>
                 {!searchQuery && !hasActiveColumnFilters && (
                   <Button
-                    onClick={() => setShowCreateDialog(true)}
+                    onClick={() => window.location.href = '/products/new'}
                     className="mt-4 bg-blue-600 hover:bg-blue-700"
                   >
                     <Plus className="mr-2 h-4 w-4" />
