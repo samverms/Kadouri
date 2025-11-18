@@ -2,7 +2,6 @@
 const nextConfig = {
   reactStrictMode: false,
   transpilePackages: ['@pace/shared'],
-  output: 'standalone',
   images: {
     unoptimized: true,
   },
