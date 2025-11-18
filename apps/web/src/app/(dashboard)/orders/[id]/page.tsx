@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -99,6 +100,7 @@ export default function OrderDetailPage() {
   const router = useRouter()
   const orderId = params.id as string
   const { showToast } = useToast()
+  const { getToken } = useAuth()
 
   console.log('OrderDetailPage mounted, orderId:', orderId)
 
@@ -148,9 +150,13 @@ export default function OrderDetailPage() {
 
   const fetchOrder = async () => {
     try {
+      const token = await getToken()
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!response.ok) throw new Error('Failed to fetch order')
@@ -174,9 +180,13 @@ export default function OrderDetailPage() {
 
   const fetchAccounts = async () => {
     try {
+      const token = await getToken()
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/accounts?limit=10000`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
       if (response.ok) {
         const data = await response.json()
@@ -190,9 +200,13 @@ export default function OrderDetailPage() {
 
   const fetchProducts = async () => {
     try {
+      const token = await getToken()
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/products`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
       if (response.ok) {
         const data = await response.json()
@@ -206,9 +220,13 @@ export default function OrderDetailPage() {
   const fetchActivities = async () => {
     setActivitiesLoading(true)
     try {
+      const token = await getToken()
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/orders/${orderId}/activities`, {
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
       if (response.ok) {
         const data = await response.json()
@@ -311,6 +329,7 @@ export default function OrderDetailPage() {
         })),
       }
 
+      const token = await getToken()
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
 
       if (mode === 'edit') {
@@ -319,6 +338,7 @@ export default function OrderDetailPage() {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
           },
           credentials: 'include',
           body: JSON.stringify(orderData),
@@ -338,6 +358,7 @@ export default function OrderDetailPage() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
           },
           credentials: 'include',
           body: JSON.stringify(orderData),
@@ -366,10 +387,14 @@ export default function OrderDetailPage() {
     }
 
     try {
+      const token = await getToken()
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!response.ok) {
@@ -434,11 +459,13 @@ export default function OrderDetailPage() {
 
     setQbLoading(true)
     try {
+      const token = await getToken()
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/quickbooks/sync/order/${orderId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         credentials: 'include',
         body: JSON.stringify({ docType: 'invoice' }),
@@ -467,10 +494,14 @@ export default function OrderDetailPage() {
 
     setQbLoading(true)
     try {
+      const token = await getToken()
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/quickbooks/sync/order/${orderId}`, {
         method: 'PUT',
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!response.ok) {
@@ -496,10 +527,14 @@ export default function OrderDetailPage() {
 
     setQbLoading(true)
     try {
+      const token = await getToken()
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${apiUrl}/api/quickbooks/sync/order/${orderId}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       })
 
       if (!response.ok) {
