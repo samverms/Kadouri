@@ -26,9 +26,9 @@ You need to create 2 services from the same GitHub repo:
 1. Click "New" → "GitHub Repo" → Select `samverms/Kadouri`
 2. Name it: `kadouri-api`
 3. In Settings → General:
-   - **Root Directory**: `apps/api`
+   - **Root Directory**: Leave empty or set to `.` (repository root)
    - **Build Command**: (leave empty, nixpacks.toml handles it)
-   - **Start Command**: `npm start`
+   - **Start Command**: (leave empty, nixpacks.toml handles it)
 4. Add Environment Variables (see below)
 
 #### Service 2: Frontend Web
@@ -36,9 +36,9 @@ You need to create 2 services from the same GitHub repo:
 1. Click "New" → "GitHub Repo" → Select `samverms/Kadouri`
 2. Name it: `kadouri-web`
 3. In Settings → General:
-   - **Root Directory**: `apps/web`
+   - **Root Directory**: Leave empty or set to `.` (repository root)
    - **Build Command**: (leave empty, nixpacks.toml handles it)
-   - **Start Command**: `npm start`
+   - **Start Command**: (leave empty, nixpacks.toml handles it)
 4. Add Environment Variables (see below)
 
 ## Environment Variables
