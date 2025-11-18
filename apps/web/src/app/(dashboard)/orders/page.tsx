@@ -724,8 +724,8 @@ export default function OrdersPage() {
     setGroupByColumn([])
     setExpandedGroups(new Set())
     // Clear sorting
-    setSortColumn(null)
-    setSortDirection('asc')
+    setSortField('date')
+    setSortDirection('desc')
     // Clear search
     setSearchQuery('')
     showToast('All filters and settings reset', 'info')
