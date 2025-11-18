@@ -7,7 +7,7 @@
     "npm": "10.x"
   },
   "scripts": {
-    "heroku-postbuild": "cd apps/api && npm install --production=false && npm run build",
+    "heroku-postbuild": "cd packages/shared && npm install && cd ../../apps/api && npm install --production=false && npm run build",
     "start": "node apps/api/dist/main.js"
   }
 }
