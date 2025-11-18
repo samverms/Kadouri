@@ -1,11 +1,11 @@
 [phases.setup]
-nixPkgs = ["nodejs-20_x", "npm-10_x"]
+nixPkgs = ["nodejs-20_x"]
 
 [phases.install]
 cmds = [
   "cd ../.. && cd packages/shared && npm install && npm run build",
-  "cd ../../apps/api && npm install",
-  "cd ../../apps/api && npm link ../../packages/shared"
+  "npm install",
+  "npm link ../../packages/shared"
 ]
 
 [phases.build]
