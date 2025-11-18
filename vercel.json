@@ -1,0 +1,12 @@
+{
+  "buildCommand": "cd packages/shared && npm install && npm run build && cd ../../apps/web && npm install && npm run build",
+  "outputDirectory": "apps/web/.next",
+  "framework": "nextjs",
+  "installCommand": "npm install --prefix packages/shared && npm install --prefix apps/web",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/apps/web/$1"
+    }
+  ]
+}
