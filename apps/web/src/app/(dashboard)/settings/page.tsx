@@ -39,7 +39,7 @@ export default function SettingsPage() {
   const fetchQuickBooksStatus = async () => {
     try {
       setQbLoading(true)
-      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/quickbooks/status', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/quickbooks/status`, {
         credentials: 'include',
       })
       if (response.ok) {
@@ -57,13 +57,13 @@ export default function SettingsPage() {
   }
 
   const handleQuickBooksConnect = () => {
-    window.location.href = '${process.env.NEXT_PUBLIC_API_URL || ''}/api/quickbooks/connect'
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/quickbooks/connect`
   }
 
   const handleQuickBooksDisconnect = async () => {
     try {
       setQbLoading(true)
-      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/quickbooks/disconnect', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/quickbooks/disconnect`, {
         method: 'POST',
         credentials: 'include',
       })

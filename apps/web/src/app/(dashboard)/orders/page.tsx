@@ -586,7 +586,7 @@ export default function OrdersPage() {
 
   const fetchAccounts = async () => {
     try {
-      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts?limit=10000', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts?limit=10000`, {
         credentials: 'include',
       })
 
@@ -605,7 +605,7 @@ export default function OrdersPage() {
     setIsLoading(true)
     setError('')
     try {
-      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/invoices', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/invoices`, {
         credentials: 'include',
       })
 

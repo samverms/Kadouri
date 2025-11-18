@@ -78,7 +78,7 @@ export default function AccountsPage() {
     setIsLoading(true)
     setError('')
     try {
-      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts`, {
         credentials: 'include',
       })
 

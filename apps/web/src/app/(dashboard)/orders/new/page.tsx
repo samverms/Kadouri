@@ -246,7 +246,7 @@ export default function NewOrderPage() {
 
   const fetchAccounts = async () => {
     try {
-      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts?limit=10000', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts?limit=10000`, {
         credentials: 'include',
       })
 
@@ -263,7 +263,7 @@ export default function NewOrderPage() {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/products?includeInactive=false', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products?includeInactive=false`, {
         credentials: 'include',
       })
 
@@ -281,7 +281,7 @@ export default function NewOrderPage() {
   const fetchAgentsAndBrokers = async () => {
     try {
       // Fetch agents
-      const agentsResponse = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/agents', {
+      const agentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/agents`, {
         credentials: 'include',
       })
       if (agentsResponse.ok) {
@@ -290,7 +290,7 @@ export default function NewOrderPage() {
       }
 
       // Fetch brokers
-      const brokersResponse = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/brokers', {
+      const brokersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/brokers`, {
         credentials: 'include',
       })
       if (brokersResponse.ok) {
@@ -870,7 +870,7 @@ export default function NewOrderPage() {
         })),
       }
 
-      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/orders', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

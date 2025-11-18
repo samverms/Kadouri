@@ -168,7 +168,7 @@ export default function EditContractPage() {
 
   const fetchAccounts = async () => {
     try {
-      const res = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts?limit=10000', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts?limit=10000`, {
         credentials: 'include',
       })
       if (res.ok) {
@@ -182,7 +182,7 @@ export default function EditContractPage() {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch('${process.env.NEXT_PUBLIC_API_URL || ''}/api/products?limit=10000', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products?limit=10000`, {
         credentials: 'include',
       })
       if (res.ok) {
