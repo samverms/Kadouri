@@ -1142,7 +1142,7 @@ export default function InvoicesPage() {
                 <tbody className="bg-white dark:bg-gray-900">
                   {groupByColumn && groupedInvoices ? (
                     // Render grouped invoices
-                    groupedInvoices.map(([groupKey, groupInvoices]) => (
+                    groupedInvoices.map(([groupKey, groupInvoices]: [string, any[]]) => (
                       <React.Fragment key={groupKey}>
                         {/* Group Header Row */}
                         <tr className="bg-blue-50 dark:bg-blue-900/30 border-b border-blue-200 dark:border-blue-800">
