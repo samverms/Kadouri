@@ -7,6 +7,6 @@
     "npm": "10.x"
   },
   "scripts": {
-    "heroku-postbuild": "cd packages/shared && npm install && npm run build && cd ../../apps/web && npm ci --legacy-peer-deps && npm link ../../packages/shared && npm run build && cd ../api && npm install && npm link ../../packages/shared && npm run build"
+    "heroku-postbuild": "if [ \"$APP_TYPE\" = \"api\" ]; then cd packages/shared && npm install && npm run build && cd ../../apps/api && npm install && npm run build; elif [ \"$APP_TYPE\" = \"web\" ]; then cd packages/shared && npm install && npm run build && cd ../../apps/web && npm ci --legacy-peer-deps && npm run build; else echo 'APP_TYPE not set'; fi"
   }
 }
