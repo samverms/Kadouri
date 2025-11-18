@@ -2,8 +2,7 @@
 const nextConfig = {
   reactStrictMode: false,
   transpilePackages: ['@pace/shared'],
-  output: 'export',
-  distDir: 'out',
+  output: 'standalone',
   images: {
     unoptimized: true,
   },
@@ -13,10 +12,6 @@ const nextConfig = {
   typescript: {
     // Disable type checking during build - will fix errors incrementally
     ignoreBuildErrors: true,
-  },
-  eslint: {
-    // Disable ESLint during build
-    ignoreDuringBuilds: true,
   },
 }
 
