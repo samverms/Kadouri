@@ -37,12 +37,14 @@ app.use('/api', routes)
 // Error handler
 app.use(errorHandler)
 
-// Start server
-const PORT = config.port
-app.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`)
-  logger.info(`Environment: ${config.nodeEnv}`)
-})
+// Start server only if not imported
+if (require.main === module) {
+  const PORT = config.port
+  app.listen(PORT, () => {
+    logger.info(`Server running on port ${PORT}`)
+    logger.info(`Environment: ${config.nodeEnv}`)
+  })
+}
 
 export default app
 
