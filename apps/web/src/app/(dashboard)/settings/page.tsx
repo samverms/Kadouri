@@ -62,8 +62,9 @@ export default function SettingsPage() {
     }
   }
 
-  const handleQuickBooksConnect = () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/quickbooks/connect`
+  const handleQuickBooksConnect = async () => {
+    const token = await getToken()
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/quickbooks/connect?token=${token}`
   }
 
   const handleQuickBooksDisconnect = async () => {

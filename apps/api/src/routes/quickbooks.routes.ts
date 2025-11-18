@@ -7,6 +7,7 @@ import { authenticate } from '../middleware/auth'
 import { db } from '../db'
 import { quickbooksTokens, orders } from '../db/schema'
 import { eq } from 'drizzle-orm'
+import { verifyToken } from '@clerk/express'
 
 const router = Router()
 
@@ -15,12 +16,39 @@ const router = Router()
 router.post('/webhook', handleQuickBooksWebhook)
 
 // OAuth flow - initiate connection
-router.get('/connect', authenticate, (req, res) => {
-  const authUri = qboClient.authorizeUri({
-    scope: QBO_SCOPES,
-    state: 'PACE_CRM_STATE', // Add CSRF protection in production
-  })
-  res.redirect(authUri)
+// This route accepts token from query param since it's a browser redirect (can't use Authorization header)
+router.get('/connect', async (req, res) => {
+  try {
+    const token = req.query.token as string
+
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication token required' })
+    }
+
+    // Verify the token using Clerk
+    const secretKey = process.env.CLERK_SECRET_KEY
+    if (!secretKey) {
+      return res.status(500).json({ error: 'Server configuration error' })
+    }
+
+    const verifiedToken = await verifyToken(token, {
+      secretKey,
+    })
+
+    if (!verifiedToken || !verifiedToken.sub) {
+      return res.status(401).json({ error: 'Invalid token' })
+    }
+
+    // Token is valid, proceed with OAuth flow
+    const authUri = qboClient.authorizeUri({
+      scope: QBO_SCOPES,
+      state: 'PACE_CRM_STATE', // Add CSRF protection in production
+    })
+    res.redirect(authUri)
+  } catch (error: any) {
+    console.error('QuickBooks connect auth error:', error)
+    res.status(401).json({ error: 'Authentication failed' })
+  }
 })
 
 // OAuth callback
