@@ -12,10 +12,6 @@ const nextConfig = {
     // Disable type checking during build - will fix errors incrementally
     ignoreBuildErrors: true,
   },
-  experimental: {
-    // Disable all static optimization to skip pre-rendering
-    staticGeneration: false,
-  },
 }
 
 module.exports = nextConfig

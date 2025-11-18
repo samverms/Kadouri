@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { useSignUp } from '@clerk/nextjs'
@@ -13,7 +13,7 @@ import { UserPlus, Eye, EyeOff, Loader2, CheckCircle2, Shield, AlertCircle } fro
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
 
-export default function AcceptInvitationPage() {
+function AcceptInvitationContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { isLoaded, signUp, setActive } = useSignUp()
@@ -412,5 +412,13 @@ export default function AcceptInvitationPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AcceptInvitationPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <AcceptInvitationContent />
+    </Suspense>
   )
 }
