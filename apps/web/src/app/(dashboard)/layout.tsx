@@ -35,7 +35,7 @@ export default function DashboardLayout({
           onClick={() => setSidebarOpen(false)}
         />
       )}
-      <main className={`mt-16 p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-800 min-h-screen transition-all duration-300 ${
+      <main className={`mt-16 p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-all duration-300 ${
         sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'
       }`}>
         {children}
