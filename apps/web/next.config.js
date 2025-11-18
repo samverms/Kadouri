@@ -1,7 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,
   transpilePackages: ['@pace/shared'],
+  output: 'export',
+  distDir: 'out',
+  images: {
+    unoptimized: true,
+  },
   env: {
     API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
   },

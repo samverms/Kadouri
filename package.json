@@ -8,6 +8,6 @@
   },
   "scripts": {
     "heroku-postbuild": "cd packages/shared && npm install && npm run build && cd ../../apps/api && npm install --production=false && npm link ../../packages/shared && npm run build && cd ../web && npm install --legacy-peer-deps && npm link ../../packages/shared && npm run build",
-    "start": "node server.js"
+    "start": "node apps/api/dist/main.js"
   }
 }

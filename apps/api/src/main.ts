@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
+import path from 'path'
 import { clerkMiddleware } from '@clerk/express'
 import { config } from './config'
 import { logger } from './utils/logger'
@@ -33,6 +34,15 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api', routes)
+
+// Serve static frontend files
+const frontendPath = path.join(__dirname, '../../web/out')
+app.use(express.static(frontendPath))
+
+// Serve index.html for all non-API routes (SPA routing)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'))
+})
 
 // Error handler
 app.use(errorHandler)
