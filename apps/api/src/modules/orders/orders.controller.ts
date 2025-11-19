@@ -48,7 +48,7 @@ export class OrdersController {
   updateOrder = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const validated = updateOrderSchema.parse(req.body)
-      const order = await this.ordersService.updateOrder(req.params.id, validated)
+      const order = await this.ordersService.updateOrder(req.params.id, validated, req.userId)
       res.json(order)
     } catch (error) {
       next(error)

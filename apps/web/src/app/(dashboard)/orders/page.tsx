@@ -617,7 +617,7 @@ export default function OrdersPage() {
     setError('')
     try {
       const token = await getToken()
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/invoices`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/orders`, {
         credentials: 'include',
         headers: {
           ...(token && { Authorization: `Bearer ${token}` }),

@@ -1,6 +1,7 @@
 import { db } from '../../db'
 import { orderActivities, type NewOrderActivity, type OrderActivity } from '../../db/schema'
 import { eq, desc } from 'drizzle-orm'
+import { clerkClient } from '@clerk/express'
 
 export class OrderActivityService {
   /**
@@ -15,12 +16,26 @@ export class OrderActivityService {
     changes?: object
     ipAddress?: string
   }): Promise<OrderActivity> {
+    // Look up user name from Clerk if clerkUserId is provided but userName is not
+    let userName = data.userName || 'System'
+    if (data.clerkUserId && !data.userName) {
+      try {
+        const user = await clerkClient.users.getUser(data.clerkUserId)
+        userName = user.firstName && user.lastName
+          ? `${user.firstName} ${user.lastName}`
+          : user.emailAddresses?.[0]?.emailAddress || 'Unknown User'
+      } catch (err) {
+        // If Clerk lookup fails, use a fallback
+        userName = 'Unknown User'
+      }
+    }
+
     const [activity] = await db
       .insert(orderActivities)
       .values({
         orderId: data.orderId,
         clerkUserId: data.clerkUserId || null,
-        userName: data.userName || 'System',
+        userName,
         activityType: data.activityType,
         description: data.description,
         changes: data.changes || null,

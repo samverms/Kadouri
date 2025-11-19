@@ -1,396 +1,249 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import React, { useState, useEffect, useRef } from 'react'
+import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@clerk/nextjs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { useToast } from '@/components/ui/toast'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
+  Plus,
   ArrowLeft,
   Save,
-  X,
-  Edit2,
-  Plus,
   Trash2,
-  AlertCircle,
-  Copy,
-  Trash,
-  FileText,
+  Clock,
+  User,
+  Upload,
   RefreshCw,
-  XCircle,
-  Clock
+  ExternalLink,
 } from 'lucide-react'
-import { useToast } from '@/components/ui/toast'
-import { Badge } from '@/components/ui/badge'
+
+interface ProductVariant {
+  id: string
+  productId: string
+  sku?: string
+  size: string
+  sizeUnit: string
+  packageType: string
+  isDefault: boolean
+  active: boolean
+}
 
 interface OrderLine {
-  id?: string
-  lineNo: number
+  id: string
   productId: string
-  productCode?: string
-  productDescription?: string
-  sizeGrade: string
+  productName: string
+  variantId: string
+  variantLabel: string
+  variantSize: number // e.g., 15 for "15 lb box"
   quantity: number
-  unitSize: number
-  uom: string
-  totalWeight: number
-  unitPrice: number
-  lineTotal?: number
-  commissionPct: number
-  commissionAmt?: number
-}
-
-interface Order {
-  id: string
-  orderNo: string
-  sellerId: string
-  buyerId: string
-  status: string
-  contractNo?: string
-  terms?: string
-  notes?: string
-  lines: OrderLine[]
-  seller?: {
-    name: string
-    code?: string
-  }
-  buyer?: {
-    name: string
-    code?: string
-  }
-  qboDocId?: string
-  qboDocNumber?: string
-  qboDocType?: 'invoice' | 'estimate'
-}
-
-interface OrderActivity {
-  id: string
-  activityType: string
-  description: string
-  userName: string
-  createdAt: string
-}
-
-interface Account {
-  id: string
-  name: string
-  code?: string
+  pricePerUnit: number // price per lb
+  commissionPercent: number
 }
 
 interface Product {
   id: string
+  code?: string
   name: string
   variety?: string
-  grade?: string
+  category?: string
+  source?: string
+  variants?: ProductVariant[]
+}
+
+interface Address {
+  id: string
+  type: string
+  line1: string
+  line2?: string
+  city: string
+  state: string
+  postalCode: string
+  country: string
+  isPrimary: boolean
+}
+
+interface Contact {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  isPrimary: boolean
+}
+
+interface Account {
+  id: string
+  code?: string
+  name: string
+  city?: string
+  state?: string
+  addresses?: Address[]
+  contacts?: Contact[]
+}
+
+interface Activity {
+  id: string
+  activityType: string
+  description: string
+  userName?: string
+  createdAt: string
 }
 
 export default function OrderDetailPage() {
-  const params = useParams()
   const router = useRouter()
+  const params = useParams()
   const orderId = params.id as string
-  const { showToast } = useToast()
   const { getToken } = useAuth()
+  const { showToast } = useToast()
 
-  console.log('OrderDetailPage mounted, orderId:', orderId)
-
-  // Mode: 'view', 'edit', or 'duplicate'
-  const [mode, setMode] = useState<'view' | 'edit' | 'duplicate'>('view')
+  // Loading state
   const [isLoading, setIsLoading] = useState(true)
+  const [orderNo, setOrderNo] = useState('')
+  const [orderStatus, setOrderStatus] = useState('draft')
+
+  // QuickBooks state
+  const [qboDocId, setQboDocId] = useState<string | null>(null)
+  const [qboDocNumber, setQboDocNumber] = useState<string | null>(null)
+  const [isPostingToQB, setIsPostingToQB] = useState(false)
+  const [isUpdatingQB, setIsUpdatingQB] = useState(false)
+
+  // Order state
+  const [orderLines, setOrderLines] = useState<OrderLine[]>([{
+    id: 'initial-line',
+    productId: '',
+    productName: '',
+    variantId: '',
+    variantLabel: '',
+    variantSize: 1,
+    quantity: 0,
+    pricePerUnit: 0,
+    commissionPercent: 0,
+  }])
+  const [commissionRate, setCommissionRate] = useState(0)
+  const [numPallets, setNumPallets] = useState('')
+  const [conditions, setConditions] = useState('')
+  const [paymentTerms, setPaymentTerms] = useState('')
+  const [otherRemarks, setOtherRemarks] = useState('')
   const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState('')
 
-  // Tab management
-  const [activeTab, setActiveTab] = useState<'details' | 'activities'>('details')
-
-  // Activities
-  const [activities, setActivities] = useState<OrderActivity[]>([])
-  const [activitiesLoading, setActivitiesLoading] = useState(false)
-
-  // QuickBooks actions
-  const [qbLoading, setQbLoading] = useState(false)
-
-  // Order data
-  const [order, setOrder] = useState<Order | null>(null)
-  const [sellerId, setSellerId] = useState('')
-  const [buyerId, setBuyerId] = useState('')
-  const [contractNo, setContractNo] = useState('')
-  const [terms, setTerms] = useState('')
-  const [notes, setNotes] = useState('')
-  const [status, setStatus] = useState('draft')
-  const [lines, setLines] = useState<OrderLine[]>([])
-
-  // Reference data
-  const [accounts, setAccounts] = useState<Account[]>([])
+  // Products
   const [products, setProducts] = useState<Product[]>([])
+  const [activeLineId, setActiveLineId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState<{ [lineId: string]: string }>({})
 
-  // Autocomplete state
-  const [sellerSearch, setSellerSearch] = useState('')
-  const [buyerSearch, setBuyerSearch] = useState('')
+  // Account selection state
+  const [accounts, setAccounts] = useState<Account[]>([])
+  const [selectedSeller, setSelectedSeller] = useState<Account | null>(null)
+  const [selectedBuyer, setSelectedBuyer] = useState<Account | null>(null)
+  const [sellerCodeSearch, setSellerCodeSearch] = useState('')
+  const [sellerNameSearch, setSellerNameSearch] = useState('')
+  const [buyerCodeSearch, setBuyerCodeSearch] = useState('')
+  const [buyerNameSearch, setBuyerNameSearch] = useState('')
   const [showSellerDropdown, setShowSellerDropdown] = useState(false)
   const [showBuyerDropdown, setShowBuyerDropdown] = useState(false)
+  const sellerCodeRef = useRef<HTMLInputElement>(null)
+  const sellerNameRef = useRef<HTMLInputElement>(null)
+  const buyerCodeRef = useRef<HTMLInputElement>(null)
+  const buyerNameRef = useRef<HTMLInputElement>(null)
+  const sellerDropdownRef = useRef<HTMLDivElement>(null)
+  const buyerDropdownRef = useRef<HTMLDivElement>(null)
 
-  // Fetch order data
+  // Selected addresses and contacts (NEW: Multiple addresses per account)
+  const [selectedSellerBillingAddress, setSelectedSellerBillingAddress] = useState<Address | null>(null)
+  const [selectedSellerPickupAddress, setSelectedSellerPickupAddress] = useState<Address | null>(null)
+  const [selectedBuyerBillingAddress, setSelectedBuyerBillingAddress] = useState<Address | null>(null)
+  const [selectedBuyerShippingAddress, setSelectedBuyerShippingAddress] = useState<Address | null>(null)
+  const [selectedSellerContact, setSelectedSellerContact] = useState<Contact | null>(null)
+  const [selectedBuyerContact, setSelectedBuyerContact] = useState<Contact | null>(null)
+
+  // Will Pick Up checkbox state
+  const [isPickup, setIsPickup] = useState(false)
+
+  // Agent and Broker state
+  const [agents, setAgents] = useState<Array<{ id: string; name: string; email: string }>>([])
+  const [brokers, setBrokers] = useState<Array<{ id: string; name: string; email: string }>>([])
+  const [selectedAgent, setSelectedAgent] = useState<{ id: string; name: string } | null>(null)
+  const [selectedBroker, setSelectedBroker] = useState<{ id: string; name: string } | null>(null)
+
+  // Activities state
+  const [activities, setActivities] = useState<Activity[]>([])
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false)
+
+  // Modal states
+  const [showAddAddressModal, setShowAddAddressModal] = useState(false)
+  const [showAddContactModal, setShowAddContactModal] = useState(false)
+  const [modalAccountType, setModalAccountType] = useState<'seller' | 'buyer'>('seller')
+  const [showAddAgentModal, setShowAddAgentModal] = useState(false)
+  const [showAddBrokerModal, setShowAddBrokerModal] = useState(false)
+  const [showAddProductModal, setShowAddProductModal] = useState(false)
+  const [showAddVariantModal, setShowAddVariantModal] = useState(false)
+  const [productModalLineId, setProductModalLineId] = useState<string | null>(null)
+  const [variantModalLineId, setVariantModalLineId] = useState<string | null>(null)
+
+  // New product form state
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    variety: '',
+    grade: '',
+    category: '',
+  })
+
+  // New variant form state
+  const [newVariant, setNewVariant] = useState({
+    size: '',
+    sizeUnit: 'lb',
+    packageType: 'bag',
+  })
+
+  // New address form state
+  const [newAddress, setNewAddress] = useState({
+    type: 'billing',
+    line1: '',
+    line2: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    country: 'US',
+    isPrimary: false,
+  })
+
+  // New contact form state
+  const [newContact, setNewContact] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    isPrimary: false,
+  })
+
+  // New agent/broker form state
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    phone: '',
+  })
+
+  // Fetch accounts, products, agents/brokers, order data, and activities on mount
   useEffect(() => {
-    fetchOrder()
-    fetchAccounts()
-    fetchProducts()
-    fetchActivities()
-  }, [orderId])
-
-  const fetchOrder = async () => {
-    try {
-      const token = await getToken()
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
-      const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
-        credentials: 'include',
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-      })
-
-      if (!response.ok) throw new Error('Failed to fetch order')
-
-      const data = await response.json()
-      setOrder(data)
-      setSellerId(data.sellerId)
-      setBuyerId(data.buyerId)
-      setContractNo(data.contractNo || '')
-      setTerms(data.terms || '')
-      setNotes(data.notes || '')
-      setStatus(data.status)
-      setLines(data.lines || [])
-      setIsLoading(false)
-    } catch (err: any) {
-      console.error('Error fetching order:', err)
-      setError(err.message)
-      setIsLoading(false)
+    const initializeData = async () => {
+      await Promise.all([
+        fetchAccounts(),
+        fetchProducts(),
+        fetchAgentsAndBrokers(),
+      ])
+      // Fetch order data after accounts, products, and agents are loaded
+      await fetchOrder()
+      await fetchActivities()
     }
-  }
+    initializeData()
+  }, [orderId])
 
   const fetchAccounts = async () => {
     try {
       const token = await getToken()
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
-      const response = await fetch(`${apiUrl}/api/accounts?limit=10000`, {
-        credentials: 'include',
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-      })
-      if (response.ok) {
-        const data = await response.json()
-        console.log('Fetched accounts:', data.length)
-        setAccounts(data)
-      }
-    } catch (err) {
-      console.error('Failed to fetch accounts:', err)
-    }
-  }
-
-  const fetchProducts = async () => {
-    try {
-      const token = await getToken()
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
-      const response = await fetch(`${apiUrl}/api/products`, {
-        credentials: 'include',
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setProducts(data)
-      }
-    } catch (err) {
-      console.error('Failed to fetch products:', err)
-    }
-  }
-
-  const fetchActivities = async () => {
-    setActivitiesLoading(true)
-    try {
-      const token = await getToken()
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
-      const response = await fetch(`${apiUrl}/api/orders/${orderId}/activities`, {
-        credentials: 'include',
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setActivities(data.activities || [])
-      }
-    } catch (err) {
-      console.error('Failed to fetch activities:', err)
-    } finally {
-      setActivitiesLoading(false)
-    }
-  }
-
-  // Filter accounts based on search (memoized for performance)
-  const filteredSellers = useMemo(() => {
-    if (!sellerSearch || sellerSearch.length < 3) return []
-    const searchLower = sellerSearch.toLowerCase()
-    return accounts
-      .filter(account =>
-        account.name.toLowerCase().includes(searchLower) ||
-        (account.code && account.code.toLowerCase().includes(searchLower))
-      )
-      .slice(0, 10)
-  }, [accounts, sellerSearch])
-
-  const filteredBuyers = useMemo(() => {
-    if (!buyerSearch || buyerSearch.length < 3) return []
-    const searchLower = buyerSearch.toLowerCase()
-    return accounts
-      .filter(account =>
-        account.name.toLowerCase().includes(searchLower) ||
-        (account.code && account.code.toLowerCase().includes(searchLower))
-      )
-      .slice(0, 10)
-  }, [accounts, buyerSearch])
-
-  const handleEdit = () => {
-    // Prevent editing paid orders
-    if (order?.status === 'paid') {
-      showToast('Cannot edit order - invoice has been paid in QuickBooks', 'error')
-      return
-    }
-    setMode('edit')
-  }
-
-  const handleDuplicateMode = () => {
-    console.log('Duplicate mode - Current sellerId:', sellerId, 'buyerId:', buyerId)
-    console.log('Accounts loaded:', accounts.length)
-    setMode('duplicate')
-    setStatus('draft') // Reset status to draft for new order
-
-    // Initialize search fields with current seller/buyer names
-    const seller = accounts.find(a => a.id === sellerId)
-    const buyer = accounts.find(a => a.id === buyerId)
-    if (seller) setSellerSearch(seller.name)
-    if (buyer) setBuyerSearch(buyer.name)
-  }
-
-  const handleCancel = () => {
-    setMode('view')
-    // Reset to original values
-    if (order) {
-      setSellerId(order.sellerId)
-      setBuyerId(order.buyerId)
-      setContractNo(order.contractNo || '')
-      setTerms(order.terms || '')
-      setNotes(order.notes || '')
-      setStatus(order.status)
-      setLines(order.lines || [])
-    }
-  }
-
-  const handleSave = async () => {
-    console.log('Saving - sellerId:', sellerId, 'buyerId:', buyerId, 'lines:', lines.length)
-
-    if (!sellerId || !buyerId || lines.length === 0) {
-      showToast('Please fill in all required fields and add at least one line item', 'info')
-      return
-    }
-
-    setIsSaving(true)
-    setError('')
-
-    try {
-      const orderData = {
-        sellerId,
-        buyerId,
-        contractNo: contractNo || undefined,
-        terms: terms || undefined,
-        notes: notes || undefined,
-        status,
-        lines: lines.map((line) => ({
-          productId: line.productId,
-          sizeGrade: line.sizeGrade,
-          quantity: line.quantity,
-          unitSize: line.unitSize,
-          uom: line.uom,
-          totalWeight: line.totalWeight,
-          unitPrice: line.unitPrice,
-          commissionPct: line.commissionPct,
-        })),
-      }
-
-      const token = await getToken()
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
-
-      if (mode === 'edit') {
-        // Update existing order
-        const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-          credentials: 'include',
-          body: JSON.stringify(orderData),
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-          throw new Error(errorData.error || 'Failed to update order')
-        }
-
-        await fetchOrder()
-        setMode('view')
-        showToast('Order updated successfully', 'success')
-      } else if (mode === 'duplicate') {
-        // Create new order
-        const response = await fetch(`${apiUrl}/api/orders`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-          credentials: 'include',
-          body: JSON.stringify(orderData),
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-          throw new Error(errorData.error || 'Failed to create order')
-        }
-
-        const newOrder = await response.json()
-        showToast('Order duplicated successfully', 'success')
-        setTimeout(() => router.push(`/orders/${newOrder.id}`), 500)
-      }
-    } catch (err: any) {
-      setError(err.message)
-      showToast(`Error: ${err.message}`, 'error')
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this order?')) {
-      return
-    }
-
-    try {
-      const token = await getToken()
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
-      const response = await fetch(`${apiUrl}/api/orders/${orderId}`, {
-        method: 'DELETE',
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts?limit=10000`, {
         credentials: 'include',
         headers: {
           ...(token && { Authorization: `Bearer ${token}` }),
@@ -398,70 +251,952 @@ export default function OrderDetailPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to delete order')
+        throw new Error('Failed to fetch accounts')
       }
 
-      showToast('Order deleted successfully', 'warning')
-      setTimeout(() => router.push('/orders'), 500)
-    } catch (err: any) {
-      showToast(`Error deleting order: ${err.message}`, 'error')
+      const data = await response.json()
+      setAccounts(data)
+      return data
+    } catch (err) {
+      console.error('Fetch accounts error:', err)
+      return []
     }
   }
 
-  const handleAddLine = () => {
+  const fetchProducts = async () => {
+    try {
+      const token = await getToken()
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products?includeInactive=false`, {
+        credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch products')
+      }
+
+      const data = await response.json()
+      // Filter out QuickBooks imports - only show manually uploaded products
+      const manualProducts = data.filter((p: Product) => p.source !== 'quickbooks_import')
+      setProducts(manualProducts)
+      return manualProducts
+    } catch (err) {
+      console.error('Fetch products error:', err)
+      return []
+    }
+  }
+
+  const fetchAgentsAndBrokers = async () => {
+    try {
+      const token = await getToken()
+      // Fetch agents
+      const agentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/agents`, {
+        credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      })
+      let agentsData: Array<{ id: string; name: string; email: string }> = []
+      if (agentsResponse.ok) {
+        agentsData = await agentsResponse.json()
+        setAgents(agentsData)
+      }
+
+      // Fetch brokers
+      const brokersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/brokers`, {
+        credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      })
+      let brokersData: Array<{ id: string; name: string; email: string }> = []
+      if (brokersResponse.ok) {
+        brokersData = await brokersResponse.json()
+        setBrokers(brokersData)
+      }
+
+      return { agents: agentsData, brokers: brokersData }
+    } catch (err) {
+      console.error('Fetch agents/brokers error:', err)
+      return { agents: [], brokers: [] }
+    }
+  }
+
+  const fetchOrder = async () => {
+    try {
+      setIsLoading(true)
+      const token = await getToken()
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/orders/${orderId}`, {
+        credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch order')
+      }
+
+      const orderData = await response.json()
+
+      // Set order metadata
+      setOrderNo(orderData.orderNo || '')
+      setOrderStatus(orderData.status || 'draft')
+      setIsPickup(orderData.isPickup || false)
+      setNumPallets(orderData.palletCount?.toString() || '')
+      setPaymentTerms(orderData.terms || '')
+
+      // Set QuickBooks data
+      setQboDocId(orderData.qboDocId || null)
+      setQboDocNumber(orderData.qboDocNumber || null)
+
+      // Parse notes for conditions and remarks
+      const notes = orderData.notes || ''
+      const notesParts = notes.split('\n')
+      if (notesParts.length > 1) {
+        setConditions(notesParts[0] || '')
+        setOtherRemarks(notesParts.slice(1).join('\n') || '')
+      } else {
+        setConditions(notes)
+        setOtherRemarks('')
+      }
+
+      // Load seller account
+      if (orderData.sellerId) {
+        const sellerResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${orderData.sellerId}`, {
+          credentials: 'include',
+          headers: {
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        })
+        if (sellerResponse.ok) {
+          const sellerData = await sellerResponse.json()
+          setSelectedSeller(sellerData)
+          setSellerCodeSearch(sellerData.code || '')
+          setSellerNameSearch(sellerData.name || '')
+
+          // Set seller addresses - use saved address or auto-select first available
+          if (orderData.sellerBillingAddressId) {
+            const billingAddr = sellerData.addresses?.find((a: Address) => a.id === orderData.sellerBillingAddressId)
+            setSelectedSellerBillingAddress(billingAddr || null)
+          } else if (sellerData.addresses?.length > 0) {
+            setSelectedSellerBillingAddress(sellerData.addresses[0])
+          }
+
+          if (orderData.sellerPickupAddressId) {
+            const pickupAddr = sellerData.addresses?.find((a: Address) => a.id === orderData.sellerPickupAddressId)
+            setSelectedSellerPickupAddress(pickupAddr || null)
+          } else if (sellerData.addresses?.length > 0) {
+            setSelectedSellerPickupAddress(sellerData.addresses[0])
+          }
+
+          // Set seller contact if available - auto-select first if none saved
+          if (orderData.sellerContactId) {
+            const contact = sellerData.contacts?.find((c: Contact) => c.id === orderData.sellerContactId)
+            setSelectedSellerContact(contact || null)
+          } else if (sellerData.contacts?.length > 0) {
+            setSelectedSellerContact(sellerData.contacts[0])
+          }
+        }
+      }
+
+      // Load buyer account
+      if (orderData.buyerId) {
+        const buyerResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${orderData.buyerId}`, {
+          credentials: 'include',
+          headers: {
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        })
+        if (buyerResponse.ok) {
+          const buyerData = await buyerResponse.json()
+          setSelectedBuyer(buyerData)
+          setBuyerCodeSearch(buyerData.code || '')
+          setBuyerNameSearch(buyerData.name || '')
+
+          // Set buyer addresses - use saved address or auto-select first available
+          if (orderData.buyerBillingAddressId) {
+            const billingAddr = buyerData.addresses?.find((a: Address) => a.id === orderData.buyerBillingAddressId)
+            setSelectedBuyerBillingAddress(billingAddr || null)
+          } else if (buyerData.addresses?.length > 0) {
+            setSelectedBuyerBillingAddress(buyerData.addresses[0])
+          }
+
+          if (orderData.buyerShippingAddressId) {
+            const shippingAddr = buyerData.addresses?.find((a: Address) => a.id === orderData.buyerShippingAddressId)
+            setSelectedBuyerShippingAddress(shippingAddr || null)
+          } else if (buyerData.addresses?.length > 0) {
+            setSelectedBuyerShippingAddress(buyerData.addresses[0])
+          }
+
+          // Set buyer contact if available - auto-select first if none saved
+          if (orderData.buyerContactId) {
+            const contact = buyerData.contacts?.find((c: Contact) => c.id === orderData.buyerContactId)
+            setSelectedBuyerContact(contact || null)
+          } else if (buyerData.contacts?.length > 0) {
+            setSelectedBuyerContact(buyerData.contacts[0])
+          }
+        }
+      }
+
+      // Set agent
+      if (orderData.agentUserId) {
+        setSelectedAgent({
+          id: orderData.agentUserId,
+          name: orderData.agentName || '',
+        })
+      }
+
+      // Set broker
+      if (orderData.brokerUserId) {
+        setSelectedBroker({
+          id: orderData.brokerUserId,
+          name: orderData.brokerName || '',
+        })
+      }
+
+      // Load order lines - use product data already included in API response
+      if (orderData.lines && orderData.lines.length > 0) {
+        const loadedLines: OrderLine[] = orderData.lines.map((line: any) => {
+          // Use product data from API response (already included via join)
+          const productName = line.product?.name || line.productCode || ''
+          const variantSize = line.unitSize || 1
+
+          // Build variant label from line data
+          let variantLabel = ''
+          if (line.unitSize && line.uom) {
+            variantLabel = `${line.unitSize} ${line.uom}`
+          }
+
+          return {
+            id: line.id || String(Date.now() + Math.random()),
+            productId: line.productId || '',
+            productName: productName,
+            variantId: line.variantId || '',
+            variantLabel: variantLabel,
+            variantSize: variantSize,
+            quantity: line.quantity || 0,
+            pricePerUnit: parseFloat(line.unitPrice) || 0,
+            // commissionPct is stored as 0-100 in the database (2 for 2%)
+            commissionPercent: line.commissionPct ? parseFloat(line.commissionPct) : 0,
+          }
+        })
+        setOrderLines(loadedLines)
+      }
+
+    } catch (err) {
+      console.error('Fetch order error:', err)
+      showToast('Failed to load order', 'error')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchActivities = async () => {
+    try {
+      setIsLoadingActivities(true)
+      const token = await getToken()
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/orders/${orderId}/activities`, {
+        credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setActivities(data.activities || data || [])
+      }
+    } catch (err) {
+      console.error('Fetch activities error:', err)
+    } finally {
+      setIsLoadingActivities(false)
+    }
+  }
+
+  // Account filtering and selection functions
+  const getFilteredSellerAccounts = () => {
+    if (!sellerCodeSearch && !sellerNameSearch) return []
+
+    return accounts.filter(account => {
+      const codeMatch = sellerCodeSearch && account.code?.toLowerCase().includes(sellerCodeSearch.toLowerCase())
+      const nameMatch = sellerNameSearch && account.name?.toLowerCase().includes(sellerNameSearch.toLowerCase())
+      return codeMatch || nameMatch
+    }).slice(0, 10)
+  }
+
+  const getFilteredBuyerAccounts = () => {
+    if (!buyerCodeSearch && !buyerNameSearch) return []
+
+    return accounts.filter(account => {
+      const codeMatch = buyerCodeSearch && account.code?.toLowerCase().includes(buyerCodeSearch.toLowerCase())
+      const nameMatch = buyerNameSearch && account.name?.toLowerCase().includes(buyerNameSearch.toLowerCase())
+      return codeMatch || nameMatch
+    }).slice(0, 10)
+  }
+
+  const handleSelectSeller = async (account: Account) => {
+    // Fetch full account details with addresses and contacts
+    try {
+      const token = await getToken()
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${account.id}`, {
+        credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch account details')
+      }
+
+      const fullAccount = await response.json()
+      setSelectedSeller(fullAccount)
+      setSellerCodeSearch(fullAccount.code || '')
+      setSellerNameSearch(fullAccount.name || '')
+      setShowSellerDropdown(false)
+
+      // Auto-select primary address and contact if available
+      const primaryAddress = fullAccount.addresses?.find((addr: Address) => addr.isPrimary)
+      const primaryContact = fullAccount.contacts?.find((contact: Contact) => contact.isPrimary)
+
+      if (primaryAddress) {
+        setSelectedSellerBillingAddress(primaryAddress)
+        setSelectedSellerPickupAddress(primaryAddress)
+      }
+      if (primaryContact) setSelectedSellerContact(primaryContact)
+    } catch (err) {
+      console.error('Error fetching seller details:', err)
+      showToast('Failed to load seller details', 'error')
+    }
+  }
+
+  const handleSelectBuyer = async (account: Account) => {
+    // Fetch full account details with addresses and contacts
+    try {
+      const token = await getToken()
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${account.id}`, {
+        credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch account details')
+      }
+
+      const fullAccount = await response.json()
+      setSelectedBuyer(fullAccount)
+      setBuyerCodeSearch(fullAccount.code || '')
+      setBuyerNameSearch(fullAccount.name || '')
+      setShowBuyerDropdown(false)
+
+      // Auto-select primary address and contact if available
+      const primaryAddress = fullAccount.addresses?.find((addr: Address) => addr.isPrimary)
+      const primaryContact = fullAccount.contacts?.find((contact: Contact) => contact.isPrimary)
+
+      if (primaryAddress) {
+        setSelectedBuyerBillingAddress(primaryAddress)
+        setSelectedBuyerShippingAddress(primaryAddress)
+      }
+      if (primaryContact) setSelectedBuyerContact(primaryContact)
+    } catch (err) {
+      console.error('Error fetching buyer details:', err)
+      showToast('Failed to load buyer details', 'error')
+    }
+  }
+
+  const handleSellerCodeChange = (value: string) => {
+    setSellerCodeSearch(value)
+    setShowSellerDropdown(true)
+    if (selectedSeller && value !== selectedSeller.code) {
+      setSelectedSeller(null)
+      setSellerNameSearch('')
+    }
+  }
+
+  const handleSellerNameChange = (value: string) => {
+    setSellerNameSearch(value)
+    setShowSellerDropdown(true)
+    if (selectedSeller && value !== selectedSeller.name) {
+      setSelectedSeller(null)
+      setSellerCodeSearch('')
+    }
+  }
+
+  const handleBuyerCodeChange = (value: string) => {
+    setBuyerCodeSearch(value)
+    setShowBuyerDropdown(true)
+    if (selectedBuyer && value !== selectedBuyer.code) {
+      setSelectedBuyer(null)
+      setBuyerNameSearch('')
+    }
+  }
+
+  const handleBuyerNameChange = (value: string) => {
+    setBuyerNameSearch(value)
+    setShowBuyerDropdown(true)
+    if (selectedBuyer && value !== selectedBuyer.name) {
+      setSelectedBuyer(null)
+      setBuyerCodeSearch('')
+    }
+  }
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+
+      // Close seller/buyer dropdowns
+      const isSellerInput = sellerCodeRef.current?.contains(target) || sellerNameRef.current?.contains(target)
+      const isBuyerInput = buyerCodeRef.current?.contains(target) || buyerNameRef.current?.contains(target)
+      const isSellerDropdown = sellerDropdownRef.current?.contains(target)
+      const isBuyerDropdown = buyerDropdownRef.current?.contains(target)
+
+      if (!isSellerInput && !isSellerDropdown && showSellerDropdown) {
+        setShowSellerDropdown(false)
+      }
+      if (!isBuyerInput && !isBuyerDropdown && showBuyerDropdown) {
+        setShowBuyerDropdown(false)
+      }
+    }
+
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [showSellerDropdown, showBuyerDropdown])
+
+  // Filter products based on search
+  const getFilteredProducts = (lineId: string) => {
+    const query = searchQuery[lineId]
+    if (!query || query.trim() === '') return []
+    return products.filter((product) => {
+      const searchText = `${product.code || ''} ${product.name} ${product.variety || ''} ${product.category || ''}`.toLowerCase()
+      return searchText.includes(query.toLowerCase())
+    }).slice(0, 10)
+  }
+
+  // Order line management
+  const addOrderLine = () => {
     const newLine: OrderLine = {
-      lineNo: lines.length + 1,
+      id: String(Date.now()),
       productId: '',
-      sizeGrade: '',
+      productName: '',
+      variantId: '',
+      variantLabel: '',
+      variantSize: 1,
       quantity: 0,
-      unitSize: 0,
-      uom: 'CASE',
-      totalWeight: 0,
-      unitPrice: 0,
-      commissionPct: 0,
+      pricePerUnit: 0,
+      commissionPercent: 0,
     }
-    setLines([...lines, newLine])
+    setOrderLines([...orderLines, newLine])
   }
 
-  const handleRemoveLine = (index: number) => {
-    setLines(lines.filter((_, i) => i !== index))
+  // Update order line field
+  const updateOrderLine = (lineId: string, field: keyof OrderLine, value: string | number) => {
+    setOrderLines(orderLines.map(line =>
+      line.id === lineId ? { ...line, [field]: value } : line
+    ))
   }
 
-  const handleLineChange = (index: number, field: keyof OrderLine, value: any) => {
-    const updated = [...lines]
-    updated[index] = { ...updated[index], [field]: value }
+  // Calculate line total (qty * variant size * price per lb)
+  const getLineTotal = (line: OrderLine) => {
+    return line.quantity * line.variantSize * line.pricePerUnit
+  }
 
-    // Auto-calculate totalWeight if quantity, unitSize, or uom changes
-    if (field === 'quantity' || field === 'unitSize') {
-      const qty = field === 'quantity' ? value : updated[index].quantity
-      const size = field === 'unitSize' ? value : updated[index].unitSize
-      updated[index].totalWeight = qty * size
+  // Calculate grand total
+  const getGrandTotal = () => {
+    return orderLines.reduce((sum, line) => sum + getLineTotal(line), 0)
+  }
+
+  // Calculate total commission (total * commission %)
+  const getTotalCommission = () => {
+    const total = getGrandTotal()
+    const commissionPct = orderLines[0]?.commissionPercent || 0
+    return total * (commissionPct / 100)
+  }
+
+  // Calculate line commission (for display - proportional share)
+  const getLineCommission = (line: OrderLine) => {
+    const lineTotal = getLineTotal(line)
+    return lineTotal * (line.commissionPercent / 100)
+  }
+
+  const removeOrderLine = (id: string) => {
+    if (orderLines.length > 1) {
+      setOrderLines(orderLines.filter((line) => line.id !== id))
     }
-
-    setLines(updated)
   }
 
-  const calculateTotal = () => {
-    return lines.reduce((sum, line) => sum + (line.quantity * line.unitSize * line.unitPrice), 0)
+  const handleSelectProduct = (lineId: string, product: Product) => {
+    // Find default variant or first active variant
+    const defaultVariant = product.variants?.find(v => v.isDefault && v.active)
+      || product.variants?.find(v => v.active)
+
+    const variantLabel = defaultVariant
+      ? `${defaultVariant.size} ${defaultVariant.sizeUnit} ${defaultVariant.packageType}`
+      : ''
+
+    setOrderLines(orderLines.map(line =>
+      line.id === lineId
+        ? {
+            ...line,
+            productId: product.id,
+            productName: product.name,
+            variantId: defaultVariant?.id || '',
+            variantLabel: variantLabel,
+            variantSize: defaultVariant ? parseFloat(defaultVariant.size) : 1,
+          }
+        : line
+    ))
+    setSearchQuery({ ...searchQuery, [lineId]: '' })
+    setActiveLineId(null)
   }
 
-  const calculateCommissionTotal = () => {
-    return lines.reduce((sum, line) => {
-      const lineTotal = line.quantity * line.unitSize * line.unitPrice
-      return sum + (lineTotal * line.commissionPct)
-    }, 0)
+  // Handle variant selection
+  const handleSelectVariant = (lineId: string, variant: ProductVariant) => {
+    const variantLabel = `${variant.size} ${variant.sizeUnit} ${variant.packageType}`
+    setOrderLines(orderLines.map(line =>
+      line.id === lineId
+        ? {
+            ...line,
+            variantId: variant.id,
+            variantLabel: variantLabel,
+            variantSize: parseFloat(variant.size),
+          }
+        : line
+    ))
   }
 
-  const handleCreateInvoice = async () => {
-    if (!confirm('Create invoice in QuickBooks for this order?')) {
+  // Get variants for a product
+  const getProductVariants = (productId: string): ProductVariant[] => {
+    const product = products.find(p => p.id === productId)
+    return product?.variants?.filter(v => v.active) || []
+  }
+
+  // Handle add new product
+  const handleAddProduct = async () => {
+    if (!newProduct.name.trim()) {
+      showToast('Product name is required', 'error')
       return
     }
 
-    setQbLoading(true)
     try {
       const token = await getToken()
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
-      const response = await fetch(`${apiUrl}/api/quickbooks/sync/order/${orderId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({
+          name: newProduct.name,
+          variety: newProduct.variety || null,
+          grade: newProduct.grade || null,
+          category: newProduct.category || null,
+          active: true,
+          source: 'manual',
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to create product')
+
+      const createdProduct = await response.json()
+
+      // Add to products list
+      setProducts([...products, createdProduct])
+
+      // Select it for the current line
+      if (productModalLineId) {
+        handleSelectProduct(productModalLineId, createdProduct)
+      }
+
+      // Reset form
+      setNewProduct({ name: '', variety: '', grade: '', category: '' })
+      setShowAddProductModal(false)
+      setProductModalLineId(null)
+      showToast('Product created successfully', 'success')
+    } catch (err) {
+      console.error('Create product error:', err)
+      showToast('Failed to create product', 'error')
+    }
+  }
+
+  // Handle add new variant
+  const handleAddVariant = async () => {
+    if (!newVariant.size || !variantModalLineId) {
+      showToast('Size is required', 'error')
+      return
+    }
+
+    const line = orderLines.find(l => l.id === variantModalLineId)
+    if (!line || !line.productId) {
+      showToast('Please select a product first', 'error')
+      return
+    }
+
+    try {
+      const token = await getToken()
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/${line.productId}/variants`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({
+          size: parseFloat(newVariant.size),
+          sizeUnit: newVariant.sizeUnit,
+          packageType: newVariant.packageType,
+          isDefault: false,
+          active: true,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to create variant')
+
+      const createdVariant = await response.json()
+
+      // Update products list with new variant
+      setProducts(products.map(p =>
+        p.id === line.productId
+          ? { ...p, variants: [...(p.variants || []), createdVariant] }
+          : p
+      ))
+
+      // Select the new variant for the current line
+      handleSelectVariant(variantModalLineId, createdVariant)
+
+      // Reset form
+      setNewVariant({ size: '', sizeUnit: 'lb', packageType: 'bag' })
+      setShowAddVariantModal(false)
+      setVariantModalLineId(null)
+      showToast('Variant created successfully', 'success')
+    } catch (err) {
+      console.error('Create variant error:', err)
+      showToast('Failed to create variant', 'error')
+    }
+  }
+
+  // Handle add new address
+  const handleAddAddress = async () => {
+    const targetAccount = modalAccountType === 'seller' ? selectedSeller : selectedBuyer
+
+    if (!targetAccount) {
+      showToast('Please select an account first', 'info')
+      return
+    }
+
+    try {
+      const token = await getToken()
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${targetAccount.id}/addresses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        credentials: 'include',
+        body: JSON.stringify(newAddress),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create address')
+      }
+
+      const createdAddress = await response.json()
+
+      // Update the selected account with the new address
+      if (modalAccountType === 'seller' && selectedSeller) {
+        const updatedSeller = {
+          ...selectedSeller,
+          addresses: [...(selectedSeller.addresses || []), createdAddress],
+        }
+        setSelectedSeller(updatedSeller)
+        // Set the appropriate address based on type
+        if (createdAddress.type === 'billing') {
+          setSelectedSellerBillingAddress(createdAddress)
+        } else if (createdAddress.type === 'pickup') {
+          setSelectedSellerPickupAddress(createdAddress)
+        }
+      } else if (modalAccountType === 'buyer' && selectedBuyer) {
+        const updatedBuyer = {
+          ...selectedBuyer,
+          addresses: [...(selectedBuyer.addresses || []), createdAddress],
+        }
+        setSelectedBuyer(updatedBuyer)
+        // Set the appropriate address based on type
+        if (createdAddress.type === 'billing') {
+          setSelectedBuyerBillingAddress(createdAddress)
+        } else if (createdAddress.type === 'shipping') {
+          setSelectedBuyerShippingAddress(createdAddress)
+        }
+      }
+
+      // Reset form and close modal
+      setNewAddress({
+        type: 'billing',
+        line1: '',
+        line2: '',
+        city: '',
+        state: '',
+        postalCode: '',
+        country: 'US',
+        isPrimary: false,
+      })
+      setShowAddAddressModal(false)
+      showToast('Address added successfully', 'success')
+    } catch (err: any) {
+      console.error('Error adding address:', err)
+      showToast(`Failed to add address: ${err.message}`, 'error')
+    }
+  }
+
+  // Handle add new contact
+  const handleAddContact = async () => {
+    const targetAccount = modalAccountType === 'seller' ? selectedSeller : selectedBuyer
+
+    if (!targetAccount) {
+      showToast('Please select an account first', 'info')
+      return
+    }
+
+    try {
+      const token = await getToken()
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${targetAccount.id}/contacts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        credentials: 'include',
+        body: JSON.stringify(newContact),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create contact')
+      }
+
+      const createdContact = await response.json()
+
+      // Update the selected account with the new contact
+      if (modalAccountType === 'seller' && selectedSeller) {
+        const updatedSeller = {
+          ...selectedSeller,
+          contacts: [...(selectedSeller.contacts || []), createdContact],
+        }
+        setSelectedSeller(updatedSeller)
+        setSelectedSellerContact(createdContact)
+      } else if (modalAccountType === 'buyer' && selectedBuyer) {
+        const updatedBuyer = {
+          ...selectedBuyer,
+          contacts: [...(selectedBuyer.contacts || []), createdContact],
+        }
+        setSelectedBuyer(updatedBuyer)
+        setSelectedBuyerContact(createdContact)
+      }
+
+      // Reset form and close modal
+      setNewContact({
+        name: '',
+        email: '',
+        phone: '',
+        isPrimary: false,
+      })
+      setShowAddContactModal(false)
+      showToast('Contact added successfully', 'success')
+    } catch (err: any) {
+      console.error('Error adding contact:', err)
+      showToast(`Failed to add contact: ${err.message}`, 'error')
+    }
+  }
+
+  // Handle add new agent
+  const handleAddAgent = async () => {
+    if (!newUser.name) {
+      showToast('Please fill in agent name', 'info')
+      return
+    }
+
+    if (!selectedSeller) {
+      showToast('Please select a seller first to associate the agent', 'info')
+      return
+    }
+
+    try {
+      const token = await getToken()
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/agents`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: newUser.name,
+          email: newUser.email,
+          phone: newUser.phone,
+          accountId: selectedSeller.id,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to create agent')
+
+      const createdAgent = await response.json()
+
+      const newAgent = {
+        id: createdAgent.id,
+        name: createdAgent.name,
+        email: createdAgent.email,
+      }
+      setAgents([...agents, newAgent])
+      setSelectedAgent({ id: newAgent.id, name: newAgent.name })
+
+      setNewUser({ name: '', email: '', phone: '' })
+      setShowAddAgentModal(false)
+      showToast(`Agent added and associated with ${selectedSeller.name}`, 'success')
+    } catch (err: any) {
+      showToast(`Failed to add agent: ${err.message}`, 'error')
+    }
+  }
+
+  // Handle add new broker
+  const handleAddBroker = async () => {
+    if (!newUser.name) {
+      showToast('Please fill in broker name', 'info')
+      return
+    }
+
+    if (!selectedSeller) {
+      showToast('Please select a seller first to associate the broker', 'info')
+      return
+    }
+
+    try {
+      const token = await getToken()
+      // Create broker in database
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/brokers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: newUser.name,
+          email: newUser.email,
+          phone: newUser.phone,
+          accountId: selectedSeller.id, // Associate with seller
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create broker')
+      }
+
+      const createdBroker = await response.json()
+
+      // Add to brokers list for immediate use
+      const newBroker = {
+        id: createdBroker.id,
+        name: createdBroker.name,
+        email: createdBroker.email,
+      }
+      setBrokers([...brokers, newBroker])
+      setSelectedBroker({ id: newBroker.id, name: newBroker.name })
+
+      // Reset form and close modal
+      setNewUser({
+        name: '',
+        email: '',
+        phone: '',
+      })
+      setShowAddBrokerModal(false)
+      showToast(`Broker added and associated with ${selectedSeller.name}`, 'success')
+    } catch (err: any) {
+      console.error('Error adding broker:', err)
+      showToast(`Failed to add broker: ${err.message}`, 'error')
+    }
+  }
+
+  // Update order
+  const handleSave = async () => {
+    if (!selectedSeller || !selectedBuyer) {
+      showToast('Please select both seller and buyer', 'info')
+      return
+    }
+
+    setIsSaving(true)
+
+    try {
+      const orderData = {
+        sellerId: selectedSeller.id,
+        buyerId: selectedBuyer.id,
+        sellerBillingAddressId: selectedSellerBillingAddress?.id,
+        sellerPickupAddressId: selectedSellerPickupAddress?.id,
+        buyerBillingAddressId: selectedBuyerBillingAddress?.id,
+        buyerShippingAddressId: selectedBuyerShippingAddress?.id,
+        isPickup,
+        agentUserId: selectedAgent?.id,
+        agentName: selectedAgent?.name,
+        brokerUserId: selectedBroker?.id,
+        brokerName: selectedBroker?.name,
+        palletCount: numPallets ? parseInt(numPallets) : undefined,
+        terms: paymentTerms,
+        notes: `${conditions}\n${otherRemarks}`.trim(),
+        lines: orderLines
+          .filter(line => line.productId && line.quantity > 0)
+          .map(line => ({
+            productId: line.productId,
+            variantId: line.variantId || undefined,
+            quantity: line.quantity,
+            unitSize: line.variantSize || 1,
+            uom: 'lb', // Default to lb for now
+            totalWeight: line.quantity * (line.variantSize || 1),
+            unitPrice: line.pricePerUnit,
+            commissionPct: line.commissionPercent, // API expects 0-100 (2 for 2%)
+          })),
+      }
+
+      const token = await getToken()
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        credentials: 'include',
+        body: JSON.stringify(orderData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || 'Failed to update order')
+      }
+
+      showToast('Order updated successfully', 'success')
+      // Refresh activities after update
+      fetchActivities()
+    } catch (err: any) {
+      console.error('Save order error:', err)
+      showToast(`Error: ${err.message}`, 'error')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Post order to QuickBooks as invoice
+  const handlePostToQB = async () => {
+    if (!selectedSeller || !selectedBuyer) {
+      showToast('Please select both seller and buyer before posting to QuickBooks', 'info')
+      return
+    }
+
+    setIsPostingToQB(true)
+
+    try {
+      const token = await getToken()
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/quickbooks/sync/order/${orderId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -473,725 +1208,1379 @@ export default function OrderDetailPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        throw new Error(errorData.error || 'Failed to create invoice')
+        throw new Error(errorData.error || 'Failed to post to QuickBooks')
       }
 
       const result = await response.json()
-      showToast(`Invoice #${result.docNumber} created in QuickBooks`, 'success')
-      await fetchOrder()
-      await fetchActivities()
+
+      // Update local state with QB data
+      setQboDocId(result.qboDocId)
+      setQboDocNumber(result.qboDocNumber)
+      setOrderStatus('posted_to_qb')
+
+      showToast(`Invoice #${result.qboDocNumber} created in QuickBooks`, 'success')
+
+      // Refresh activities
+      fetchActivities()
     } catch (err: any) {
+      console.error('Post to QB error:', err)
       showToast(`Error: ${err.message}`, 'error')
     } finally {
-      setQbLoading(false)
+      setIsPostingToQB(false)
     }
   }
 
-  const handleUpdateInvoice = async () => {
-    if (!confirm('Update this invoice in QuickBooks with current order data?')) {
+  // Update existing invoice in QuickBooks
+  const handleUpdateQB = async () => {
+    if (!qboDocId) {
+      showToast('Order has not been posted to QuickBooks yet', 'info')
       return
     }
 
-    setQbLoading(true)
+    setIsUpdatingQB(true)
+
     try {
       const token = await getToken()
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
-      const response = await fetch(`${apiUrl}/api/quickbooks/sync/order/${orderId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/quickbooks/sync/order/${orderId}`, {
         method: 'PUT',
-        credentials: 'include',
         headers: {
+          'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` }),
         },
+        credentials: 'include',
       })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        throw new Error(errorData.error || 'Failed to update invoice')
+        throw new Error(errorData.error || 'Failed to update QuickBooks invoice')
       }
 
-      const result = await response.json()
-      showToast(`Invoice #${order?.qboDocNumber} updated in QuickBooks`, 'success')
-      await fetchOrder()
-      await fetchActivities()
+      showToast('QuickBooks invoice updated successfully', 'success')
+
+      // Refresh activities
+      fetchActivities()
     } catch (err: any) {
+      console.error('Update QB error:', err)
       showToast(`Error: ${err.message}`, 'error')
     } finally {
-      setQbLoading(false)
+      setIsUpdatingQB(false)
     }
   }
 
-  const handleVoidInvoice = async () => {
-    if (!confirm('Void this invoice in QuickBooks? This action cannot be undone.')) {
-      return
-    }
-
-    setQbLoading(true)
-    try {
-      const token = await getToken()
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || ''
-      const response = await fetch(`${apiUrl}/api/quickbooks/sync/order/${orderId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        throw new Error(errorData.error || 'Failed to void invoice')
-      }
-
-      showToast('Invoice voided in QuickBooks', 'warning')
-      await fetchOrder()
-      await fetchActivities()
-    } catch (err: any) {
-      showToast(`Error: ${err.message}`, 'error')
-    } finally {
-      setQbLoading(false)
-    }
+  // Format date for activity display
+  const formatActivityDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })
   }
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'order_created':
-        return <Plus className="h-4 w-4 text-green-600" />
-      case 'order_updated':
-        return <Edit2 className="h-4 w-4 text-blue-600" />
-      case 'invoice_created':
-        return <FileText className="h-4 w-4 text-green-600" />
-      case 'invoice_updated':
-        return <RefreshCw className="h-4 w-4 text-blue-600" />
-      case 'invoice_voided':
-        return <XCircle className="h-4 w-4 text-red-600" />
-      case 'payment_received':
-        return <Badge className="h-4 w-4 text-green-600" />
-      case 'synced_from_qb':
-        return <RefreshCw className="h-4 w-4 text-purple-600" />
+  // Get status badge color
+  const getStatusBadgeColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'draft':
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+      case 'confirmed':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+      case 'posted_to_qb':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
+      case 'paid':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+      case 'cancelled':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
       default:
-        return <Clock className="h-4 w-4 text-gray-600" />
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
     }
   }
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-gray-500">Loading order...</div>
-      </div>
-    )
-  }
-
-  if (error && !order) {
-    return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
-          <div>
-            <h3 className="font-semibold text-red-900">Error Loading Order</h3>
-            <p className="text-sm text-red-700">{error}</p>
-          </div>
+      <div className="p-3 max-w-7xl mx-auto">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500 dark:text-gray-400">Loading order...</div>
         </div>
       </div>
     )
   }
-
-  const isEditing = mode === 'edit' || mode === 'duplicate'
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-3 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-3">
           <Link href="/orders">
             <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Orders
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
             </Button>
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-blue-400">
-              {mode === 'duplicate' ? 'New Order (Duplicate)' : `Order ${order?.orderNo}`}
-            </h1>
-            <div className="flex items-center gap-3 mt-1">
-              <p className="text-sm text-gray-500">
-                Status: <span className="capitalize">{mode === 'duplicate' ? status : order?.status}</span>
-              </p>
-              {order?.qboDocNumber && (
-                <Badge variant="outline" className="text-xs">
-                  QB Invoice #{order.qboDocNumber}
-                </Badge>
-              )}
-            </div>
-          </div>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-blue-400">
+            Order #{orderNo}
+          </h1>
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(orderStatus)}`}>
+            {orderStatus.replace('_', ' ').toUpperCase()}
+          </span>
         </div>
 
-        <div className="flex gap-2">
-          {mode === 'view' && (
+        <div className="flex items-center gap-2">
+          {/* QuickBooks Integration Buttons */}
+          {qboDocId ? (
             <>
-              <Button
-                onClick={handleEdit}
-                disabled={order?.status === 'paid'}
-              >
-                <Edit2 className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button variant="outline" onClick={handleDuplicateMode}>
-                <Copy className="h-4 w-4 mr-2" />
-                Duplicate
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleDelete}
-                disabled={order?.status === 'posted_to_qb' || order?.status === 'paid'}
-              >
-                <Trash className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </>
-          )}
-          {isEditing && (
-            <>
-              <Button variant="outline" onClick={handleCancel}>
-                <X className="h-4 w-4 mr-2" />
-                Cancel
-              </Button>
-              <Button onClick={handleSave} disabled={isSaving}>
-                <Save className="h-4 w-4 mr-2" />
-                {isSaving ? 'Saving...' : mode === 'duplicate' ? 'Save as New' : 'Save Changes'}
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Paid Order Warning Banner */}
-      {order?.status === 'paid' && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3 mb-6">
-          <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-          <div>
-            <h3 className="font-semibold text-yellow-900">Order Paid - Read Only</h3>
-            <p className="text-sm text-yellow-700">
-              This order has been paid in QuickBooks and cannot be edited.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* QuickBooks Actions */}
-      {mode === 'view' && order && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-blue-900 mb-1">QuickBooks Integration</h3>
-              <p className="text-sm text-blue-700">
-                {!order.qboDocId && 'Create an invoice in QuickBooks for this order'}
-                {order.qboDocId && order.status !== 'paid' && 'Update or void the QuickBooks invoice'}
-                {order.status === 'paid' && 'Invoice has been paid in QuickBooks'}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              {!order.qboDocId && (
+              {/* Show QB Invoice Number */}
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                QB Invoice #{qboDocNumber}
+              </span>
+              {/* Update QB Invoice button - only if not paid */}
+              {orderStatus !== 'paid' && (
                 <Button
-                  onClick={handleCreateInvoice}
-                  disabled={qbLoading}
+                  onClick={handleUpdateQB}
+                  disabled={isUpdatingQB}
                   size="sm"
+                  variant="outline"
+                  className="border-purple-300 text-purple-600 hover:bg-purple-50 dark:border-purple-600 dark:text-purple-400 dark:hover:bg-purple-900/20"
                 >
-                  <FileText className="h-4 w-4 mr-2" />
-                  {qbLoading ? 'Creating...' : 'Create Invoice in QB'}
+                  <RefreshCw className={`h-4 w-4 mr-1 ${isUpdatingQB ? 'animate-spin' : ''}`} />
+                  {isUpdatingQB ? 'Updating...' : 'Update QB'}
                 </Button>
               )}
-              {order.qboDocId && order.status !== 'paid' && (
-                <>
-                  <Button
-                    onClick={handleUpdateInvoice}
-                    disabled={qbLoading}
-                    size="sm"
-                    variant="outline"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    {qbLoading ? 'Updating...' : 'Update QB Invoice'}
-                  </Button>
-                  <Button
-                    onClick={handleVoidInvoice}
-                    disabled={qbLoading}
-                    size="sm"
-                    variant="destructive"
-                  >
-                    <XCircle className="h-4 w-4 mr-2" />
-                    {qbLoading ? 'Voiding...' : 'Void Invoice'}
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <div className="flex gap-8">
-          <button
-            onClick={() => setActiveTab('details')}
-            className={`pb-3 px-1 border-b-2 transition-colors ${
-              activeTab === 'details'
-                ? 'border-blue-500 text-blue-600 font-medium'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Order Details
-          </button>
-          <button
-            onClick={() => setActiveTab('activities')}
-            className={`pb-3 px-1 border-b-2 transition-colors ${
-              activeTab === 'activities'
-                ? 'border-blue-500 text-blue-600 font-medium'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Activity Log
-            {activities.length > 0 && (
-              <span className="ml-2 bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full">
-                {activities.length}
-              </span>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === 'details' && (
-        <>
-          {/* Order Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        {/* Seller */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Seller</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {mode === 'duplicate' ? (
-              <div className="relative">
-                <Label>Select Seller *</Label>
-                <Input
-                  type="text"
-                  placeholder="Type to search seller..."
-                  value={sellerSearch}
-                  onChange={(e) => {
-                    setSellerSearch(e.target.value)
-                    setShowSellerDropdown(true)
-                  }}
-                  onFocus={() => setShowSellerDropdown(true)}
-                  className="mt-1"
-                />
-                {showSellerDropdown && sellerSearch && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
-                    {sellerSearch.length < 3 ? (
-                      <div className="px-3 py-2 text-gray-500">Type at least 3 characters to search</div>
-                    ) : filteredSellers.length > 0 ? (
-                      filteredSellers.map((account) => (
-                        <div
-                          key={account.id}
-                          className="px-3 py-2 cursor-pointer hover:bg-gray-100"
-                          onClick={() => {
-                            setSellerId(account.id)
-                            setSellerSearch(account.name)
-                            setShowSellerDropdown(false)
-                          }}
-                        >
-                          <div className="font-medium">{account.name}</div>
-                          {account.code && <div className="text-sm text-gray-500">{account.code}</div>}
-                        </div>
-                      ))
-                    ) : (
-                      <div className="px-3 py-2 text-gray-500">No accounts found</div>
-                    )}
-                  </div>
-                )}
-                {sellerId && !sellerSearch && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Selected: {accounts.find(a => a.id === sellerId)?.name}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div>
-                <p className="font-semibold">{order?.seller?.name || 'Unknown'}</p>
-                {order?.seller?.code && (
-                  <p className="text-sm text-gray-500">Code: {order.seller.code}</p>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Buyer */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Buyer</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {mode === 'duplicate' ? (
-              <div className="relative">
-                <Label>Select Buyer *</Label>
-                <Input
-                  type="text"
-                  placeholder="Type to search buyer..."
-                  value={buyerSearch}
-                  onChange={(e) => {
-                    setBuyerSearch(e.target.value)
-                    setShowBuyerDropdown(true)
-                  }}
-                  onFocus={() => setShowBuyerDropdown(true)}
-                  className="mt-1"
-                />
-                {showBuyerDropdown && buyerSearch && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
-                    {buyerSearch.length < 3 ? (
-                      <div className="px-3 py-2 text-gray-500">Type at least 3 characters to search</div>
-                    ) : filteredBuyers.length > 0 ? (
-                      filteredBuyers.map((account) => (
-                        <div
-                          key={account.id}
-                          className="px-3 py-2 cursor-pointer hover:bg-gray-100"
-                          onClick={() => {
-                            setBuyerId(account.id)
-                            setBuyerSearch(account.name)
-                            setShowBuyerDropdown(false)
-                          }}
-                        >
-                          <div className="font-medium">{account.name}</div>
-                          {account.code && <div className="text-sm text-gray-500">{account.code}</div>}
-                        </div>
-                      ))
-                    ) : (
-                      <div className="px-3 py-2 text-gray-500">No accounts found</div>
-                    )}
-                  </div>
-                )}
-                {buyerId && !buyerSearch && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Selected: {accounts.find(a => a.id === buyerId)?.name}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div>
-                <p className="font-semibold">{order?.buyer?.name || 'Unknown'}</p>
-                {order?.buyer?.code && (
-                  <p className="text-sm text-gray-500">Code: {order.buyer.code}</p>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Additional Details */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Additional Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label>Contract Number</Label>
-            {isEditing ? (
-              <Input
-                value={contractNo}
-                onChange={(e) => setContractNo(e.target.value)}
-                placeholder="Enter contract number"
-              />
-            ) : (
-              <p className="text-sm text-gray-900 dark:text-gray-100">{contractNo || '-'}</p>
-            )}
-          </div>
-
-          <div>
-            <Label>Terms</Label>
-            {isEditing ? (
-              <Textarea
-                value={terms}
-                onChange={(e) => setTerms(e.target.value)}
-                placeholder="Enter terms"
-                rows={3}
-              />
-            ) : (
-              <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{terms || '-'}</p>
-            )}
-          </div>
-
-          <div>
-            <Label>Notes</Label>
-            {isEditing ? (
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Enter notes"
-                rows={3}
-              />
-            ) : (
-              <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{notes || '-'}</p>
-            )}
-          </div>
-
-          {isEditing && (
-            <div>
-              <Label>Status</Label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="shipped">Shipped</SelectItem>
-                  <SelectItem value="delivered">Delivered</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Line Items */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Line Items</CardTitle>
-          {isEditing && (
-            <Button onClick={handleAddLine} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Line
+            </>
+          ) : (
+            /* Post to QB button - only show if not posted yet */
+            <Button
+              onClick={handlePostToQB}
+              disabled={isPostingToQB || orderStatus === 'paid'}
+              size="sm"
+              variant="outline"
+              className="border-green-300 text-green-600 hover:bg-green-50 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-900/20"
+            >
+              <Upload className={`h-4 w-4 mr-1 ${isPostingToQB ? 'animate-pulse' : ''}`} />
+              {isPostingToQB ? 'Posting...' : 'Post to QB'}
             </Button>
           )}
-        </CardHeader>
-        <CardContent>
-          {lines.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">No line items</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Memo</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Unit Size</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">UOM</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Price/lb</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Comm %</th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Comm Amt</th>
-                    {isEditing && (
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {lines.map((line, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-3 py-3">
-                        {isEditing ? (
-                          <Select
-                            value={line.productId}
-                            onValueChange={(value) => {
-                              const product = products.find(p => p.id === value)
-                              handleLineChange(index, 'productId', value)
-                              if (product) {
-                                handleLineChange(index, 'productCode', product.name)
-                                handleLineChange(index, 'productDescription',
-                                  [product.variety, product.grade].filter(Boolean).join(' - '))
-                              }
-                            }}
-                          >
-                            <SelectTrigger className="w-[200px]">
-                              <SelectValue placeholder="Select product" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {products.map((product) => (
-                                <SelectItem key={product.id} value={product.id}>
-                                  {product.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <div className="text-sm">
-                            <div className="font-medium">{line.productCode}</div>
-                            <div className="text-gray-500">{line.productDescription}</div>
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-3 py-3">
-                        {isEditing ? (
-                          <Input
-                            value={line.sizeGrade}
-                            onChange={(e) => handleLineChange(index, 'sizeGrade', e.target.value)}
-                            className="w-24"
-                          />
-                        ) : (
-                          <span className="text-sm">{line.sizeGrade}</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        {isEditing ? (
-                          <Input
-                            type="number"
-                            value={line.quantity}
-                            onChange={(e) => handleLineChange(index, 'quantity', parseFloat(e.target.value) || 0)}
-                            className="w-20"
-                          />
-                        ) : (
-                          <span className="text-sm">{line.quantity}</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        {isEditing ? (
-                          <Input
-                            type="number"
-                            value={line.unitSize}
-                            onChange={(e) => handleLineChange(index, 'unitSize', parseFloat(e.target.value) || 0)}
-                            className="w-20"
-                          />
-                        ) : (
-                          <span className="text-sm">{line.unitSize}</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-3">
-                        {isEditing ? (
-                          <Select
-                            value={line.uom}
-                            onValueChange={(value) => handleLineChange(index, 'uom', value)}
-                          >
-                            <SelectTrigger className="w-24">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="CASE">CASE</SelectItem>
-                              <SelectItem value="BAG">BAG</SelectItem>
-                              <SelectItem value="LBS">LBS</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <span className="text-sm">{line.uom}</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        {isEditing ? (
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={line.unitPrice}
-                            onChange={(e) => handleLineChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                            className="w-24"
-                          />
-                        ) : (
-                          <span className="text-sm">${line.unitPrice.toFixed(2)}</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        <span className="text-sm font-medium">
-                          ${(line.lineTotal || (line.quantity * line.unitSize * line.unitPrice)).toFixed(2)}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        {isEditing ? (
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={line.commissionPct * 100}
-                            onChange={(e) => handleLineChange(index, 'commissionPct', (parseFloat(e.target.value) || 0) / 100)}
-                            className="w-20"
-                          />
-                        ) : (
-                          <span className="text-sm">{(line.commissionPct * 100).toFixed(2)}%</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        <span className="text-sm font-medium text-orange-600">
-                          ${(line.commissionAmt || ((line.lineTotal || (line.quantity * line.unitSize * line.unitPrice)) * line.commissionPct)).toFixed(2)}
-                        </span>
-                      </td>
-                      {isEditing && (
-                        <td className="px-3 py-3 text-center">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveLine(index)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          </Button>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
 
-          {/* Totals */}
-          {lines.length > 0 && (
-            <div className="mt-6 flex justify-end">
-              <div className="w-64 space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Total:</span>
-                  <span className="text-lg font-bold">
-                    ${calculateTotal().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center border-t pt-2">
-                  <span className="text-sm font-medium">Commission:</span>
-                  <span className="text-lg font-bold text-orange-600">
-                    ${calculateCommissionTotal().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
+          {/* Save Button */}
+          <Button
+            onClick={handleSave}
+            disabled={isSaving || orderStatus === 'paid'}
+            size="sm"
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Save className="h-4 w-4 mr-1" />
+            {isSaving ? 'Saving...' : 'Update Order'}
+          </Button>
+        </div>
+      </div>
+
+      {/* Order Entry Form */}
+      <Card className="mb-2">
+        <CardHeader className="py-2 px-3">
+          <CardTitle className="text-sm font-bold">Order Details</CardTitle>
+        </CardHeader>
+        <CardContent className="p-3 pt-0">
+          <form className="space-y-2">
+            {/* Seller and Buyer Side-by-Side */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Seller Section */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-2 rounded">
+                <h3 className="text-xs font-bold text-blue-900 dark:text-blue-300 mb-1.5">Seller</h3>
+
+                <div className="space-y-1.5">
+                  <div className="relative">
+                    <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                      Account <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex gap-1">
+                      <Input
+                        ref={sellerCodeRef}
+                        type="text"
+                        value={sellerCodeSearch}
+                        onChange={(e) => handleSellerCodeChange(e.target.value)}
+                        onFocus={() => setShowSellerDropdown(true)}
+                        placeholder="Code..."
+                        className="flex-1 bg-white dark:bg-gray-800 h-7 text-xs"
+                      />
+
+                      <Input
+                        ref={sellerNameRef}
+                        type="text"
+                        value={sellerNameSearch}
+                        onChange={(e) => handleSellerNameChange(e.target.value)}
+                        onFocus={() => setShowSellerDropdown(true)}
+                        placeholder="Account name..."
+                        className="flex-[2] bg-white dark:bg-gray-800 h-7 text-xs"
+                      />
+                    </div>
+
+                    {/* Seller Dropdown */}
+                    {showSellerDropdown && (sellerCodeSearch || sellerNameSearch) && (
+                      <div
+                        ref={sellerDropdownRef}
+                        className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-700 rounded-md shadow-lg max-h-60 overflow-auto"
+                      >
+                        {getFilteredSellerAccounts().length > 0 ? (
+                          getFilteredSellerAccounts().map((account) => (
+                            <div
+                              key={account.id}
+                              className="px-3 py-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50 border-b dark:border-gray-700 last:border-b-0"
+                              onClick={() => handleSelectSeller(account)}
+                            >
+                              <div className="flex gap-2">
+                                <span className="font-medium text-blue-900 dark:text-blue-300">{account.code}</span>
+                                <span className="text-gray-700 dark:text-gray-400">-</span>
+                                <span className="text-gray-900 dark:text-white">{account.name}</span>
+                              </div>
+                              {account.city && account.state && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                  {account.city}, {account.state}
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-gray-500 dark:text-gray-400 text-sm">No accounts found</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Seller Billing Address */}
+                  {selectedSeller && (
+                    <div>
+                      <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                        Billing Address <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex gap-1">
+                        <select
+                          className="flex-1 rounded border border-gray-300 dark:border-gray-600 px-1.5 py-1 text-xs bg-white dark:bg-gray-800 dark:text-white"
+                          value={selectedSellerBillingAddress?.id || ''}
+                          onChange={(e) => {
+                            const address = selectedSeller.addresses?.find(a => a.id === e.target.value)
+                            setSelectedSellerBillingAddress(address || null)
+                          }}
+                        >
+                          <option value="">Select billing...</option>
+                          {selectedSeller.addresses?.map((addr) => (
+                            <option key={addr.id} value={addr.id}>
+                              {addr.line1}, {addr.city}, {addr.state} {addr.postalCode} ({addr.type})
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModalAccountType('seller')
+                            setShowAddAddressModal(true)
+                          }}
+                          className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Seller Pickup Address */}
+                  {selectedSeller && (
+                    <div>
+                      <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                        Pickup Address <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex gap-1">
+                        <select
+                          className="flex-1 rounded border border-gray-300 dark:border-gray-600 px-1.5 py-1 text-xs bg-white dark:bg-gray-800 dark:text-white"
+                          value={selectedSellerPickupAddress?.id || ''}
+                          onChange={(e) => {
+                            const address = selectedSeller.addresses?.find(a => a.id === e.target.value)
+                            setSelectedSellerPickupAddress(address || null)
+                          }}
+                        >
+                          <option value="">Select pickup...</option>
+                          {selectedSeller.addresses?.map((addr) => (
+                            <option key={addr.id} value={addr.id}>
+                              {addr.line1}, {addr.city}, {addr.state} {addr.postalCode} ({addr.type})
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModalAccountType('seller')
+                            setNewAddress({ ...newAddress, type: 'pickup' })
+                            setShowAddAddressModal(true)
+                          }}
+                          className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Seller Contact */}
+                  {selectedSeller && (
+                    <div>
+                      <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                        Contact
+                      </label>
+                      <div className="flex gap-1">
+                        <select
+                          className="flex-1 rounded border border-gray-300 dark:border-gray-600 px-1.5 py-1 text-xs bg-white dark:bg-gray-800 dark:text-white"
+                          value={selectedSellerContact?.id || ''}
+                          onChange={(e) => {
+                            const contact = selectedSeller.contacts?.find(c => c.id === e.target.value)
+                            setSelectedSellerContact(contact || null)
+                          }}
+                        >
+                          <option value="">Select contact...</option>
+                          {selectedSeller.contacts?.map((contact) => (
+                            <option key={contact.id} value={contact.id}>
+                              {contact.name} - {contact.email}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModalAccountType('seller')
+                            setShowAddContactModal(true)
+                          }}
+                          className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* Buyer Section */}
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 p-2 rounded">
+                <h3 className="text-xs font-bold text-green-900 dark:text-green-300 mb-1.5">Buyer</h3>
+
+                <div className="space-y-1.5">
+                  <div className="relative">
+                    <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                      Account <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex gap-1">
+                      <Input
+                        ref={buyerCodeRef}
+                        type="text"
+                        value={buyerCodeSearch}
+                        onChange={(e) => handleBuyerCodeChange(e.target.value)}
+                        onFocus={() => setShowBuyerDropdown(true)}
+                        placeholder="Code..."
+                        className="flex-1 bg-white dark:bg-gray-800 h-7 text-xs"
+                      />
+
+                      <Input
+                        ref={buyerNameRef}
+                        type="text"
+                        value={buyerNameSearch}
+                        onChange={(e) => handleBuyerNameChange(e.target.value)}
+                        onFocus={() => setShowBuyerDropdown(true)}
+                        placeholder="Account name..."
+                        className="flex-[2] bg-white dark:bg-gray-800 h-7 text-xs"
+                      />
+                    </div>
+
+                    {/* Buyer Dropdown */}
+                    {showBuyerDropdown && (buyerCodeSearch || buyerNameSearch) && (
+                      <div
+                        ref={buyerDropdownRef}
+                        className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 rounded-md shadow-lg max-h-60 overflow-auto"
+                      >
+                        {getFilteredBuyerAccounts().length > 0 ? (
+                          getFilteredBuyerAccounts().map((account) => (
+                            <div
+                              key={account.id}
+                              className="px-3 py-2 cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/50 border-b dark:border-gray-700 last:border-b-0"
+                              onClick={() => handleSelectBuyer(account)}
+                            >
+                              <div className="flex gap-2">
+                                <span className="font-medium text-green-900 dark:text-green-300">{account.code}</span>
+                                <span className="text-gray-700 dark:text-gray-400">-</span>
+                                <span className="text-gray-900 dark:text-white">{account.name}</span>
+                              </div>
+                              {account.city && account.state && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                  {account.city}, {account.state}
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-gray-500 dark:text-gray-400 text-sm">No accounts found</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Will Pick Up Checkbox */}
+                  {selectedBuyer && (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        id="isPickup"
+                        checked={isPickup}
+                        onChange={(e) => setIsPickup(e.target.checked)}
+                        className="h-3 w-3 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      />
+                      <label htmlFor="isPickup" className="text-[10px] font-medium text-gray-700 dark:text-gray-300">
+                        Will Pick Up
+                      </label>
+                    </div>
+                  )}
+
+                  {/* Buyer Billing Address */}
+                  {selectedBuyer && (
+                    <div>
+                      <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                        Billing Address <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex gap-1">
+                        <select
+                          className="flex-1 rounded border border-gray-300 dark:border-gray-600 px-1.5 py-1 text-xs bg-white dark:bg-gray-800 dark:text-white"
+                          value={selectedBuyerBillingAddress?.id || ''}
+                          onChange={(e) => {
+                            const address = selectedBuyer.addresses?.find(a => a.id === e.target.value)
+                            setSelectedBuyerBillingAddress(address || null)
+                          }}
+                        >
+                          <option value="">Select billing...</option>
+                          {selectedBuyer.addresses?.map((addr) => (
+                            <option key={addr.id} value={addr.id}>
+                              {addr.line1}, {addr.city}, {addr.state} {addr.postalCode} ({addr.type})
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModalAccountType('buyer')
+                            setShowAddAddressModal(true)
+                          }}
+                          className="p-1 text-green-600 hover:bg-green-100 rounded"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Buyer Shipping Address (only show if not pickup) */}
+                  {selectedBuyer && !isPickup && (
+                    <div>
+                      <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                        Shipping Address <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex gap-1">
+                        <select
+                          className="flex-1 rounded border border-gray-300 dark:border-gray-600 px-1.5 py-1 text-xs bg-white dark:bg-gray-800 dark:text-white"
+                          value={selectedBuyerShippingAddress?.id || ''}
+                          onChange={(e) => {
+                            const address = selectedBuyer.addresses?.find(a => a.id === e.target.value)
+                            setSelectedBuyerShippingAddress(address || null)
+                          }}
+                        >
+                          <option value="">Select shipping...</option>
+                          {selectedBuyer.addresses?.map((addr) => (
+                            <option key={addr.id} value={addr.id}>
+                              {addr.line1}, {addr.city}, {addr.state} {addr.postalCode} ({addr.type})
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModalAccountType('buyer')
+                            setNewAddress({ ...newAddress, type: 'shipping' })
+                            setShowAddAddressModal(true)
+                          }}
+                          className="p-1 text-green-600 hover:bg-green-100 rounded"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Buyer Contact */}
+                  {selectedBuyer && (
+                    <div>
+                      <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                        Contact
+                      </label>
+                      <div className="flex gap-1">
+                        <select
+                          className="flex-1 rounded border border-gray-300 dark:border-gray-600 px-1.5 py-1 text-xs bg-white dark:bg-gray-800 dark:text-white"
+                          value={selectedBuyerContact?.id || ''}
+                          onChange={(e) => {
+                            const contact = selectedBuyer.contacts?.find(c => c.id === e.target.value)
+                            setSelectedBuyerContact(contact || null)
+                          }}
+                        >
+                          <option value="">Select contact...</option>
+                          {selectedBuyer.contacts?.map((contact) => (
+                            <option key={contact.id} value={contact.id}>
+                              {contact.name} - {contact.email}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModalAccountType('buyer')
+                            setShowAddContactModal(true)
+                          }}
+                          className="p-1 text-green-600 hover:bg-green-100 rounded"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Agent and Broker Section */}
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              {/* Agent Dropdown */}
+              <div>
+                <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                  Agent <span className="text-red-500">*</span>
+                </label>
+                <select
+                  className="w-full rounded border border-gray-300 dark:border-gray-600 px-1.5 py-1 text-xs bg-white dark:bg-gray-800 dark:text-white"
+                  value={selectedAgent?.id || ''}
+                  onChange={(e) => {
+                    if (e.target.value === 'ADD_NEW') {
+                      setShowAddAgentModal(true)
+                    } else {
+                      const agent = agents.find(a => a.id === e.target.value)
+                      setSelectedAgent(agent ? { id: agent.id, name: agent.name } : null)
+                    }
+                  }}
+                >
+                  <option value="">Select agent...</option>
+                  {agents.map((agent) => (
+                    <option key={agent.id} value={agent.id}>
+                      {agent.name} - {agent.email}
+                    </option>
+                  ))}
+                  <option value="ADD_NEW" className="text-blue-600 font-medium">+ Add New</option>
+                </select>
+              </div>
+
+              {/* Broker Dropdown (Optional) */}
+              <div>
+                <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                  Broker (Optional)
+                </label>
+                <select
+                  className="w-full rounded border border-gray-300 dark:border-gray-600 px-1.5 py-1 text-xs bg-white dark:bg-gray-800 dark:text-white"
+                  value={selectedBroker?.id || ''}
+                  onChange={(e) => {
+                    if (e.target.value === 'ADD_NEW') {
+                      setShowAddBrokerModal(true)
+                    } else {
+                      const broker = brokers.find(b => b.id === e.target.value)
+                      setSelectedBroker(broker ? { id: broker.id, name: broker.name } : null)
+                    }
+                  }}
+                >
+                  <option value="">Select broker...</option>
+                  {brokers.map((broker) => (
+                    <option key={broker.id} value={broker.id}>
+                      {broker.name} - {broker.email}
+                    </option>
+                  ))}
+                  <option value="ADD_NEW" className="text-blue-600 font-medium">+ Add New</option>
+                </select>
+              </div>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Product List */}
+      <Card className="mt-2">
+        <CardHeader className="flex flex-row items-center justify-between py-2 px-3">
+          <CardTitle className="text-sm font-bold">Items</CardTitle>
+          <Button type="button" onClick={addOrderLine} size="sm" className="bg-indigo-600 hover:bg-indigo-700 h-6 text-xs px-2">
+            <Plus className="mr-1 h-3 w-3" />
+            Add
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {/* Header row */}
+          <div className="grid grid-cols-12 gap-1 mb-2 px-1 text-xs font-semibold text-gray-500 dark:text-gray-400">
+            <div className="col-span-1">#</div>
+            <div className="col-span-3">Product</div>
+            <div className="col-span-2">Variant</div>
+            <div className="col-span-1 text-right">Qty</div>
+            <div className="col-span-1 text-right">$/lb</div>
+            <div className="col-span-1 text-right">Total</div>
+            <div className="col-span-1 text-right">%</div>
+            <div className="col-span-1 text-right">Comm</div>
+            <div className="col-span-1"></div>
+          </div>
+
+          <div className="space-y-1">
+            {orderLines.map((line, index) => (
+              <div key={line.id} className="grid grid-cols-12 gap-1 items-center bg-gray-50 dark:bg-gray-800/50 p-1.5 rounded-lg">
+                {/* Line number */}
+                <div className="col-span-1">
+                  <span className="w-6 h-6 flex items-center justify-center bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-full text-xs font-bold">
+                    {index + 1}
+                  </span>
+                </div>
+
+                {/* Product name with autocomplete */}
+                <div className="col-span-3 relative">
+                  <input
+                    type="text"
+                    value={searchQuery[line.id] || line.productName || ''}
+                    onChange={(e) => {
+                      setSearchQuery({ ...searchQuery, [line.id]: e.target.value })
+                      setActiveLineId(line.id)
+                      if (line.productName) {
+                        setOrderLines(orderLines.map(l =>
+                          l.id === line.id ? { ...l, productId: '', productName: '', variantId: '', variantLabel: '', variantSize: 1, quantity: 0, pricePerUnit: 0, commissionPercent: 0 } : l
+                        ))
+                      }
+                    }}
+                    onFocus={() => setActiveLineId(line.id)}
+                    className="w-full px-1.5 py-1 text-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none"
+                    placeholder="Search..."
+                  />
+
+                  {/* Autocomplete dropdown */}
+                  {activeLineId === line.id && (searchQuery[line.id]?.trim() || getFilteredProducts(line.id).length > 0) && (
+                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-700 rounded-md shadow-lg max-h-48 overflow-auto">
+                      {getFilteredProducts(line.id).map((product) => (
+                        <div
+                          key={product.id}
+                          className="px-3 py-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50 border-b dark:border-gray-700 last:border-b-0"
+                          onMouseDown={(e) => {
+                            e.preventDefault()
+                            handleSelectProduct(line.id, product)
+                          }}
+                        >
+                          <span className="text-gray-900 dark:text-white text-sm">
+                            {product.name}
+                          </span>
+                        </div>
+                      ))}
+                      {/* Add new product option */}
+                      <div
+                        className="px-3 py-2 cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/50 border-t border-gray-200 dark:border-gray-600 text-green-600 dark:text-green-400 font-medium text-sm flex items-center"
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          setProductModalLineId(line.id)
+                          setNewProduct({ ...newProduct, name: searchQuery[line.id] || '' })
+                          setShowAddProductModal(true)
+                          setActiveLineId(null)
+                        }}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add New Product
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Variant dropdown */}
+                <div className="col-span-2">
+                  {line.productId ? (
+                    <div className="flex items-center gap-0.5">
+                      <select
+                        value={line.variantId}
+                        onChange={(e) => {
+                          const variant = getProductVariants(line.productId).find(v => v.id === e.target.value)
+                          if (variant) handleSelectVariant(line.id, variant)
+                        }}
+                        className="flex-1 px-1 py-1 text-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none"
+                      >
+                        {getProductVariants(line.productId).length === 0 ? (
+                          <option value="">No variants</option>
+                        ) : (
+                          getProductVariants(line.productId).map((variant) => (
+                            <option key={variant.id} value={variant.id}>
+                              {variant.size} {variant.sizeUnit} {variant.packageType}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setVariantModalLineId(line.id)
+                          setShowAddVariantModal(true)
+                        }}
+                        className="p-1 text-green-600 hover:text-white hover:bg-green-600 rounded transition-all"
+                        title="Add new variant"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-gray-400">-</span>
+                  )}
+                </div>
+
+                {/* Quantity */}
+                <div className="col-span-1">
+                  <input
+                    type="number"
+                    value={line.quantity || ''}
+                    onChange={(e) => updateOrderLine(line.id, 'quantity', parseFloat(e.target.value) || 0)}
+                    className="w-full px-1 py-1 text-xs text-right text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none"
+                    placeholder="0"
+                    min="0"
+                  />
+                </div>
+
+                {/* Price per unit */}
+                <div className="col-span-1">
+                  <input
+                    type="number"
+                    value={line.pricePerUnit || ''}
+                    onChange={(e) => updateOrderLine(line.id, 'pricePerUnit', parseFloat(e.target.value) || 0)}
+                    className="w-full px-1 py-1 text-xs text-right text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none"
+                    placeholder="0"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+
+                {/* Total (calculated) */}
+                <div className="col-span-1 text-right flex items-center justify-end">
+                  <span className="text-xs font-medium text-gray-900 dark:text-white">
+                    ${getLineTotal(line).toFixed(2)}
+                  </span>
+                </div>
+
+                {/* Commission percent */}
+                <div className="col-span-1">
+                  <input
+                    type="number"
+                    value={line.commissionPercent || ''}
+                    onChange={(e) => updateOrderLine(line.id, 'commissionPercent', parseFloat(e.target.value) || 0)}
+                    className="w-full px-1 py-1 text-xs text-right text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none"
+                    placeholder="0"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                  />
+                </div>
+
+                {/* Commission amount (calculated) */}
+                <div className="col-span-1 text-right flex items-center justify-end">
+                  <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                    ${getLineCommission(line).toFixed(2)}
+                  </span>
+                </div>
+
+                {/* Delete button */}
+                <div className="col-span-1 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => removeOrderLine(line.id)}
+                    className="p-1 text-red-600 hover:text-white hover:bg-red-600 rounded transition-all"
+                    title="Remove item"
+                    disabled={orderLines.length === 1}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Totals row */}
+          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <div className="grid grid-cols-12 gap-1 px-1">
+              <div className="col-span-7 text-right font-semibold text-gray-700 dark:text-gray-300 text-sm">
+                Totals:
+              </div>
+              <div className="col-span-1 text-right font-bold text-gray-900 dark:text-white text-sm">
+                ${getGrandTotal().toFixed(2)}
+              </div>
+              <div className="col-span-1"></div>
+              <div className="col-span-1 text-right font-bold text-green-600 dark:text-green-400 text-sm">
+                ${getTotalCommission().toFixed(2)}
+              </div>
+              <div className="col-span-2"></div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Activities Section */}
+      <Card className="mt-2">
+        <CardHeader className="py-2 px-3">
+          <CardTitle className="text-sm font-bold flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Activity Log
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-3 pt-0">
+          {isLoadingActivities ? (
+            <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+              Loading activities...
+            </div>
+          ) : activities.length === 0 ? (
+            <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+              No activities recorded yet.
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {activities.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex items-start gap-3 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+                >
+                  <div className="flex-shrink-0 mt-0.5">
+                    <User className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-gray-900 dark:text-white">
+                        {activity.userName || 'System'}
+                      </span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400 flex-shrink-0">
+                        {formatActivityDate(activity.createdAt)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
+                      <span className="font-medium text-blue-600 dark:text-blue-400">
+                        {activity.activityType}
+                      </span>
+                      {activity.description && `: ${activity.description}`}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
       </Card>
-        </>
+
+      {/* Add Address Modal */}
+      {showAddAddressModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-2xl">
+            <CardHeader>
+              <CardTitle>Add New Address for {modalAccountType === 'seller' ? 'Seller' : 'Buyer'}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-4">
+                <div>
+                  <Label>Address Type *</Label>
+                  <select
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-white"
+                    value={newAddress.type}
+                    onChange={(e) => setNewAddress({ ...newAddress, type: e.target.value })}
+                  >
+                    <option value="billing">Billing</option>
+                    <option value="shipping">Shipping</option>
+                    <option value="warehouse">Warehouse</option>
+                    <option value="pickup">Pickup</option>
+                  </select>
+                </div>
+
+                <div>
+                  <Label>Address Line 1 *</Label>
+                  <Input
+                    value={newAddress.line1}
+                    onChange={(e) => setNewAddress({ ...newAddress, line1: e.target.value })}
+                    placeholder="123 Main St"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Address Line 2</Label>
+                  <Input
+                    value={newAddress.line2}
+                    onChange={(e) => setNewAddress({ ...newAddress, line2: e.target.value })}
+                    placeholder="Suite 100"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>City *</Label>
+                    <Input
+                      value={newAddress.city}
+                      onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
+                      placeholder="Los Angeles"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label>State *</Label>
+                    <Input
+                      value={newAddress.state}
+                      onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value.toUpperCase() })}
+                      placeholder="CA"
+                      maxLength={2}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Postal Code *</Label>
+                    <Input
+                      value={newAddress.postalCode}
+                      onChange={(e) => setNewAddress({ ...newAddress, postalCode: e.target.value })}
+                      placeholder="90001"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Country *</Label>
+                    <Input
+                      value={newAddress.country}
+                      onChange={(e) => setNewAddress({ ...newAddress, country: e.target.value.toUpperCase() })}
+                      placeholder="US"
+                      maxLength={2}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isPrimaryAddress"
+                    checked={newAddress.isPrimary}
+                    onChange={(e) => setNewAddress({ ...newAddress, isPrimary: e.target.checked })}
+                    className="rounded border-gray-300 dark:border-gray-600"
+                  />
+                  <Label htmlFor="isPrimaryAddress" className="cursor-pointer">Set as primary address</Label>
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddAddressModal(false)
+                      setNewAddress({
+                        type: 'billing',
+                        line1: '',
+                        line2: '',
+                        city: '',
+                        state: '',
+                        postalCode: '',
+                        country: 'US',
+                        isPrimary: false,
+                      })
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleAddAddress}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Add Address
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
-      {/* Activity Tab */}
-      {activeTab === 'activities' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Activity Log</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {activitiesLoading ? (
-              <div className="text-center py-8 text-gray-500">Loading activities...</div>
-            ) : activities.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">No activities recorded yet</div>
-            ) : (
-              <div className="space-y-4">
-                {activities.map((activity) => (
-                  <div
-                    key={activity.id}
-                    className="flex gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+      {/* Add Contact Modal */}
+      {showAddContactModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-2xl">
+            <CardHeader>
+              <CardTitle>Add New Contact for {modalAccountType === 'seller' ? 'Seller' : 'Buyer'}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-4">
+                <div>
+                  <Label>Contact Name *</Label>
+                  <Input
+                    value={newContact.name}
+                    onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Email *</Label>
+                  <Input
+                    type="email"
+                    value={newContact.email}
+                    onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
+                    placeholder="john@example.com"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Phone</Label>
+                  <Input
+                    type="tel"
+                    value={newContact.phone}
+                    onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isPrimaryContact"
+                    checked={newContact.isPrimary}
+                    onChange={(e) => setNewContact({ ...newContact, isPrimary: e.target.checked })}
+                    className="rounded border-gray-300 dark:border-gray-600"
+                  />
+                  <Label htmlFor="isPrimaryContact" className="cursor-pointer">Set as primary contact</Label>
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddContactModal(false)
+                      setNewContact({
+                        name: '',
+                        email: '',
+                        phone: '',
+                        isPrimary: false,
+                      })
+                    }}
                   >
-                    <div className="mt-0.5">
-                      {getActivityIcon(activity.activityType)}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-900">{activity.description}</p>
-                      <div className="flex items-center gap-3 mt-1">
-                        <p className="text-xs text-gray-500">
-                          {activity.userName || 'System'}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {new Date(activity.createdAt).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleAddContact}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Add Contact
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       )}
+
+      {/* Add Agent Modal */}
+      {showAddAgentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Add New Agent</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-4">
+                <div>
+                  <Label>Name *</Label>
+                  <Input
+                    value={newUser.name}
+                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Email *</Label>
+                  <Input
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    placeholder="john@example.com"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Phone</Label>
+                  <Input
+                    type="tel"
+                    value={newUser.phone}
+                    onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddAgentModal(false)
+                      setNewUser({
+                        name: '',
+                        email: '',
+                        phone: '',
+                      })
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleAddAgent}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Add Agent
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Add Broker Modal */}
+      {showAddBrokerModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Add New Broker</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-4">
+                <div>
+                  <Label>Name *</Label>
+                  <Input
+                    value={newUser.name}
+                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Email *</Label>
+                  <Input
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    placeholder="john@example.com"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Phone</Label>
+                  <Input
+                    type="tel"
+                    value={newUser.phone}
+                    onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddBrokerModal(false)
+                      setNewUser({
+                        name: '',
+                        email: '',
+                        phone: '',
+                      })
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleAddBroker}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Add Broker
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Add Product Modal */}
+      {showAddProductModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Add New Product</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-4">
+                <div>
+                  <Label>Product Name *</Label>
+                  <Input
+                    value={newProduct.name}
+                    onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                    placeholder="Almonds"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Variety</Label>
+                  <Input
+                    value={newProduct.variety}
+                    onChange={(e) => setNewProduct({ ...newProduct, variety: e.target.value })}
+                    placeholder="Nonpareil"
+                  />
+                </div>
+
+                <div>
+                  <Label>Grade</Label>
+                  <Input
+                    value={newProduct.grade}
+                    onChange={(e) => setNewProduct({ ...newProduct, grade: e.target.value })}
+                    placeholder="Supreme"
+                  />
+                </div>
+
+                <div>
+                  <Label>Category</Label>
+                  <Input
+                    value={newProduct.category}
+                    onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
+                    placeholder="Nuts"
+                  />
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddProductModal(false)
+                      setProductModalLineId(null)
+                      setNewProduct({
+                        name: '',
+                        variety: '',
+                        grade: '',
+                        category: '',
+                      })
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleAddProduct}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Add Product
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Add Variant Modal */}
+      {showAddVariantModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Add New Variant</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-4">
+                <div>
+                  <Label>Size *</Label>
+                  <Input
+                    value={newVariant.size}
+                    onChange={(e) => setNewVariant({ ...newVariant, size: e.target.value })}
+                    placeholder="25"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Size Unit</Label>
+                  <select
+                    value={newVariant.sizeUnit}
+                    onChange={(e) => setNewVariant({ ...newVariant, sizeUnit: e.target.value })}
+                    className="w-full px-3 py-2 text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none"
+                  >
+                    <option value="lb">lb</option>
+                    <option value="kg">kg</option>
+                    <option value="oz">oz</option>
+                    <option value="g">g</option>
+                  </select>
+                </div>
+
+                <div>
+                  <Label>Package Type</Label>
+                  <select
+                    value={newVariant.packageType}
+                    onChange={(e) => setNewVariant({ ...newVariant, packageType: e.target.value })}
+                    className="w-full px-3 py-2 text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none"
+                  >
+                    <option value="bag">Bag</option>
+                    <option value="box">Box</option>
+                    <option value="case">Case</option>
+                    <option value="carton">Carton</option>
+                    <option value="pallet">Pallet</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddVariantModal(false)
+                      setVariantModalLineId(null)
+                      setNewVariant({
+                        size: '',
+                        sizeUnit: 'lb',
+                        packageType: 'bag',
+                      })
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleAddVariant}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Add Variant
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
     </div>
   )
 }

@@ -1064,7 +1064,7 @@ export default function AccountsPage() {
 
                 {openOrdersAccountId === account.id && (
                   <div
-                    className="absolute left-1/2 transform -translate-x-1/2 top-full mt-2 w-full max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 z-60 p-5"
+                    className="absolute left-[calc(50%+150px)] transform -translate-x-1/2 top-full mt-2 w-[1125px] bg-white dark:bg-gray-900 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 z-50 p-5"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="flex items-center justify-between mb-4">

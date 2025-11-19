@@ -1,9 +1,10 @@
 import { db } from '../../db'
-import { orders, orderLines } from '../../db/schema'
-import { eq, desc, ilike, or } from 'drizzle-orm'
+import { orders, orderLines, accounts, products } from '../../db/schema'
+import { eq, desc, ilike, or, inArray } from 'drizzle-orm'
 import { AppError } from '../../middleware/error-handler'
 import { logger } from '../../utils/logger'
 import contractsService from '../contracts/contracts.service'
+import { OrderActivityService } from '../order-activities/order-activities.service'
 
 export class OrdersService {
   // Generate order number (format: YYMM-NNNN)
@@ -167,6 +168,18 @@ export class OrdersService {
 
     logger.info(`Created order: ${order.id} (${order.orderNo})`)
 
+    // Log activity
+    try {
+      await OrderActivityService.recordActivity({
+        orderId: order.id,
+        clerkUserId: userId,
+        activityType: 'order_created',
+        description: `Order ${order.orderNo} created with ${createdLines.length} line item(s)`,
+      })
+    } catch (err) {
+      logger.error('Failed to log order creation activity:', err)
+    }
+
     return {
       ...order,
       lines: createdLines,
@@ -199,7 +212,6 @@ export class OrdersService {
     return {
       ...order,
       orderDate: order.createdAt,
-      agentName: order.createdBy || 'Unknown',
       lines: order.lines.map(line => ({
         ...line,
         quantity: parseFloat(line.quantity),
@@ -254,7 +266,84 @@ export class OrdersService {
       .orderBy(desc(orders.createdAt))
       .limit(filters?.limit || 50)
 
-    return results
+    if (results.length === 0) {
+      return []
+    }
+
+    // Get all related data
+    const orderIds = results.map(o => o.id)
+    const sellerIds = [...new Set(results.map(o => o.sellerId).filter(Boolean))]
+    const buyerIds = [...new Set(results.map(o => o.buyerId).filter(Boolean))]
+    const accountIds = [...new Set([...sellerIds, ...buyerIds])]
+
+    const [allAccounts, allLines] = await Promise.all([
+      accountIds.length > 0
+        ? db.select().from(accounts).where(inArray(accounts.id, accountIds))
+        : Promise.resolve([]),
+      orderIds.length > 0
+        ? db.select().from(orderLines).where(inArray(orderLines.orderId, orderIds))
+        : Promise.resolve([])
+    ])
+
+    // Get products
+    const productIds = [...new Set(allLines.map(l => l.productId))]
+    const allProducts = productIds.length > 0
+      ? await db.select().from(products).where(inArray(products.id, productIds))
+      : []
+
+    // Build lookup maps
+    const accountsMap = new Map(allAccounts.map(a => [a.id, a]))
+    const productsMap = new Map(allProducts.map(p => [p.id, p]))
+    const linesByOrderMap = new Map<string, any[]>()
+
+    allLines.forEach(line => {
+      if (!linesByOrderMap.has(line.orderId)) {
+        linesByOrderMap.set(line.orderId, [])
+      }
+      const product = productsMap.get(line.productId)
+      linesByOrderMap.get(line.orderId)!.push({
+        id: line.id,
+        productId: line.productId,
+        productCode: product?.name || 'N/A',
+        productDescription: [product?.variety, product?.grade].filter(Boolean).join(' - ') || line.sizeGrade || '',
+        sizeGrade: line.sizeGrade,
+        quantity: parseFloat(line.quantity),
+        unitSize: parseFloat(line.unitSize),
+        uom: line.uom,
+        totalWeight: parseFloat(line.totalWeight),
+        unitPrice: parseFloat(line.unitPrice),
+        total: parseFloat(line.lineTotal),
+        commissionPct: line.commissionPct ? parseFloat(line.commissionPct) : 0,
+        commissionAmt: line.commissionAmt ? parseFloat(line.commissionAmt) : 0,
+      })
+    })
+
+    // Format response to match invoices endpoint format
+    const ordersWithDetails = results.map(order => {
+      const seller = accountsMap.get(order.sellerId)
+      const buyer = accountsMap.get(order.buyerId)
+
+      return {
+        id: order.id,
+        orderNo: order.orderNo,
+        qboDocNumber: order.qboDocNumber,
+        qboDocId: order.qboDocId,
+        orderDate: order.createdAt,
+        status: order.status,
+        sellerAccountId: order.sellerId,
+        sellerAccountName: seller?.name || 'Unknown',
+        sellerAccountCode: seller?.code || 'N/A',
+        buyerAccountId: order.buyerId,
+        buyerAccountName: buyer?.name || 'Unknown',
+        buyerAccountCode: buyer?.code || 'N/A',
+        totalAmount: parseFloat(order.totalAmount),
+        agentId: order.createdBy,
+        agentName: order.agentName || order.createdBy || 'Unknown',
+        lines: linesByOrderMap.get(order.id) || [],
+      }
+    })
+
+    return ordersWithDetails
   }
 
   async updateOrder(
@@ -262,12 +351,25 @@ export class OrdersService {
     data: {
       sellerId?: string
       buyerId?: string
+      sellerBillingAddressId?: string
+      sellerPickupAddressId?: string
+      buyerBillingAddressId?: string
+      buyerShippingAddressId?: string
+      isPickup?: boolean
+      agentUserId?: string
+      agentName?: string
+      brokerUserId?: string
+      brokerName?: string
       contractNo?: string
+      contractId?: string
       terms?: string
       notes?: string
+      memo?: string
+      palletCount?: number
       status?: string
       lines?: any[]
-    }
+    },
+    userId?: string
   ) {
     // Get current order
     const [current] = await db.select().from(orders).where(eq(orders.id, id))
@@ -280,6 +382,17 @@ export class OrdersService {
     if (current.status === 'paid') {
       throw new AppError('Cannot edit order - invoice has been paid in QuickBooks', 400)
     }
+
+    // Track what changed for activity log
+    const changes: string[] = []
+    if (data.sellerId && data.sellerId !== current.sellerId) changes.push('seller')
+    if (data.buyerId && data.buyerId !== current.buyerId) changes.push('buyer')
+    if (data.agentName && data.agentName !== current.agentName) changes.push('agent')
+    if (data.brokerName && data.brokerName !== current.brokerName) changes.push('broker')
+    if (data.terms && data.terms !== current.terms) changes.push('terms')
+    if (data.notes && data.notes !== current.notes) changes.push('notes')
+    if (data.status && data.status !== current.status) changes.push('status')
+    if (data.lines) changes.push('line items')
 
     // If lines are provided, recalculate totals
     let updateData: any = {
@@ -343,6 +456,23 @@ export class OrdersService {
       .returning()
 
     logger.info(`Updated order: ${updated.id}`)
+
+    // Log activity with changes
+    try {
+      const changeDescription = changes.length > 0
+        ? `Order ${updated.orderNo} updated: ${changes.join(', ')}`
+        : `Order ${updated.orderNo} updated`
+
+      await OrderActivityService.recordActivity({
+        orderId: id,
+        clerkUserId: userId,
+        activityType: 'order_updated',
+        description: changeDescription,
+      })
+    } catch (err) {
+      logger.error('Failed to log order update activity:', err)
+    }
+
     return this.getOrder(id)
   }
 
