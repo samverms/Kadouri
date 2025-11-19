@@ -64,7 +64,28 @@ export default function SettingsPage() {
 
   const handleQuickBooksConnect = async () => {
     const token = await getToken()
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/quickbooks/connect?token=${token}`
+    const connectUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/quickbooks/connect?token=${token}`
+
+    // Open in popup window
+    const width = 600
+    const height = 700
+    const left = window.screenX + (window.outerWidth - width) / 2
+    const top = window.screenY + (window.outerHeight - height) / 2
+
+    const popup = window.open(
+      connectUrl,
+      'QuickBooks Connect',
+      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+    )
+
+    // Poll for popup close to refresh status
+    const checkPopup = setInterval(() => {
+      if (popup && popup.closed) {
+        clearInterval(checkPopup)
+        // Refresh QuickBooks status after popup closes
+        fetchQuickBooksStatus()
+      }
+    }, 500)
   }
 
   const handleQuickBooksDisconnect = async () => {
