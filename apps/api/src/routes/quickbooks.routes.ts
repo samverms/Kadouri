@@ -93,6 +93,7 @@ router.get('/callback', async (req, res) => {
         refreshToken: authResponse.token.refresh_token,
         expiresAt,
         refreshTokenExpiresAt: refreshExpiresAt,
+        isActive: true, // Make sure to set isActive on update too
         updatedAt: new Date(),
       }
     })
