@@ -54,12 +54,29 @@ router.get('/connect', async (req, res) => {
 // OAuth callback
 router.get('/callback', async (req, res) => {
   try {
-    const parseRedirect = req.url
-    const authResponse = await qboClient.createToken(parseRedirect)
+    // Construct the full redirect URL using the configured redirect URI
+    // This is necessary because req.url only contains the path, not the full URL
+    const redirectUri = process.env.QBO_REDIRECT_URI || 'http://localhost:2000/api/quickbooks/callback'
+    const baseUrl = new URL(redirectUri)
+    const fullRedirectUrl = `${baseUrl.origin}${baseUrl.pathname}${req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`
+
+    console.log('QuickBooks callback received:', {
+      reqUrl: req.url,
+      fullRedirectUrl,
+      query: req.query
+    })
+
+    const authResponse = await qboClient.createToken(fullRedirectUrl)
 
     // Calculate token expiration times
     const expiresAt = new Date(Date.now() + authResponse.token.expires_in * 1000)
     const refreshExpiresAt = new Date(Date.now() + authResponse.token.x_refresh_token_expires_in * 1000)
+
+    console.log('QuickBooks token exchange successful:', {
+      realmId: authResponse.token.realmId,
+      expiresAt,
+      refreshExpiresAt
+    })
 
     // Store tokens in database
     await db.insert(quickbooksTokens).values({
@@ -79,6 +96,8 @@ router.get('/callback', async (req, res) => {
         updatedAt: new Date(),
       }
     })
+
+    console.log('QuickBooks token stored in database successfully')
 
     res.send(`
       <html>
