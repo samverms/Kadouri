@@ -87,6 +87,14 @@ router.get('/callback', async (req, res) => {
           <h1 style="color: #2ca01c;">✓ QuickBooks Connected Successfully!</h1>
           <p>You can now close this window and return to PACE CRM.</p>
           <p style="color: #666;">Company ID: ${authResponse.token.realmId}</p>
+          <script>
+            // Notify parent window of successful connection
+            if (window.opener) {
+              window.opener.postMessage({ type: 'QUICKBOOKS_CONNECTED', success: true }, '*');
+            }
+            // Auto-close after 2 seconds
+            setTimeout(() => window.close(), 2000);
+          </script>
         </body>
       </html>
     `)

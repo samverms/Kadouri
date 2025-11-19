@@ -36,6 +36,17 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetchQuickBooksStatus()
+
+    // Listen for postMessage from QuickBooks callback popup
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'QUICKBOOKS_CONNECTED' && event.data?.success) {
+        // Refresh status when connection succeeds
+        fetchQuickBooksStatus()
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
   }, [])
 
   const fetchQuickBooksStatus = async () => {
