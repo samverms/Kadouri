@@ -16,7 +16,9 @@
     "sourceMap": true,
     "typeRoots": ["./node_modules/@types", "./src/@types"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@pace/shared": ["./src/shared-copy"],
+      "@pace/shared/*": ["./src/shared-copy/*"]
     }
   },
   "include": ["src/**/*"],
