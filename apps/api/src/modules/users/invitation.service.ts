@@ -2,7 +2,7 @@ import crypto from 'crypto'
 import { db } from '../../db'
 import { userInvitations, users } from '../../db/schema'
 import { eq, and, gt, lt } from 'drizzle-orm'
-import { UserRole, UserInvitation, InvitationStatus } from '@pace/shared'
+import { UserRole, UserInvitation, InvitationStatus } from '../../shared-copy'
 import { clerkClient } from '@clerk/express'
 // TODO: Import email service when available
 // import { sendEmail } from '../../services/email/email-service'

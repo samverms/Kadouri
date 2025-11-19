@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import { ProductsService } from './products.service'
-import { createProductSchema, updateProductSchema } from '@pace/shared'
+import { createProductSchema, updateProductSchema } from '../../shared-copy'
 
 export class ProductsController {
   private productsService: ProductsService
