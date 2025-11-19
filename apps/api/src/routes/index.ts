@@ -39,12 +39,12 @@ router.use('/brokers', authenticate, brokersRouter)
 router.use('/agents', authenticate, agentsRouter)
 router.use('/search', authenticate, searchRouter)
 router.use('/users', authenticate, usersRouter)
+router.use('/quickbooks', quickbooksRouter) // QuickBooks OAuth and sync (has mixed auth)
+router.use('/webhooks/qbo', qboWebhookRouter) // QuickBooks webhooks (no auth)
 router.use('/', authenticate, rolesRouter) // Roles and permissions
 router.use('/', orderActivitiesRouter) // Order activities (has auth in routes)
 router.use('/invitations', invitationRouter) // Has its own auth per route
 // router.use('/pdf', authenticate, pdfRouter) // Disabled for Heroku (Puppeteer not supported)
-router.use('/quickbooks', quickbooksRouter) // QuickBooks OAuth and sync (has mixed auth)
-router.use('/webhooks/qbo', qboWebhookRouter) // QuickBooks webhooks (no auth)
 
 // TODO: Add these routes
 // router.use('/reports', authenticate, reportsRouter)
