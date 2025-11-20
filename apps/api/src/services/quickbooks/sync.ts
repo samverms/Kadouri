@@ -142,6 +142,9 @@ export class QuickBooksSync {
       throw new Error('Order not found')
     }
 
+    // Check if order is already synced to QB
+    const isUpdate = !!(order.qboDocId && order.qboDocType === docType)
+
     // Ensure buyer is synced
     const buyerQboId = await this.syncAccountToCustomer(order.buyerId)
 
@@ -153,7 +156,10 @@ export class QuickBooksSync {
       },
     })
 
-    // Ensure all products are synced
+    // Calculate correct total from order lines
+    const subtotal = orderLines.reduce((sum, line: any) => sum + parseFloat(line.lineTotal), 0)
+
+    // Ensure all products are synced and build line items
     const qboLines = await Promise.all(
       orderLines.map(async (line: any) => {
         const productQboId = await this.syncProductToItem(line.productId)
@@ -173,22 +179,6 @@ export class QuickBooksSync {
       })
     )
 
-    // Add commission line if needed
-    if (parseFloat(order.commissionTotal) > 0) {
-      qboLines.push({
-        Description: 'Commission',
-        Amount: parseFloat(order.commissionTotal),
-        DetailType: 'SalesItemLineDetail',
-        SalesItemLineDetail: {
-          ItemRef: {
-            value: '1', // Should be a commission service item
-          },
-          UnitPrice: parseFloat(order.commissionTotal),
-          Qty: 1,
-        },
-      })
-    }
-
     const txnDate = new Date().toISOString().split('T')[0]
 
     if (docType === 'invoice') {
@@ -198,10 +188,26 @@ export class QuickBooksSync {
           value: buyerQboId,
         },
         Line: qboLines,
-        PrivateNote: `Order #${order.orderNo}${order.contractNo ? ` | Contract: ${order.contractNo}` : ''}`,
+        PrivateNote: `Order #${order.orderNo}${order.contractNo ? ` | Contract: ${order.contractNo}` : ''}${order.commissionTotal ? ` | Commission: $${order.commissionTotal}` : ''}`,
       }
 
-      const qboInvoice = await this.qboClient.createInvoice(invoiceData)
+      let qboInvoice
+
+      if (isUpdate) {
+        // Update existing invoice
+        logger.info(`Updating existing QB invoice ${order.qboDocId} for order ${orderId}`)
+        const existingInvoice = await this.qboClient.getInvoice(order.qboDocId!)
+
+        qboInvoice = await this.qboClient.updateInvoice(order.qboDocId!, {
+          ...invoiceData,
+          Id: order.qboDocId,
+          SyncToken: existingInvoice.SyncToken,
+        })
+      } else {
+        // Create new invoice
+        logger.info(`Creating new QB invoice for order ${orderId}`)
+        qboInvoice = await this.qboClient.createInvoice(invoiceData)
+      }
 
       // Update order with QBO info
       await db
@@ -222,10 +228,26 @@ export class QuickBooksSync {
           value: buyerQboId,
         },
         Line: qboLines,
-        PrivateNote: `Order #${order.orderNo}${order.contractNo ? ` | Contract: ${order.contractNo}` : ''}`,
+        PrivateNote: `Order #${order.orderNo}${order.contractNo ? ` | Contract: ${order.contractNo}` : ''}${order.commissionTotal ? ` | Commission: $${order.commissionTotal}` : ''}`,
       }
 
-      const qboEstimate = await this.qboClient.createEstimate(estimateData)
+      let qboEstimate
+
+      if (isUpdate) {
+        // Update existing estimate
+        logger.info(`Updating existing QB estimate ${order.qboDocId} for order ${orderId}`)
+        const existingEstimate = await this.qboClient.getEstimate(order.qboDocId!)
+
+        qboEstimate = await this.qboClient.updateEstimate(order.qboDocId!, {
+          ...estimateData,
+          Id: order.qboDocId,
+          SyncToken: existingEstimate.SyncToken,
+        })
+      } else {
+        // Create new estimate
+        logger.info(`Creating new QB estimate for order ${orderId}`)
+        qboEstimate = await this.qboClient.createEstimate(estimateData)
+      }
 
       // Update order with QBO info
       await db

@@ -148,11 +148,12 @@ export class QuickBooksClient {
     }
   }
 
-  async updateInvoice(invoice: QBOInvoice): Promise<QBOInvoice> {
+  async updateInvoice(invoiceId: string, invoice: QBOInvoice): Promise<QBOInvoice> {
     try {
       const response = await this.axiosInstance.post('/invoice', invoice, {
         params: { operation: 'update' },
       })
+      logger.info(`Updated QBO invoice: ${invoiceId}`)
       return response.data.Invoice
     } catch (error: any) {
       logger.error('Failed to update QBO invoice:', error.message)
@@ -179,6 +180,19 @@ export class QuickBooksClient {
     } catch (error: any) {
       logger.error('Failed to create QBO estimate:', error.message)
       throw new AppError('Failed to create estimate in QuickBooks', 500)
+    }
+  }
+
+  async updateEstimate(estimateId: string, estimate: QBOEstimate): Promise<QBOEstimate> {
+    try {
+      const response = await this.axiosInstance.post('/estimate', estimate, {
+        params: { operation: 'update' },
+      })
+      logger.info(`Updated QBO estimate: ${estimateId}`)
+      return response.data.Estimate
+    } catch (error: any) {
+      logger.error('Failed to update QBO estimate:', error.message)
+      throw new AppError('Failed to update estimate in QuickBooks', 500)
     }
   }
 
@@ -213,7 +227,7 @@ export class QuickBooksClient {
         Id: invoiceId,
         SyncToken: syncToken,
         sparse: true,
-        PrivateNote: 'Invoice voided via PACE CRM'
+        PrivateNote: 'Invoice voided via Kadouri CRM'
       }
 
       const response = await this.axiosInstance.post(`/invoice?operation=void`, voidPayload, {
