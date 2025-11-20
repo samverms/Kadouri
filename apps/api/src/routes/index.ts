@@ -7,7 +7,7 @@ import { productsRouter } from '../modules/products/products.routes'
 import { ordersRouter } from '../modules/orders/orders.routes'
 import { invitationRouter } from '../modules/users/invitation.routes'
 import orderActivitiesRouter from '../modules/order-activities/order-activities.routes'
-// import pdfRouter from './pdf.routes' // Disabled for Heroku (Puppeteer not supported)
+import pdfRouter from './pdf.routes'
 import searchRouter from './search.routes'
 import rolesRouter from '../modules/roles/roles.routes'
 import invoicesRouter from '../modules/invoices/invoices.routes'
@@ -17,6 +17,7 @@ import quickbooksRouter from './quickbooks.routes'
 import qboWebhookRouter from './qbo-webhooks.routes'
 import brokersRouter from '../modules/brokers/brokers.routes'
 import agentsRouter from '../modules/agents/agents.routes'
+import outlookRouter from './outlook.routes'
 
 const router = Router()
 
@@ -40,11 +41,12 @@ router.use('/agents', authenticate, agentsRouter)
 router.use('/search', authenticate, searchRouter)
 router.use('/users', authenticate, usersRouter)
 router.use('/quickbooks', quickbooksRouter) // QuickBooks OAuth and sync (has mixed auth)
+router.use('/outlook', outlookRouter) // Office 365 OAuth (has mixed auth)
 router.use('/webhooks/qbo', qboWebhookRouter) // QuickBooks webhooks (no auth)
 router.use('/', authenticate, rolesRouter) // Roles and permissions
 router.use('/', orderActivitiesRouter) // Order activities (has auth in routes)
 router.use('/invitations', invitationRouter) // Has its own auth per route
-// router.use('/pdf', authenticate, pdfRouter) // Disabled for Heroku (Puppeteer not supported)
+router.use('/pdf', authenticate, pdfRouter) // PDF generation using PDFKit
 
 // TODO: Add these routes
 // router.use('/reports', authenticate, reportsRouter)

@@ -225,25 +225,35 @@ export default function OrderDetailPage() {
     phone: '',
   })
 
-  // Fetch accounts, products, agents/brokers, order data, and activities on mount
+  // Fetch ONLY the order on mount - everything else lazy loads
   useEffect(() => {
     const initializeData = async () => {
-      await Promise.all([
-        fetchAccounts(),
-        fetchProducts(),
-        fetchAgentsAndBrokers(),
-      ])
-      // Fetch order data after accounts, products, and agents are loaded
+      // Fetch only the order (includes seller, buyer, agent, broker, lines via JOIN)
       await fetchOrder()
-      await fetchActivities()
+      // Fetch activities in background (non-blocking)
+      fetchActivities()
     }
     initializeData()
   }, [orderId])
 
+  // Lazy load accounts when user interacts with seller/buyer fields
+  useEffect(() => {
+    if ((sellerCodeSearch || sellerNameSearch || buyerCodeSearch || buyerNameSearch) && accounts.length === 0) {
+      fetchAccounts()
+    }
+  }, [sellerCodeSearch, sellerNameSearch, buyerCodeSearch, buyerNameSearch])
+
+  // Lazy load products when user adds a line or focuses on product field
+  useEffect(() => {
+    if (orderLines.length > 0 && products.length === 0) {
+      fetchProducts()
+    }
+  }, [orderLines.length])
+
   const fetchAccounts = async () => {
     try {
       const token = await getToken()
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts?limit=10000`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts?limit=200`, {
         credentials: 'include',
         headers: {
           ...(token && { Authorization: `Bearer ${token}` }),
@@ -266,7 +276,7 @@ export default function OrderDetailPage() {
   const fetchProducts = async () => {
     try {
       const token = await getToken()
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products?includeInactive=false`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products?includeInactive=false&limit=500`, {
         credentials: 'include',
         headers: {
           ...(token && { Authorization: `Bearer ${token}` }),
@@ -291,35 +301,48 @@ export default function OrderDetailPage() {
   const fetchAgentsAndBrokers = async () => {
     try {
       const token = await getToken()
+      console.log('[EDIT PAGE] Token exists:', !!token)
+
+      if (!token) {
+        console.error('[EDIT PAGE] NO TOKEN - User may not be authenticated')
+        return { agents: [], brokers: [] }
+      }
+
       // Fetch agents
-      const agentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/agents`, {
-        credentials: 'include',
+      const agentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}/api/agents`, {
         headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
+          'Authorization': `Bearer ${token}`,
         },
       })
+      console.log('[EDIT PAGE] Agents response:', agentsResponse.status)
       let agentsData: Array<{ id: string; name: string; email: string }> = []
       if (agentsResponse.ok) {
         agentsData = await agentsResponse.json()
+        console.log('[EDIT PAGE] Agents:', agentsData)
         setAgents(agentsData)
+      } else {
+        console.error('[EDIT PAGE] Agents error:', await agentsResponse.text())
       }
 
       // Fetch brokers
-      const brokersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/brokers`, {
-        credentials: 'include',
+      const brokersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}/api/brokers`, {
         headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
+          'Authorization': `Bearer ${token}`,
         },
       })
+      console.log('[EDIT PAGE] Brokers response:', brokersResponse.status)
       let brokersData: Array<{ id: string; name: string; email: string }> = []
       if (brokersResponse.ok) {
         brokersData = await brokersResponse.json()
+        console.log('[EDIT PAGE] Brokers:', brokersData)
         setBrokers(brokersData)
+      } else {
+        console.error('[EDIT PAGE] Brokers error:', await brokersResponse.text())
       }
 
       return { agents: agentsData, brokers: brokersData }
     } catch (err) {
-      console.error('Fetch agents/brokers error:', err)
+      console.error('[EDIT PAGE] Error:', err)
       return { agents: [], brokers: [] }
     }
   }
@@ -363,97 +386,81 @@ export default function OrderDetailPage() {
         setOtherRemarks('')
       }
 
-      // Load seller account
-      if (orderData.sellerId) {
-        const sellerResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${orderData.sellerId}`, {
-          credentials: 'include',
-          headers: {
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-        })
-        if (sellerResponse.ok) {
-          const sellerData = await sellerResponse.json()
-          setSelectedSeller(sellerData)
-          setSellerCodeSearch(sellerData.code || '')
-          setSellerNameSearch(sellerData.name || '')
+      // Load seller account from JOIN data (already included in orderData)
+      if (orderData.seller) {
+        const sellerData = orderData.seller
+        setSelectedSeller(sellerData)
+        setSellerCodeSearch(sellerData.code || '')
+        setSellerNameSearch(sellerData.name || '')
 
-          // Set seller addresses - use saved address or auto-select first available
-          if (orderData.sellerBillingAddressId) {
-            const billingAddr = sellerData.addresses?.find((a: Address) => a.id === orderData.sellerBillingAddressId)
-            setSelectedSellerBillingAddress(billingAddr || null)
-          } else if (sellerData.addresses?.length > 0) {
-            setSelectedSellerBillingAddress(sellerData.addresses[0])
-          }
+        // Set seller addresses - use saved address or auto-select first available
+        if (orderData.sellerBillingAddressId) {
+          const billingAddr = sellerData.addresses?.find((a: Address) => a.id === orderData.sellerBillingAddressId)
+          setSelectedSellerBillingAddress(billingAddr || null)
+        } else if (sellerData.addresses?.length > 0) {
+          setSelectedSellerBillingAddress(sellerData.addresses[0])
+        }
 
-          if (orderData.sellerPickupAddressId) {
-            const pickupAddr = sellerData.addresses?.find((a: Address) => a.id === orderData.sellerPickupAddressId)
-            setSelectedSellerPickupAddress(pickupAddr || null)
-          } else if (sellerData.addresses?.length > 0) {
-            setSelectedSellerPickupAddress(sellerData.addresses[0])
-          }
+        if (orderData.sellerPickupAddressId) {
+          const pickupAddr = sellerData.addresses?.find((a: Address) => a.id === orderData.sellerPickupAddressId)
+          setSelectedSellerPickupAddress(pickupAddr || null)
+        } else if (sellerData.addresses?.length > 0) {
+          setSelectedSellerPickupAddress(sellerData.addresses[0])
+        }
 
-          // Set seller contact if available - auto-select first if none saved
-          if (orderData.sellerContactId) {
-            const contact = sellerData.contacts?.find((c: Contact) => c.id === orderData.sellerContactId)
-            setSelectedSellerContact(contact || null)
-          } else if (sellerData.contacts?.length > 0) {
-            setSelectedSellerContact(sellerData.contacts[0])
-          }
+        // Set seller contact if available - auto-select first if none saved
+        if (orderData.sellerContactId) {
+          const contact = sellerData.contacts?.find((c: Contact) => c.id === orderData.sellerContactId)
+          setSelectedSellerContact(contact || null)
+        } else if (sellerData.contacts?.length > 0) {
+          setSelectedSellerContact(sellerData.contacts[0])
         }
       }
 
-      // Load buyer account
-      if (orderData.buyerId) {
-        const buyerResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/accounts/${orderData.buyerId}`, {
-          credentials: 'include',
-          headers: {
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-        })
-        if (buyerResponse.ok) {
-          const buyerData = await buyerResponse.json()
-          setSelectedBuyer(buyerData)
-          setBuyerCodeSearch(buyerData.code || '')
-          setBuyerNameSearch(buyerData.name || '')
+      // Load buyer account from JOIN data (already included in orderData)
+      if (orderData.buyer) {
+        const buyerData = orderData.buyer
+        setSelectedBuyer(buyerData)
+        setBuyerCodeSearch(buyerData.code || '')
+        setBuyerNameSearch(buyerData.name || '')
 
-          // Set buyer addresses - use saved address or auto-select first available
-          if (orderData.buyerBillingAddressId) {
-            const billingAddr = buyerData.addresses?.find((a: Address) => a.id === orderData.buyerBillingAddressId)
-            setSelectedBuyerBillingAddress(billingAddr || null)
-          } else if (buyerData.addresses?.length > 0) {
-            setSelectedBuyerBillingAddress(buyerData.addresses[0])
-          }
+        // Set buyer addresses - use saved address or auto-select first available
+        if (orderData.buyerBillingAddressId) {
+          const billingAddr = buyerData.addresses?.find((a: Address) => a.id === orderData.buyerBillingAddressId)
+          setSelectedBuyerBillingAddress(billingAddr || null)
+        } else if (buyerData.addresses?.length > 0) {
+          setSelectedBuyerBillingAddress(buyerData.addresses[0])
+        }
 
-          if (orderData.buyerShippingAddressId) {
-            const shippingAddr = buyerData.addresses?.find((a: Address) => a.id === orderData.buyerShippingAddressId)
-            setSelectedBuyerShippingAddress(shippingAddr || null)
-          } else if (buyerData.addresses?.length > 0) {
-            setSelectedBuyerShippingAddress(buyerData.addresses[0])
-          }
+        if (orderData.buyerShippingAddressId) {
+          const shippingAddr = buyerData.addresses?.find((a: Address) => a.id === orderData.buyerShippingAddressId)
+          setSelectedBuyerShippingAddress(shippingAddr || null)
+        } else if (buyerData.addresses?.length > 0) {
+          setSelectedBuyerShippingAddress(buyerData.addresses[0])
+        }
 
-          // Set buyer contact if available - auto-select first if none saved
-          if (orderData.buyerContactId) {
-            const contact = buyerData.contacts?.find((c: Contact) => c.id === orderData.buyerContactId)
-            setSelectedBuyerContact(contact || null)
-          } else if (buyerData.contacts?.length > 0) {
-            setSelectedBuyerContact(buyerData.contacts[0])
-          }
+        // Set buyer contact if available - auto-select first if none saved
+        if (orderData.buyerContactId) {
+          const contact = buyerData.contacts?.find((c: Contact) => c.id === orderData.buyerContactId)
+          setSelectedBuyerContact(contact || null)
+        } else if (buyerData.contacts?.length > 0) {
+          setSelectedBuyerContact(buyerData.contacts[0])
         }
       }
 
       // Set agent
-      if (orderData.agentUserId) {
+      if (orderData.agent) {
         setSelectedAgent({
-          id: orderData.agentUserId,
-          name: orderData.agentName || '',
+          id: orderData.agent.id,
+          name: orderData.agent.name || '',
         })
       }
 
       // Set broker
-      if (orderData.brokerUserId) {
+      if (orderData.broker) {
         setSelectedBroker({
-          id: orderData.brokerUserId,
-          name: orderData.brokerName || '',
+          id: orderData.broker.id,
+          name: orderData.broker.name || '',
         })
       }
 
@@ -498,7 +505,7 @@ export default function OrderDetailPage() {
     try {
       setIsLoadingActivities(true)
       const token = await getToken()
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/orders/${orderId}/activities`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/orders/${orderId}/activities?limit=50`, {
         credentials: 'include',
         headers: {
           ...(token && { Authorization: `Bearer ${token}` }),
@@ -1137,10 +1144,8 @@ export default function OrderDetailPage() {
         buyerBillingAddressId: selectedBuyerBillingAddress?.id,
         buyerShippingAddressId: selectedBuyerShippingAddress?.id,
         isPickup,
-        agentUserId: selectedAgent?.id,
-        agentName: selectedAgent?.name,
-        brokerUserId: selectedBroker?.id,
-        brokerName: selectedBroker?.name,
+        agentId: selectedAgent?.id,
+        brokerId: selectedBroker?.id,
         palletCount: numPallets ? parseInt(numPallets) : undefined,
         terms: paymentTerms,
         notes: `${conditions}\n${otherRemarks}`.trim(),
@@ -1171,9 +1176,11 @@ export default function OrderDetailPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('Save failed:', errorData)
         throw new Error(errorData.error || 'Failed to update order')
       }
 
+      const savedOrder = await response.json()
       showToast('Order updated successfully', 'success')
       // Refresh activities after update
       fetchActivities()

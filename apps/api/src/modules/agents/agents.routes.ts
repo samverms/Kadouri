@@ -17,8 +17,13 @@ router.post('/', async (req, res, next) => {
 router.get('/', async (req, res, next) => {
   try {
     const agents = await agentsService.getAllAgents()
+    console.log('=== AGENTS API RESPONSE ===')
+    console.log('Total agents:', agents.length)
+    console.log('Agents data:', JSON.stringify(agents, null, 2))
+    console.log('===========================')
     res.json(agents)
   } catch (error) {
+    console.error('Error fetching agents:', error)
     next(error)
   }
 })

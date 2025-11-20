@@ -17,8 +17,13 @@ router.post('/', async (req, res, next) => {
 router.get('/', async (req, res, next) => {
   try {
     const brokers = await brokersService.getAllBrokers()
+    console.log('=== BROKERS API RESPONSE ===')
+    console.log('Total brokers:', brokers.length)
+    console.log('Brokers data:', JSON.stringify(brokers, null, 2))
+    console.log('============================')
     res.json(brokers)
   } catch (error) {
+    console.error('Error fetching brokers:', error)
     next(error)
   }
 })

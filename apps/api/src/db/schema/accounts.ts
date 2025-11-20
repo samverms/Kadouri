@@ -1,4 +1,5 @@
 import { pgTable, uuid, varchar, boolean, timestamp, text } from 'drizzle-orm/pg-core'
+import { relations } from 'drizzle-orm'
 
 export const accounts = pgTable('accounts', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -42,3 +43,27 @@ export const contacts = pgTable('contacts', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   updatedBy: varchar('updated_by', { length: 255 }), // Clerk user ID
 })
+
+// Relations
+export const accountsRelations = relations(accounts, ({ one, many }) => ({
+  parentAccount: one(accounts, {
+    fields: [accounts.parentAccountId],
+    references: [accounts.id],
+  }),
+  addresses: many(addresses),
+  contacts: many(contacts),
+}))
+
+export const addressesRelations = relations(addresses, ({ one }) => ({
+  account: one(accounts, {
+    fields: [addresses.accountId],
+    references: [accounts.id],
+  }),
+}))
+
+export const contactsRelations = relations(contacts, ({ one }) => ({
+  account: one(accounts, {
+    fields: [contacts.accountId],
+    references: [accounts.id],
+  }),
+}))

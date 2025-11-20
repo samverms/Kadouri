@@ -8,14 +8,32 @@ export class BrokersService {
   // Create broker and optionally associate with account
   async createBroker(data: {
     name: string
+    companyName?: string
     email?: string
     phone?: string
+    addressLine1?: string
+    addressLine2?: string
+    city?: string
+    state?: string
+    postalCode?: string
+    country?: string
+    active?: boolean
+    createdBy?: string
     accountId?: string // Optional: associate with account immediately
   }) {
     const [broker] = await db.insert(brokers).values({
       name: data.name,
+      companyName: data.companyName,
       email: data.email,
       phone: data.phone,
+      addressLine1: data.addressLine1,
+      addressLine2: data.addressLine2,
+      city: data.city,
+      state: data.state,
+      postalCode: data.postalCode,
+      country: data.country || 'US',
+      active: data.active !== undefined ? data.active : true,
+      createdBy: data.createdBy,
     }).returning()
 
     logger.info(`Created broker: ${broker.id} (${broker.name})`)
@@ -33,8 +51,8 @@ export class BrokersService {
   }
 
   // Get all brokers
-  async getAllBrokers() {
-    return await db.select().from(brokers)
+  async getAllBrokers(limit = 100) {
+    return await db.select().from(brokers).limit(limit)
   }
 
   // Get broker by ID
@@ -85,8 +103,16 @@ export class BrokersService {
   // Update broker
   async updateBroker(id: string, data: {
     name?: string
+    companyName?: string
     email?: string
     phone?: string
+    addressLine1?: string
+    addressLine2?: string
+    city?: string
+    state?: string
+    postalCode?: string
+    country?: string
+    active?: boolean
   }) {
     const [updated] = await db
       .update(brokers)

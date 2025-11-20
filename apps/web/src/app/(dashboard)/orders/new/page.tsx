@@ -250,31 +250,46 @@ export default function NewOrderPage() {
   const fetchAgentsAndBrokers = async () => {
     try {
       const token = await getToken()
+      console.log('[NEW ORDER] Token exists:', !!token)
+
+      if (!token) {
+        console.error('[NEW ORDER] NO TOKEN - User may not be authenticated')
+        return
+      }
+
       // Fetch agents
-      const agentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/agents`, {
-        credentials: 'include',
+      const agentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}/api/agents`, {
         headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
+          'Authorization': `Bearer ${token}`,
         },
       })
+      console.log('[NEW ORDER] Agents response:', agentsResponse.status)
+
       if (agentsResponse.ok) {
         const agentsData = await agentsResponse.json()
+        console.log('[NEW ORDER] Agents:', agentsData)
         setAgents(agentsData)
+      } else {
+        console.error('[NEW ORDER] Agents error:', await agentsResponse.text())
       }
 
       // Fetch brokers
-      const brokersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/brokers`, {
-        credentials: 'include',
+      const brokersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}/api/brokers`, {
         headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
+          'Authorization': `Bearer ${token}`,
         },
       })
+      console.log('[NEW ORDER] Brokers response:', brokersResponse.status)
+
       if (brokersResponse.ok) {
         const brokersData = await brokersResponse.json()
+        console.log('[NEW ORDER] Brokers:', brokersData)
         setBrokers(brokersData)
+      } else {
+        console.error('[NEW ORDER] Brokers error:', await brokersResponse.text())
       }
     } catch (err) {
-      console.error('Fetch agents/brokers error:', err)
+      console.error('[NEW ORDER] Error:', err)
     }
   }
 
