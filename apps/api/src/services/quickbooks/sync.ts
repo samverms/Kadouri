@@ -156,24 +156,40 @@ export class QuickBooksSync {
       },
     })
 
-    // Calculate correct total from order lines
-    const subtotal = orderLines.reduce((sum, line: any) => sum + parseFloat(line.lineTotal), 0)
+    // Calculate commission total from order lines (QB invoice tracks commission, not product sale)
+    const commissionTotal = orderLines.reduce((sum, line: any) => {
+      const commissionAmt = line.commissionAmt ? parseFloat(line.commissionAmt) : 0
+      return sum + commissionAmt
+    }, 0)
 
-    // Ensure all products are synced and build line items
+    // Build description format: "20 cases dates macerated 50# $.90/lbs pick up"
+    const deliveryMethod = order.isPickup ? 'pick up' : 'delivery'
+
+    // Ensure all products are synced and build line items for COMMISSION tracking
     const qboLines = await Promise.all(
       orderLines.map(async (line: any) => {
         const productQboId = await this.syncProductToItem(line.productId)
 
+        // Commission amount for this line
+        const lineCommission = line.commissionAmt ? parseFloat(line.commissionAmt) : 0
+
+        // Build description: "20 cases dates macerated 50# $.90/lbs pick up"
+        const packageType = line.packageType || 'units'
+        const productName = line.product.name || ''
+        const variety = line.product.variety || ''
+        const sizeGrade = line.sizeGrade || ''
+        const description = `${line.quantity} ${packageType} ${productName} ${variety} ${sizeGrade} $${line.unitPrice}/${line.uom} ${deliveryMethod}`.trim()
+
         return {
-          Description: `${line.product.name} - ${line.sizeGrade || ''} (${line.quantity} ${line.uom})`,
-          Amount: parseFloat(line.lineTotal),
+          Description: description,
+          Amount: lineCommission, // Commission amount, not line total
           DetailType: 'SalesItemLineDetail' as const,
           SalesItemLineDetail: {
             ItemRef: {
               value: productQboId,
             },
-            UnitPrice: parseFloat(line.unitPrice),
-            Qty: parseFloat(line.quantity),
+            UnitPrice: parseFloat(line.unitPrice), // Price per lb
+            Qty: parseFloat(line.quantity), // Quantity in lbs
           },
         }
       })
@@ -188,7 +204,7 @@ export class QuickBooksSync {
           value: buyerQboId,
         },
         Line: qboLines,
-        PrivateNote: `Order #${order.orderNo}${order.contractNo ? ` | Contract: ${order.contractNo}` : ''}${order.commissionTotal ? ` | Commission: $${order.commissionTotal}` : ''}`,
+        PrivateNote: `Order #${order.orderNo}${order.contractNo ? ` | Contract: ${order.contractNo}` : ''} | Total Commission: $${commissionTotal.toFixed(2)}`,
       }
 
       let qboInvoice
@@ -241,7 +257,7 @@ export class QuickBooksSync {
           value: buyerQboId,
         },
         Line: qboLines,
-        PrivateNote: `Order #${order.orderNo}${order.contractNo ? ` | Contract: ${order.contractNo}` : ''}${order.commissionTotal ? ` | Commission: $${order.commissionTotal}` : ''}`,
+        PrivateNote: `Order #${order.orderNo}${order.contractNo ? ` | Contract: ${order.contractNo}` : ''} | Total Commission: $${commissionTotal.toFixed(2)}`,
       }
 
       let qboEstimate
