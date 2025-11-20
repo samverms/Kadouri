@@ -2,11 +2,31 @@
   "name": "kadouri-crm",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "npm@10.9.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "engines": {
     "node": "20.x",
     "npm": "10.x"
   },
   "scripts": {
-    "heroku-postbuild": "if [ \"$APP_TYPE\" = \"api\" ]; then cd packages/shared && npm install --include=dev && npm run build && cd ../../apps/api && npm install && npm run build; elif [ \"$APP_TYPE\" = \"web\" ]; then cd packages/shared && npm install --include=dev && npm run build && cd ../../apps/web && npm ci --legacy-peer-deps --include=dev && npm run build; else echo 'APP_TYPE not set'; fi"
+    "dev": "turbo run dev --parallel",
+    "dev:admin": "turbo run dev --filter=web --filter=api --parallel",
+    "dev:sales": "turbo run dev --filter=sales --filter=api --parallel",
+    "build": "turbo run build",
+    "build:admin": "turbo run build --filter=web",
+    "build:sales": "turbo run build --filter=sales",
+    "build:docs": "cd docs && npm run build:web && npm run build:sales",
+    "build:docs:web": "cd docs && npm run build:web",
+    "build:docs:sales": "cd docs && npm run build:sales",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "heroku-postbuild": "if [ \"$APP_TYPE\" = \"api\" ]; then cd packages/shared && npm install --include=dev && npm run build && cd ../../apps/api && npm install && npm run build; elif [ \"$APP_TYPE\" = \"web\" ]; then cd packages/shared && npm install --include=dev && npm run build && cd ../../apps/web && npm install --legacy-peer-deps --include=dev && npm run build; else echo 'APP_TYPE not set'; fi"
+  },
+  "devDependencies": {
+    "turbo": "^2.6.1"
   }
 }
