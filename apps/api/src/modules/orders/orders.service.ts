@@ -1,5 +1,5 @@
 import { db } from '../../db'
-import { orders, orderLines, accounts, products } from '../../db/schema'
+import { orders, orderLines, accounts, products, agents, brokers } from '../../db/schema'
 import { eq, desc, ilike, or, inArray } from 'drizzle-orm'
 import { AppError } from '../../middleware/error-handler'
 import { logger } from '../../utils/logger'
@@ -55,10 +55,8 @@ export class OrdersService {
       buyerBillingAddressId?: string
       buyerShippingAddressId?: string
       isPickup?: boolean
-      agentUserId?: string
-      agentName?: string
-      brokerUserId?: string
-      brokerName?: string
+      agentId?: string
+      brokerId?: string
       contractNo?: string
       contractId?: string
       contractDrawQuantity?: number
@@ -103,10 +101,8 @@ export class OrdersService {
         buyerBillingAddressId: data.buyerBillingAddressId,
         buyerShippingAddressId: data.buyerShippingAddressId,
         isPickup: data.isPickup || false,
-        agentUserId: data.agentUserId,
-        agentName: data.agentName,
-        brokerUserId: data.brokerUserId,
-        brokerName: data.brokerName,
+        agentId: data.agentId,
+        brokerId: data.brokerId,
         contractId: data.contractId,
         contractNo: data.contractNo,
         terms: data.terms,
@@ -190,8 +186,20 @@ export class OrdersService {
     const order = await db.query.orders.findFirst({
       where: eq(orders.id, id),
       with: {
-        seller: true,
-        buyer: true,
+        seller: {
+          with: {
+            addresses: true,
+            contacts: true,
+          },
+        },
+        buyer: {
+          with: {
+            addresses: true,
+            contacts: true,
+          },
+        },
+        agent: true,
+        broker: true,
         sellerBillingAddress: true,
         sellerPickupAddress: true,
         buyerBillingAddress: true,
@@ -272,16 +280,26 @@ export class OrdersService {
 
     // Get all related data
     const orderIds = results.map(o => o.id)
-    const sellerIds = [...new Set(results.map(o => o.sellerId).filter(Boolean))]
-    const buyerIds = [...new Set(results.map(o => o.buyerId).filter(Boolean))]
+    const sellerIds = [...new Set(results.map(o => o.sellerId).filter(Boolean) as string[])]
+    const buyerIds = [...new Set(results.map(o => o.buyerId).filter(Boolean) as string[])]
     const accountIds = [...new Set([...sellerIds, ...buyerIds])]
 
-    const [allAccounts, allLines] = await Promise.all([
+    // Filter out null/undefined agent and broker IDs
+    const agentIds = [...new Set(results.map(o => o.agentId).filter(Boolean) as string[])]
+    const brokerIds = [...new Set(results.map(o => o.brokerId).filter(Boolean) as string[])]
+
+    const [allAccounts, allLines, allAgents, allBrokers] = await Promise.all([
       accountIds.length > 0
         ? db.select().from(accounts).where(inArray(accounts.id, accountIds))
         : Promise.resolve([]),
       orderIds.length > 0
         ? db.select().from(orderLines).where(inArray(orderLines.orderId, orderIds))
+        : Promise.resolve([]),
+      agentIds.length > 0
+        ? db.select().from(agents).where(inArray(agents.id, agentIds))
+        : Promise.resolve([]),
+      brokerIds.length > 0
+        ? db.select().from(brokers).where(inArray(brokers.id, brokerIds))
         : Promise.resolve([])
     ])
 
@@ -294,6 +312,8 @@ export class OrdersService {
     // Build lookup maps
     const accountsMap = new Map(allAccounts.map(a => [a.id, a]))
     const productsMap = new Map(allProducts.map(p => [p.id, p]))
+    const agentsMap = new Map(allAgents.map(a => [a.id, a]))
+    const brokersMap = new Map(allBrokers.map(b => [b.id, b]))
     const linesByOrderMap = new Map<string, any[]>()
 
     allLines.forEach(line => {
@@ -322,6 +342,8 @@ export class OrdersService {
     const ordersWithDetails = results.map(order => {
       const seller = accountsMap.get(order.sellerId)
       const buyer = accountsMap.get(order.buyerId)
+      const agent = order.agentId ? agentsMap.get(order.agentId) : null
+      const broker = order.brokerId ? brokersMap.get(order.brokerId) : null
 
       return {
         id: order.id,
@@ -337,8 +359,10 @@ export class OrdersService {
         buyerAccountName: buyer?.name || 'Unknown',
         buyerAccountCode: buyer?.code || 'N/A',
         totalAmount: parseFloat(order.totalAmount),
-        agentId: order.createdBy,
-        agentName: order.agentName || order.createdBy || 'Unknown',
+        agentId: order.agentId,
+        agentName: agent?.name || '',
+        brokerId: order.brokerId,
+        brokerName: broker?.name || '',
         lines: linesByOrderMap.get(order.id) || [],
       }
     })
@@ -356,10 +380,8 @@ export class OrdersService {
       buyerBillingAddressId?: string
       buyerShippingAddressId?: string
       isPickup?: boolean
-      agentUserId?: string
-      agentName?: string
-      brokerUserId?: string
-      brokerName?: string
+      agentId?: string
+      brokerId?: string
       contractNo?: string
       contractId?: string
       terms?: string
@@ -387,8 +409,8 @@ export class OrdersService {
     const changes: string[] = []
     if (data.sellerId && data.sellerId !== current.sellerId) changes.push('seller')
     if (data.buyerId && data.buyerId !== current.buyerId) changes.push('buyer')
-    if (data.agentName && data.agentName !== current.agentName) changes.push('agent')
-    if (data.brokerName && data.brokerName !== current.brokerName) changes.push('broker')
+    if (data.agentId !== undefined && data.agentId !== current.agentId) changes.push('agent')
+    if (data.brokerId !== undefined && data.brokerId !== current.brokerId) changes.push('broker')
     if (data.terms && data.terms !== current.terms) changes.push('terms')
     if (data.notes && data.notes !== current.notes) changes.push('notes')
     if (data.status && data.status !== current.status) changes.push('status')

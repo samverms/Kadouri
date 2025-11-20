@@ -3,6 +3,8 @@ import { relations } from 'drizzle-orm'
 import { accounts, addresses } from './accounts'
 import { products } from './products'
 import { productVariants } from './product-variants'
+import { agents } from './agents'
+import { brokers } from './brokers'
 
 export const orders = pgTable('orders', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -19,13 +21,16 @@ export const orders = pgTable('orders', {
   // Pickup flag
   isPickup: boolean('is_pickup').notNull().default(false), // If true, buyer picks up (no shipping address needed)
 
-  // Agent and Broker
-  agentUserId: varchar('agent_user_id', { length: 255 }), // Clerk user ID
-  agentName: varchar('agent_name', { length: 255 }), // Denormalized for PDFs/display
-  brokerUserId: varchar('broker_user_id', { length: 255 }), // Clerk user ID (optional)
-  brokerName: varchar('broker_name', { length: 255 }), // Denormalized for PDFs/display
+  // Agent and Broker references
+  agentId: uuid('agent_id').references(() => agents.id),
+  brokerId: uuid('broker_id').references(() => brokers.id),
 
-  salesAgentId: varchar('sales_agent_id', { length: 255 }), // Clerk user ID of the sales agent (DEPRECATED - use agentUserId)
+  // DEPRECATED fields - kept for backward compatibility during migration
+  agentUserId: varchar('agent_user_id', { length: 255 }),
+  agentName: varchar('agent_name', { length: 255 }),
+  brokerUserId: varchar('broker_user_id', { length: 255 }),
+  brokerName: varchar('broker_name', { length: 255 }),
+  salesAgentId: varchar('sales_agent_id', { length: 255 }),
   status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, confirmed, posted_to_qb, paid
   contractId: uuid('contract_id'), // Link to contracts table (if this order is a contract draw)
   contractNo: varchar('contract_no', { length: 100 }),
@@ -83,6 +88,14 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
   buyer: one(accounts, {
     fields: [orders.buyerId],
     references: [accounts.id],
+  }),
+  agent: one(agents, {
+    fields: [orders.agentId],
+    references: [agents.id],
+  }),
+  broker: one(brokers, {
+    fields: [orders.brokerId],
+    references: [brokers.id],
   }),
   sellerBillingAddress: one(addresses, {
     fields: [orders.sellerBillingAddressId],
