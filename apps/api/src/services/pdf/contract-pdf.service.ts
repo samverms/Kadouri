@@ -1,7 +1,7 @@
 import PDFDocument from 'pdfkit'
 import { db } from '../../db'
-import { contracts, accounts, products } from '../../db/schema'
-import { eq } from 'drizzle-orm'
+import { contracts, accounts, products, addresses } from '../../db/schema'
+import { eq, and } from 'drizzle-orm'
 import path from 'path'
 import fs from 'fs'
 
@@ -35,16 +35,40 @@ export class ContractPDFService {
       throw new Error('Contract not found')
     }
 
-    // Fetch seller with address
+    // Fetch seller with primary address
     const [seller] = await db
-      .select()
+      .select({
+        id: accounts.id,
+        name: accounts.name,
+        addressLine1: addresses.line1,
+        addressLine2: addresses.line2,
+        city: addresses.city,
+        state: addresses.state,
+        postalCode: addresses.postalCode,
+      })
       .from(accounts)
+      .leftJoin(addresses, and(
+        eq(addresses.accountId, accounts.id),
+        eq(addresses.isPrimary, true)
+      ))
       .where(eq(accounts.id, contract.sellerId))
 
-    // Fetch buyer with address
+    // Fetch buyer with primary address
     const [buyer] = await db
-      .select()
+      .select({
+        id: accounts.id,
+        name: accounts.name,
+        addressLine1: addresses.line1,
+        addressLine2: addresses.line2,
+        city: addresses.city,
+        state: addresses.state,
+        postalCode: addresses.postalCode,
+      })
       .from(accounts)
+      .leftJoin(addresses, and(
+        eq(addresses.accountId, accounts.id),
+        eq(addresses.isPrimary, true)
+      ))
       .where(eq(accounts.id, contract.buyerId))
 
     // Fetch product
@@ -126,16 +150,22 @@ export class ContractPDFService {
           .text(seller?.name || 'N/A', leftColX, topY + 15, { width: 200 })
 
         // Seller address
-        if (seller?.address) {
+        let sellerY = doc.y + 5
+        if (seller?.addressLine1) {
           doc
             .fontSize(9)
-            .text(seller.address, leftColX, doc.y + 5, { width: 200 })
+            .text(seller.addressLine1, leftColX, sellerY, { width: 200 })
+          sellerY = doc.y
         }
-        if (seller?.city || seller?.state || seller?.zip) {
+        if (seller?.addressLine2) {
+          doc.text(seller.addressLine2, leftColX, sellerY, { width: 200 })
+          sellerY = doc.y
+        }
+        if (seller?.city || seller?.state || seller?.postalCode) {
           doc.text(
-            `${seller?.city || ''}, ${seller?.state || ''} ${seller?.zip || ''}`.trim(),
+            `${seller?.city || ''}, ${seller?.state || ''} ${seller?.postalCode || ''}`.trim(),
             leftColX,
-            doc.y,
+            sellerY,
             { width: 200 }
           )
         }
@@ -147,16 +177,22 @@ export class ContractPDFService {
           .text(buyer?.name || 'N/A', rightColX, topY + 15, { width: 200 })
 
         // Buyer address
-        if (buyer?.address) {
+        let buyerY = topY + 30
+        if (buyer?.addressLine1) {
           doc
             .fontSize(9)
-            .text(buyer.address, rightColX, topY + 30, { width: 200 })
+            .text(buyer.addressLine1, rightColX, buyerY, { width: 200 })
+          buyerY = doc.y
         }
-        if (buyer?.city || buyer?.state || buyer?.zip) {
+        if (buyer?.addressLine2) {
+          doc.text(buyer.addressLine2, rightColX, buyerY, { width: 200 })
+          buyerY = doc.y
+        }
+        if (buyer?.city || buyer?.state || buyer?.postalCode) {
           doc.text(
-            `${buyer?.city || ''}, ${buyer?.state || ''} ${buyer?.zip || ''}`.trim(),
+            `${buyer?.city || ''}, ${buyer?.state || ''} ${buyer?.postalCode || ''}`.trim(),
             rightColX,
-            topY + 45,
+            buyerY,
             { width: 200 }
           )
         }
