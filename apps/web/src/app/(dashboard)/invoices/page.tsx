@@ -617,6 +617,11 @@ export default function InvoicesPage() {
     const isOpen = openColumnMenu === column
     const filterValue = columnFilters[column as keyof typeof columnFilters] || ''
 
+    // Check if this column has an active filter
+    const hasFilter = column === 'date'
+      ? (dateRangeStart !== null || dateRangeEnd !== null)
+      : filterValue !== ''
+
     return (
       <div className="relative inline-block" ref={isOpen ? columnMenuRef : null}>
         <button
@@ -624,44 +629,99 @@ export default function InvoicesPage() {
             e.stopPropagation()
             setOpenColumnMenu(isOpen ? null : column)
           }}
-          className="p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-          title="Column menu"
+          className={`p-0.5 rounded ${
+            hasFilter
+              ? 'text-blue-600 bg-blue-100 hover:bg-blue-200'
+              : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+          }`}
+          title={hasFilter ? "Filtered - Click to edit" : "Column menu"}
         >
-          <Menu className="h-3 w-3" />
+          {hasFilter ? <FilterX className="h-3 w-3" /> : <Menu className="h-3 w-3" />}
         </button>
 
         {isOpen && (
           <div
-            className="absolute left-0 top-full mt-1 w-56 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
+            className={`absolute left-0 top-full mt-1 ${column === 'date' ? 'min-w-[500px] max-w-[min(600px,calc(100vw-2rem))] max-h-[80vh] overflow-auto' : 'w-56'} bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50`}
             onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
           >
             <div className="p-3 space-y-2">
-              {/* Filter input */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Filter</label>
-                {column === 'status' ? (
-                  <select
-                    value={filterValue}
-                    onChange={(e) => handleColumnFilterChange(column, e.target.value)}
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    autoFocus
-                  >
-                    <option value="">All</option>
-                    <option value="paid">Paid</option>
-                    <option value="posted_to_qb">Posted to QB</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="draft">Draft</option>
-                  </select>
-                ) : (
-                  <Input
-                    placeholder={`Filter ${label.toLowerCase()}...`}
-                    value={filterValue}
-                    onChange={(e) => handleColumnFilterChange(column, e.target.value)}
-                    className="text-sm h-8"
-                    autoFocus
-                  />
-                )}
-              </div>
+              {/* Date column special filter */}
+              {column === 'date' ? (
+                <>
+                  <label className="block text-xs font-medium text-teal-700 dark:text-teal-300 mb-1">Quick Presets</label>
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => setDatePreset('today')}
+                      className="w-full px-2 py-1.5 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-700 dark:hover:text-teal-300 rounded transition-colors"
+                    >
+                      Today
+                    </button>
+                    <button
+                      onClick={() => setDatePreset('thisWeek')}
+                      className="w-full px-2 py-1.5 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-700 dark:hover:text-teal-300 rounded transition-colors"
+                    >
+                      This Week
+                    </button>
+                    <button
+                      onClick={() => setDatePreset('thisMonth')}
+                      className="w-full px-2 py-1.5 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-700 dark:hover:text-teal-300 rounded transition-colors"
+                    >
+                      This Month
+                    </button>
+                    <button
+                      onClick={() => setDatePreset('thisQuarter')}
+                      className="w-full px-2 py-1.5 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-700 dark:hover:text-teal-300 rounded transition-colors"
+                    >
+                      This Quarter
+                    </button>
+                    <button
+                      onClick={() => setDatePreset('thisYear')}
+                      className="w-full px-2 py-1.5 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-700 dark:hover:text-teal-300 rounded transition-colors"
+                    >
+                      This Year
+                    </button>
+                  </div>
+                  <div className="border-t border-teal-200 dark:border-teal-700 pt-2 mt-2">
+                    <label className="block text-xs font-medium text-teal-700 dark:text-teal-300 mb-2">Custom Range</label>
+                    <DateRangePicker
+                      startDate={dateRangeStart}
+                      endDate={dateRangeEnd}
+                      onStartDateChange={setDateRangeStart}
+                      onEndDateChange={setDateRangeEnd}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Filter input for other columns */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Filter</label>
+                    {column === 'status' ? (
+                      <select
+                        value={filterValue}
+                        onChange={(e) => handleColumnFilterChange(column, e.target.value)}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        autoFocus
+                      >
+                        <option value="">All</option>
+                        <option value="paid">Paid</option>
+                        <option value="posted_to_qb">Posted to QB</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="draft">Draft</option>
+                      </select>
+                    ) : (
+                      <Input
+                        placeholder={`Filter ${label.toLowerCase()}...`}
+                        value={filterValue}
+                        onChange={(e) => handleColumnFilterChange(column, e.target.value)}
+                        className="text-sm h-8"
+                        autoFocus
+                      />
+                    )}
+                  </div>
+                </>
+              )}
 
               {/* Sort options */}
               <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
