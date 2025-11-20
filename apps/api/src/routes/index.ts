@@ -7,7 +7,7 @@ import { productsRouter } from '../modules/products/products.routes'
 import { ordersRouter } from '../modules/orders/orders.routes'
 import { invitationRouter } from '../modules/users/invitation.routes'
 import orderActivitiesRouter from '../modules/order-activities/order-activities.routes'
-// import pdfRouter from './pdf.routes' // Temporarily disabled for Heroku deployment
+import pdfRouter from './pdf.routes'
 import searchRouter from './search.routes'
 import rolesRouter from '../modules/roles/roles.routes'
 import invoicesRouter from '../modules/invoices/invoices.routes'
@@ -46,7 +46,7 @@ router.use('/webhooks/qbo', qboWebhookRouter) // QuickBooks webhooks (no auth)
 router.use('/', authenticate, rolesRouter) // Roles and permissions
 router.use('/', orderActivitiesRouter) // Order activities (has auth in routes)
 router.use('/invitations', invitationRouter) // Has its own auth per route
-// router.use('/pdf', authenticate, pdfRouter) // PDF generation using PDFKit - Temporarily disabled for Heroku
+router.use('/pdf', authenticate, pdfRouter) // PDF generation using PDFKit (Heroku compatible)
 
 // TODO: Add these routes
 // router.use('/reports', authenticate, reportsRouter)
