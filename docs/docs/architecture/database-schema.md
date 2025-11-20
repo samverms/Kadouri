@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Database Schema
 
-Complete reference for PACE CRM PostgreSQL database schema.
+Complete reference for Kadouri CRM PostgreSQL database schema.
 
 ## Overview
 
@@ -270,7 +270,7 @@ Visit: http://localhost:4983
 Direct PostgreSQL access:
 
 ```bash
-psql pace_crm
+psql Kadouri_crm
 ```
 
 ## Best Practices

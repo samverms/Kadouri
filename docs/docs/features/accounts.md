@@ -4,11 +4,11 @@ sidebar_position: 1
 
 # Accounts Management
 
-The Accounts module in PACE CRM allows you to manage both sellers (vendors) and buyers (customers) in a unified system. Each account can have multiple contacts, addresses, and associated orders.
+The Accounts module in Kadouri CRM allows you to manage both sellers (vendors) and buyers (customers) in a unified system. Each account can have multiple contacts, addresses, and associated orders.
 
 ## Overview
 
-Accounts are the core entities in PACE CRM, representing businesses you buy from (sellers) or sell to (buyers). The system supports:
+Accounts are the core entities in Kadouri CRM, representing businesses you buy from (sellers) or sell to (buyers). The system supports:
 
 - **Account Types**: Buyer, Seller, or Both
 - **Multiple Contacts**: Track multiple people within each account

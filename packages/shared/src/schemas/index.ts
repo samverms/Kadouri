@@ -183,3 +183,65 @@ export const customerHistoryFilters = z.object({
   to: z.string().datetime().optional(),
   productId: z.string().uuid().optional(),
 })
+
+// Agent schemas
+export const createAgentSchema = z.object({
+  name: z.string().min(1),
+  companyName: z.string().optional(),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  addressLine1: z.string().optional(),
+  addressLine2: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  postalCode: z.string().optional(),
+  country: z.string().default('US'),
+  active: z.boolean().default(true),
+  createdBy: z.string().optional(),
+  accountId: z.string().uuid().optional(), // Optional: associate with account immediately
+})
+
+export const updateAgentSchema = z.object({
+  name: z.string().min(1).optional(),
+  companyName: z.string().optional(),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  addressLine1: z.string().optional(),
+  addressLine2: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  postalCode: z.string().optional(),
+  country: z.string().optional(),
+  active: z.boolean().optional(),
+})
+
+// Broker schemas
+export const createBrokerSchema = z.object({
+  name: z.string().min(1),
+  companyName: z.string().optional(),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  addressLine1: z.string().optional(),
+  addressLine2: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  postalCode: z.string().optional(),
+  country: z.string().default('US'),
+  active: z.boolean().default(true),
+  createdBy: z.string().optional(),
+  accountId: z.string().uuid().optional(), // Optional: associate with account immediately
+})
+
+export const updateBrokerSchema = z.object({
+  name: z.string().min(1).optional(),
+  companyName: z.string().optional(),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  addressLine1: z.string().optional(),
+  addressLine2: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  postalCode: z.string().optional(),
+  country: z.string().optional(),
+  active: z.boolean().optional(),
+})

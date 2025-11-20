@@ -7,7 +7,7 @@ import { Providers } from '@/components/providers'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'PACE CRM - Order Management',
+  title: 'Kadouri CRM - Order Management',
   description: 'QuickBooks integrated order management system',
   icons: {
     icon: [

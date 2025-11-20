@@ -6,6 +6,8 @@
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
     "build": "docusaurus build",
+    "build:web": "docusaurus build --out-dir ../apps/web/public/help",
+    "build:sales": "docusaurus build --out-dir ../apps/sales/public/help",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",

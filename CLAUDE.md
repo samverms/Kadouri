@@ -110,12 +110,46 @@ Key patterns:
 
 Sync flow: Local entity → Check if synced → Find/Create in QBO → Store mapping in `syncMaps`
 
-### Email Service
+### Email Service & Office 365 Integration
 **Location**: `apps/api/src/services/email/`
 - **email-service.ts**: Email sending service with template support
 - **outlook-client.ts**: Microsoft Outlook integration for sending emails
 - Supports HTML templates and attachments
 - Email tracking stored in `emails` table
+
+**Office 365 OAuth Integration**:
+Users can connect their Office 365 accounts to send emails directly from Kadouri CRM using their own email address.
+
+**Implementation**:
+- **Backend Routes**: `apps/api/src/routes/outlook.routes.ts`
+  - `GET /api/outlook/status` - Get user's connection status (authenticated)
+  - `GET /api/outlook/connect` - Initiate OAuth flow (authenticated)
+  - `GET /api/outlook/callback` - OAuth callback handler (public)
+  - `DELETE /api/outlook/disconnect` - Disconnect account (authenticated)
+- **Frontend Component**: `apps/web/src/components/outlook-connection-card.tsx`
+  - Connection status display with email and expiry date
+  - Connect/Disconnect buttons
+  - Token expiration warnings
+- **Database**: `outlookTokens` table stores access tokens, refresh tokens, and expiry linked to Clerk user ID
+- **UI Location**: Settings page → Email tab → Office 365 Integration section
+
+**Setup Requirements**:
+1. Create Azure AD App Registration at https://portal.azure.com
+2. Configure redirect URI: `http://localhost:2000/api/outlook/callback` (dev) or your production URL
+3. Add API permissions: `Mail.Send`, `User.Read`, `offline_access`
+4. Set environment variables:
+   - `MICROSOFT_CLIENT_ID` - Azure AD application client ID
+   - `MICROSOFT_CLIENT_SECRET` - Azure AD application client secret
+   - `MICROSOFT_REDIRECT_URI` - OAuth callback URL
+   - `MICROSOFT_TENANT_ID` - Usually 'common' for multi-tenant
+
+**OAuth Flow**:
+1. User clicks "Connect Office 365" in settings
+2. Opens OAuth consent in popup window
+3. User authenticates with Microsoft and grants permissions
+4. Callback stores tokens in database linked to Clerk user ID
+5. Tokens auto-refresh when expired (90-day refresh token validity)
+6. User can disconnect at any time to revoke access
 
 ### Module Structure (Backend)
 Domain modules are located in `apps/api/src/modules/[domain]/` and follow this pattern:
@@ -187,45 +221,54 @@ Both `apps/web` and `apps/sales` share the same architecture:
 - **schemas/**: Zod validation schemas (reused for API validation and forms)
 - **constants/**: Enums, config constants
 
-Import from apps: `import { ... } from '@pace/shared'`
+Import from apps: `import { ... } from '@kadouri/shared'`
 
 ## Environment Setup
 
 ### Required Services
-1. PostgreSQL 14+ (local or cloud)
-2. Redis 7+ (for caching/BullMQ)
-3. AWS S3 bucket (for PDF storage)
-4. QuickBooks Developer Account (sandbox/production)
+1. **Node.js 20.x** (specified in package.json engines)
+2. PostgreSQL 14+ (local or cloud)
+3. Redis 7+ (for caching/BullMQ)
+4. AWS S3 bucket (for PDF storage)
+5. QuickBooks Developer Account (sandbox/production)
+6. Clerk account (authentication service)
+7. Azure AD App Registration (optional, for Office 365 email integration)
 
 ### Environment Files
 Copy and configure:
 - `apps/web/.env.example` → `apps/web/.env.local`
+- `apps/sales/.env.example` → `apps/sales/.env.local`
 - `apps/api/.env.example` → `apps/api/.env`
 
 Critical variables:
 - **Database**: `DATABASE_URL` (PostgreSQL connection string)
 - **Redis**: `REDIS_URL`
-- **Clerk**: Keys for both apps
+- **Clerk**: `CLERK_SECRET_KEY`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_PUBLISHABLE_KEY`
 - **QuickBooks**: `QBO_CLIENT_ID`, `QBO_CLIENT_SECRET`, `QBO_REDIRECT_URI`, `QBO_ENVIRONMENT`
 - **AWS**: `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_BUCKET`
+- **Office 365** (optional): `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_REDIRECT_URI` - For email sending functionality
 
 ### First-Time Setup
 ```bash
-# 1. Install dependencies
+# 1. Verify Node.js version
+node --version  # Should be v20.x
+
+# 2. Install dependencies
 npm install
 
-# 2. Set up environment files
+# 3. Set up environment files
 # Copy apps/web/.env.example to apps/web/.env.local and configure
+# Copy apps/sales/.env.example to apps/sales/.env.local and configure
 # Copy apps/api/.env.example to apps/api/.env and configure
 
-# 3. Set up database
+# 4. Set up database
 cd apps/api
 npm run migration:run          # Run database migrations
 npx tsx src/db/seed.ts        # Seed initial data (optional)
 npx tsx src/db/seed-roles.ts  # Seed RBAC roles and permissions (required for RBAC)
 cd ../..
 
-# 4. Start development servers
+# 5. Start development servers
 npm run dev                    # Start all apps (api + web + sales)
 # Or run specific dashboard:
 npm run dev:admin              # Start api + web dashboard only
@@ -370,17 +413,44 @@ npm run db:studio    # Open Drizzle Studio on http://localhost:4983
 
 ## Documentation
 
-Project includes a Docusaurus documentation site:
+Project includes a Docusaurus documentation site served directly from the Next.js frontend:
+
+### Building Documentation
+```bash
+cd docs
+npm install  # First time only
+
+# Build for web app (admin dashboard)
+npm run build:web
+
+# Build for sales app
+npm run build:sales
+
+# Or build both
+npm run build:web && npm run build:sales
+```
+
+This builds the static documentation and places it in `apps/web/public/help/` and `apps/sales/public/help/`, making it accessible at `/help` on each frontend.
+
+### Development
+For hot-reload during documentation development:
+```bash
+cd docs
+npm start  # Starts on http://localhost:3000
+```
+
+### Accessing Documentation from the App
+The documentation is integrated into both dashboards:
+- **Sidebar**: "Help" menu item at the bottom (opens at `/help`)
+- **Header Dropdown** (web app only): "Documentation" link
+- **No separate server needed** - docs are served as static files from Next.js
+- **Works in production** - No port conflicts or deployment issues
+
+### Important Notes
+- **Before deploying**: Run `npm run build:web` or `npm run build:sales` to generate latest docs
 - **Location**: `docs/` directory in root
-- **Running locally**:
-  ```bash
-  cd docs
-  npm install  # or yarn
-  npm start    # or yarn start
-  ```
-  This will start the dev server (usually on http://localhost:3000)
-- **Building**: `npm run build` (from docs/)
 - Keep documentation in sync with code changes
 - Document all major features, APIs, and workflows
-- Currently contains default Docusaurus tutorial content - should be customized for PACE CRM
 - sql schema is at sqlschema.txt always review before writing sql
+- The generated help folders are in `.gitignore` - they're built during deployment
+- **URL**: `/help/index.html` serves the documentation (e.g., `http://localhost:2005/help/index.html`)

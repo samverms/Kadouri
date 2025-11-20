@@ -585,9 +585,12 @@ export default function ContractsPage() {
                             </button>
                           </td>
                           <td className="py-3 px-3">
-                            <span className="font-semibold text-blue-600">
+                            <button
+                              onClick={() => router.push(`/contracts/${contract.id}`)}
+                              className="font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors cursor-pointer"
+                            >
                               {contract.contractNumber}
-                            </span>
+                            </button>
                           </td>
                           <td className="py-3 px-3">
                             <div className="text-sm">

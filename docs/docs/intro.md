@@ -43,7 +43,7 @@ Kadouri CRM provides a comprehensive solution for managing:
 This is a **Turborepo monorepo** with multiple apps:
 
 ```
-pace-crm/
+Kadouri-crm/
 ├── apps/
 │   ├── api/           # Express backend (port 2000)
 │   ├── web/           # Admin dashboard (port 2005)

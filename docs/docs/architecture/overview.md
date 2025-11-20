@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Architecture Overview
 
-PACE CRM is built as a **Turborepo monorepo** with a clear separation between frontend, backend, and shared code.
+Kadouri CRM is built as a **Turborepo monorepo** with a clear separation between frontend, backend, and shared code.
 
 ## High-Level Architecture
 

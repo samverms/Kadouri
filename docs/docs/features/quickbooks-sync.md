@@ -11,7 +11,7 @@ Kadouri CRM features deep integration with QuickBooks Online, enabling seamless 
 The QuickBooks integration provides:
 
 - **OAuth 2.0 Authentication** - Secure connection to QuickBooks Online
-- **Bidirectional Sync** - Changes in QB automatically sync to PACE and vice versa
+- **Bidirectional Sync** - Changes in QB automatically sync to Kadouri and vice versa
 - **Invoice Management** - Create, update, and void invoices directly from orders
 - **Activity Tracking** - Complete audit trail of all QB-related actions
 - **Webhook Support** - Real-time updates when invoices are paid or modified in QB
@@ -63,10 +63,10 @@ QBO_WEBHOOK_VERIFIER_TOKEN=c4f2e7049a61d5ebe03bb0ce18591d2c900a8a56c80cfd93b560d
 
 ### 3. Connect QuickBooks
 
-1. Navigate to Settings → QuickBooks Integration in PACE CRM
+1. Navigate to Settings → QuickBooks Integration in Kadouri CRM
 2. Click "Connect to QuickBooks"
 3. Log in to QuickBooks and authorize the connection
-4. You'll be redirected back to PACE with a success message
+4. You'll be redirected back to Kadouri with a success message
 
 ### 4. Configure Webhooks (Production Only)
 
@@ -143,7 +143,7 @@ To cancel an invoice:
 DELETE /api/quickbooks/sync/order/:orderId
 ```
 
-## Webhook Sync (QB → PACE)
+## Webhook Sync (QB → Kadouri)
 
 Webhooks enable real-time updates when changes occur in QuickBooks:
 
@@ -180,8 +180,8 @@ When an invoice is voided/deleted in QB:
 Every QB-related action is logged in the `order_activities` table:
 
 **Activity Types**:
-- `invoice_created` - Manual invoice creation from PACE
-- `invoice_updated` - Manual invoice update from PACE
+- `invoice_created` - Manual invoice creation from Kadouri
+- `invoice_updated` - Manual invoice update from Kadouri
 - `invoice_voided` - Invoice voided (manual or webhook)
 - `payment_received` - Payment applied in QB (webhook)
 - `synced_from_qb` - General sync from QB (webhook)
@@ -211,7 +211,7 @@ Every QB-related action is logged in the `order_activities` table:
 | `cancelled` | ❌ No | ❌ No | ❌ No |
 
 **Key Rules**:
-1. Once an order is marked `paid` in QB, it becomes **read-only** in PACE
+1. Once an order is marked `paid` in QB, it becomes **read-only** in Kadouri
 2. QuickBooks is the source of truth for invoices
 3. Users must click "Update QB Invoice" after editing a posted order
 4. Deleting orders is blocked if status is `posted_to_qb` or `paid`
@@ -232,7 +232,7 @@ Every QB-related action is logged in the `order_activities` table:
 - Order number → DocNumber (if QB allows custom numbers)
 - Seller/Buyer → Customer reference
 - Order lines → Invoice line items
-- Commission tracked in PACE only (not synced to QB)
+- Commission tracked in Kadouri only (not synced to QB)
 
 ## API Reference
 
@@ -337,7 +337,7 @@ Headers:
 ### Webhook Security
 
 - HMAC-SHA256 signature verification
-- Shared secret (verifier token) known only to PACE and QB
+- Shared secret (verifier token) known only to Kadouri and QB
 - Webhook endpoint is public but verified
 
 ### Permissions
@@ -357,7 +357,7 @@ Headers:
 
 ## Limitations
 
-- **Commission Tracking**: Not synced to QB (PACE-only feature)
+- **Commission Tracking**: Not synced to QB (Kadouri-only feature)
 - **Custom Fields**: Limited support for QB custom fields
 - **Inventory Items**: Uses Service items (non-inventory) for products
 - **Multi-Currency**: Not currently supported
@@ -368,7 +368,7 @@ Headers:
 Planned features:
 - Estimate creation and conversion to invoices
 - Sales receipt support for cash sales
-- Payment recording from PACE to QB
+- Payment recording from Kadouri to QB
 - Multi-currency support
 - Inventory sync for stock tracking
 - Automated reconciliation reports

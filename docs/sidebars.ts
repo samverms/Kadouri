@@ -82,16 +82,6 @@ const sidebars: SidebarsConfig = {
         'development/debugging',
       ],
     },
-    {
-      type: 'category',
-      label: 'AI Support Knowledge Base',
-      items: [
-        'ai-support/overview',
-        'ai-support/query-examples',
-        'ai-support/custom-reports',
-        'ai-support/troubleshooting',
-      ],
-    },
   ],
 };
 

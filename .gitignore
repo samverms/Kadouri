@@ -107,6 +107,10 @@ dist
 # Docusaurus cache and generated files
 .docusaurus
 
+# Generated documentation served from Next.js public folder
+apps/web/public/help/
+apps/sales/public/help/
+
 # Serverless directories
 .serverless/
 

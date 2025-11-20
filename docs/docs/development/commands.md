@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Development Commands
 
-Complete reference for all commands used in PACE CRM development.
+Complete reference for all commands used in Kadouri CRM development.
 
 ## Monorepo Commands
 
@@ -133,7 +133,7 @@ npm install            # Fresh install
 cd apps/api
 
 # Drop and recreate database
-dropdb pace_crm && createdb pace_crm
+dropdb Kadouri_crm && createdb Kadouri_crm
 
 # Run migrations and seed
 npm run migration:run
@@ -204,19 +204,19 @@ NODE_ENV=production npm start
 ### Backup Database
 
 ```bash
-pg_dump pace_crm > backup.sql
+pg_dump Kadouri_crm > backup.sql
 ```
 
 ### Restore Database
 
 ```bash
-psql pace_crm < backup.sql
+psql Kadouri_crm < backup.sql
 ```
 
 ### Connect to Database
 
 ```bash
-psql pace_crm
+psql Kadouri_crm
 ```
 
 ### View Migrations Status

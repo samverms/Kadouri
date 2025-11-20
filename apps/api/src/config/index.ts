@@ -26,7 +26,7 @@ export const config = {
   nodeEnv: env.NODE_ENV,
   port: parseInt(env.PORT, 10),
   database: {
-    url: env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/pace_crm',
+    url: env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/kadouri_crm',
   },
   redis: {
     url: env.REDIS_URL || 'redis://localhost:6379',

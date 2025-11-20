@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { useUser } from '@clerk/nextjs'
-import { Users, Search, UserPlus, Mail, Shield, Calendar, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useUser, useAuth } from '@clerk/nextjs'
+import { Users, Search, UserPlus, Mail, Shield, Calendar, X, Loader2 } from 'lucide-react'
 
 interface User {
   id: string
@@ -41,31 +41,46 @@ const roleLabels = {
 
 export default function UsersPage() {
   const { user: currentUser } = useUser()
+  const { getToken } = useAuth()
   const [activeTab, setActiveTab] = useState<'users' | 'invitations'>('users')
   const [searchQuery, setSearchQuery] = useState('')
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState('agent')
+  const [users, setUsers] = useState<User[]>([])
+  const [invitations, setInvitations] = useState<Invitation[]>([])
+  const [loading, setLoading] = useState(true)
 
   const currentUserRole = (currentUser?.publicMetadata?.role as string) || 'agent'
   const canManageUsers = ['admin', 'manager'].includes(currentUserRole)
 
-  // TODO: Replace with actual API call
-  const users: User[] = [
-    {
-      id: currentUser?.id || '1',
-      email: currentUser?.emailAddresses?.[0]?.emailAddress || 'user@example.com',
-      firstName: currentUser?.firstName || 'Current',
-      lastName: currentUser?.lastName || 'User',
-      role: currentUserRole,
-      active: true,
-      lastLoginAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-    },
-  ]
+  useEffect(() => {
+    if (canManageUsers) {
+      fetchUsers()
+    }
+  }, [canManageUsers])
 
-  // TODO: Replace with actual API call
-  const invitations: Invitation[] = []
+  const fetchUsers = async () => {
+    try {
+      setLoading(true)
+      const token = await getToken()
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/users`, {
+        credentials: 'include',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setUsers(data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch users:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSendInvitation = async () => {
     // TODO: Implement API call to send invitation
@@ -94,6 +109,26 @@ export default function UsersPage() {
               <br />
               Only administrators and managers can manage users.
             </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-8">
+            <div className="flex items-center gap-3">
+              <Users className="h-8 w-8 text-blue-600" />
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-blue-400">Users</h1>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <span className="ml-3 text-gray-600 dark:text-gray-400">Loading users...</span>
           </div>
         </div>
       </div>

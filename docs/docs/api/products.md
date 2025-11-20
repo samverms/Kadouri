@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Products API
 
-Complete API reference for managing products and product variants in PACE CRM.
+Complete API reference for managing products and product variants in Kadouri CRM.
 
 ## Base URL
 

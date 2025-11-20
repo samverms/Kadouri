@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@pace/shared'],
+  transpilePackages: ['@kadouri/shared'],
   env: {
     API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
   },

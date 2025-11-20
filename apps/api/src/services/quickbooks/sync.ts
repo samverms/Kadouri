@@ -200,7 +200,7 @@ export class QuickBooksSync {
 
         qboInvoice = await this.qboClient.updateInvoice(order.qboDocId!, {
           ...invoiceData,
-          Id: order.qboDocId,
+          Id: order.qboDocId || undefined,
           SyncToken: existingInvoice.SyncToken,
         })
       } else {
@@ -240,8 +240,8 @@ export class QuickBooksSync {
 
         qboEstimate = await this.qboClient.updateEstimate(order.qboDocId!, {
           ...estimateData,
-          Id: order.qboDocId,
-          SyncToken: existingEstimate.SyncToken,
+          Id: order.qboDocId || undefined,
+          SyncToken: (existingEstimate as any).SyncToken,
         })
       } else {
         // Create new estimate

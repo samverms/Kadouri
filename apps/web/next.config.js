@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
-  transpilePackages: ['@pace/shared'],
+  transpilePackages: ['@kadouri/shared'],
   images: {
     unoptimized: true,
   },
@@ -14,12 +14,25 @@ const nextConfig = {
   },
   async rewrites() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${apiUrl}/api/:path*`,
-      },
-    ]
+    return {
+      beforeFiles: [
+        {
+          source: '/api/:path*',
+          destination: `${apiUrl}/api/:path*`,
+        },
+      ],
+      afterFiles: [
+        // Rewrite /help paths without file extensions to serve index.html
+        {
+          source: '/help',
+          destination: '/help/index.html',
+        },
+        {
+          source: '/help/:path((?!.*\\.).*)',
+          destination: '/help/:path/index.html',
+        },
+      ],
+    }
   },
 }
 

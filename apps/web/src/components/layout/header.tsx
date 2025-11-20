@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useUser } from '@clerk/nextjs'
-import { User, LogOut, Settings, ChevronDown, Shield, Menu, PanelLeftClose, PanelLeft, Moon, Sun } from 'lucide-react'
+import { User, LogOut, Settings, ChevronDown, Shield, Menu, PanelLeftClose, PanelLeft, Moon, Sun, BookOpen } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeProvider'
 
 const roleColors = {
@@ -149,6 +149,16 @@ export function Header({ onMenuClick, onCollapseClick, sidebarCollapsed }: Heade
                     <Settings className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                     Security Settings
                   </button>
+                  <a
+                    href="/help/index.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShowDropdown(false)}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <BookOpen className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                    Documentation
+                  </a>
                   <button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"

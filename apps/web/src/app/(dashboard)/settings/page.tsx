@@ -20,6 +20,8 @@ import {
   DollarSign,
   Loader2,
 } from 'lucide-react'
+import { OutlookConnectionCard } from '@/components/outlook-connection-card'
+import { UsersManagement } from '@/components/settings/users-management'
 
 interface QuickBooksStatus {
   connected: boolean
@@ -385,7 +387,7 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">Two-Way Sync</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Sync changes from QuickBooks back to PACE</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Sync changes from QuickBooks back to Kadouri</p>
                   </div>
                   <input type="checkbox" className="h-4 w-4" />
                 </div>
@@ -478,6 +480,17 @@ export default function SettingsPage() {
 
         {/* Email Settings */}
         <TabsContent value="email" className="space-y-6">
+          {/* Office 365 Integration */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Office 365 Integration</CardTitle>
+              <CardDescription>Connect your Office 365 account to send emails</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <OutlookConnectionCard />
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Email Configuration</CardTitle>
@@ -647,100 +660,7 @@ export default function SettingsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-transparent">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        Name
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        Email
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        Role
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        Status
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-900">
-                    <tr>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">
-                        Admin User
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                        admin@pace.com
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                        <span className="rounded-full bg-purple-100 px-2 py-1 text-xs text-purple-700">
-                          Admin
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                        <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-700">
-                          Active
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
-                        <Button variant="ghost" size="sm">
-                          Edit
-                        </Button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">
-                        John Agent
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                        john@pace.com
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                        <span className="rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-700">
-                          Agent
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                        <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-700">
-                          Active
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
-                        <Button variant="ghost" size="sm">
-                          Edit
-                        </Button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">
-                        Sarah Viewer
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                        sarah@pace.com
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                        <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700">
-                          Read-Only
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                        <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-700">
-                          Active
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
-                        <Button variant="ghost" size="sm">
-                          Edit
-                        </Button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              <UsersManagement />
             </CardContent>
           </Card>
 

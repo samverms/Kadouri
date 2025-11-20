@@ -1410,23 +1410,20 @@ export default function OrdersPage() {
             </span>
           </td>
           <td className="px-3 py-2 whitespace-nowrap text-right text-xs font-medium">
-            <div className="flex gap-1 justify-end">
-              <Link href={`/orders/${order.id}`}>
-                <Button variant="outline" size="sm" className="h-7 px-2 text-xs">
-                  <Edit2 className="h-3 w-3 mr-1" />
-                  Edit
-                </Button>
+            <div className="flex gap-2 justify-end items-center">
+              <Link href={`/orders/${order.id}`} title="Edit">
+                <button className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded transition-colors">
+                  <Edit2 className="h-4 w-4" />
+                </button>
               </Link>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 px-2 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+              <button
                 onClick={() => handleDuplicateOrder(order)}
                 disabled={duplicating === order.id}
+                title={duplicating === order.id ? 'Duplicating...' : 'Duplicate'}
+                className="text-gray-600 hover:text-green-600 hover:bg-green-50 p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Copy className="h-3 w-3 mr-1" />
-                {duplicating === order.id ? 'Duplicating...' : 'Duplicate'}
-              </Button>
+                <Copy className="h-4 w-4" />
+              </button>
             </div>
           </td>
         </tr>

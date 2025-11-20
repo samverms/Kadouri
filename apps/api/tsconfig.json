@@ -17,8 +17,8 @@
     "typeRoots": ["./node_modules/@types", "./src/@types"],
     "paths": {
       "@/*": ["./src/*"],
-      "@pace/shared": ["./src/shared-copy"],
-      "@pace/shared/*": ["./src/shared-copy/*"]
+      "@kadouri/shared": ["./src/shared-copy"],
+      "@kadouri/shared/*": ["./src/shared-copy/*"]
     }
   },
   "include": ["src/**/*"],

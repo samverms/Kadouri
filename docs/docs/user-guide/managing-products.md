@@ -4,7 +4,7 @@ sidebar_position: 4
 
 # Managing Products
 
-Learn how to create, edit, and manage products in your PACE CRM catalog. Products represent the items you buy and sell, such as Almonds, Walnuts, Raisins, and other agricultural goods.
+Learn how to create, edit, and manage products in your Kadouri CRM catalog. Products represent the items you buy and sell, such as Almonds, Walnuts, Raisins, and other agricultural goods.
 
 ## Overview
 

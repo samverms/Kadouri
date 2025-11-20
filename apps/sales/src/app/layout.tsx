@@ -8,8 +8,8 @@ import { Sidebar } from '@/components/layout/sidebar'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'PACE CRM - Sales Dashboard',
-  description: 'Sales-focused CRM for PACE',
+  title: 'Kadouri CRM - Sales Dashboard',
+  description: 'Sales-focused CRM for Kadouri',
 }
 
 export default function RootLayout({

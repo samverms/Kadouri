@@ -26,6 +26,7 @@
     "@clerk/express": "^0.0.3",
     "@supabase/supabase-js": "^2.80.0",
     "@types/multer": "^2.0.0",
+    "@types/pdfkit": "^0.17.3",
     "axios": "^1.6.5",
     "bcrypt": "^5.1.1",
     "bullmq": "^5.1.8",
@@ -40,13 +41,14 @@
     "intuit-oauth": "^4.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
+    "pdfkit": "^0.17.2",
     "postgres": "^3.4.3",
     "qrcode": "^1.5.4",
     "redis": "^4.6.12",
     "speakeasy": "^2.0.0",
+    "typescript": "^5.3.3",
     "winston": "^3.11.0",
-    "zod": "^3.22.4",
-    "typescript": "^5.3.3"
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

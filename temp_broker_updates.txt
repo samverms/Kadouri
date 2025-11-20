@@ -1,0 +1,8 @@
+# Brokers list page needs these updates:
+# 1. API endpoints from /api/settings/brokers to /api/brokers  
+# 2. Search to include companyName
+# 3. Active filter in filtering logic
+# 4. Clear filters to include activeFilter and companyName
+# 5. hasActiveFilters to check activeFilter
+# 6. UI: status filter buttons
+# 7. UI: company and active columns in table

@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Installation
 
-This guide will help you set up PACE CRM for local development.
+This guide will help you set up Kadouri CRM for local development.
 
 ## Prerequisites
 
@@ -24,20 +24,20 @@ Before you begin, ensure you have the following installed:
 ## Clone the Repository
 
 ```bash
-git clone https://github.com/mailumaoc/pace-crm.git
-cd pace-crm
+git clone https://github.com/mailumaoc/Kadouri-crm.git
+cd Kadouri-crm
 ```
 
 ## Install Dependencies
 
-This monorepo uses npm workspaces. Install all dependencies from the root:
+This monorepo uses npm worksKadouris. Install all dependencies from the root:
 
 ```bash
 npm install
 ```
 
 This command will install dependencies for:
-- Root workspace
+- Root worksKadouri
 - `apps/api` (Backend)
 - `apps/web` (Admin Dashboard)
 - `apps/sales` (Sales Dashboard)

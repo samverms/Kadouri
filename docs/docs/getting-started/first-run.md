@@ -13,9 +13,9 @@ Initialize the database and start your development environment.
 Create a PostgreSQL database:
 
 ```bash
-createdb pace_crm
+createdb Kadouri_crm
 # or using psql:
-psql -U postgres -c "CREATE DATABASE pace_crm;"
+psql -U postgres -c "CREATE DATABASE Kadouri_crm;"
 ```
 
 ### 2. Run Migrations
@@ -140,7 +140,7 @@ lsof -ti:2000 | xargs kill
 
 - Verify PostgreSQL is running
 - Check `DATABASE_URL` in `apps/api/.env`
-- Ensure database exists: `psql -l | grep pace_crm`
+- Ensure database exists: `psql -l | grep Kadouri_crm`
 
 ### Redis Connection Failed
 

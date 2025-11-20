@@ -1,6 +1,20 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
+CREATE TABLE public.account_agents (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  account_id uuid NOT NULL,
+  agent_id uuid NOT NULL,
+  created_at timestamp without time zone NOT NULL DEFAULT now(),
+  CONSTRAINT account_agents_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.account_brokers (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  account_id uuid NOT NULL,
+  broker_id uuid NOT NULL,
+  created_at timestamp without time zone NOT NULL DEFAULT now(),
+  CONSTRAINT account_brokers_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.accounts (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   code character varying NOT NULL UNIQUE,
@@ -9,7 +23,13 @@ CREATE TABLE public.accounts (
   active boolean NOT NULL DEFAULT true,
   created_at timestamp without time zone NOT NULL DEFAULT now(),
   updated_at timestamp without time zone NOT NULL DEFAULT now(),
-  CONSTRAINT accounts_pkey PRIMARY KEY (id)
+  parent_account_id uuid,
+  updated_by character varying,
+  sales_agent_id character varying,
+  account_type character varying NOT NULL DEFAULT 'both'::character varying,
+  broker_ids ARRAY,
+  CONSTRAINT accounts_pkey PRIMARY KEY (id),
+  CONSTRAINT accounts_parent_account_id_accounts_id_fk FOREIGN KEY (parent_account_id) REFERENCES public.accounts(id)
 );
 CREATE TABLE public.addresses (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -24,8 +44,18 @@ CREATE TABLE public.addresses (
   is_primary boolean NOT NULL DEFAULT false,
   created_at timestamp without time zone NOT NULL DEFAULT now(),
   updated_at timestamp without time zone NOT NULL DEFAULT now(),
+  updated_by character varying,
   CONSTRAINT addresses_pkey PRIMARY KEY (id),
   CONSTRAINT addresses_account_id_accounts_id_fk FOREIGN KEY (account_id) REFERENCES public.accounts(id)
+);
+CREATE TABLE public.agents (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name character varying NOT NULL,
+  email character varying,
+  phone character varying,
+  created_at timestamp without time zone NOT NULL DEFAULT now(),
+  updated_at timestamp without time zone NOT NULL DEFAULT now(),
+  CONSTRAINT agents_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.audit_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -37,6 +67,15 @@ CREATE TABLE public.audit_logs (
   timestamp timestamp without time zone NOT NULL DEFAULT now(),
   CONSTRAINT audit_logs_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.brokers (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name character varying NOT NULL,
+  email character varying,
+  phone character varying,
+  created_at timestamp without time zone NOT NULL DEFAULT now(),
+  updated_at timestamp without time zone NOT NULL DEFAULT now(),
+  CONSTRAINT brokers_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.contacts (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   account_id uuid NOT NULL,
@@ -46,8 +85,57 @@ CREATE TABLE public.contacts (
   is_primary boolean NOT NULL DEFAULT false,
   created_at timestamp without time zone NOT NULL DEFAULT now(),
   updated_at timestamp without time zone NOT NULL DEFAULT now(),
+  updated_by character varying,
   CONSTRAINT contacts_pkey PRIMARY KEY (id),
   CONSTRAINT contacts_account_id_accounts_id_fk FOREIGN KEY (account_id) REFERENCES public.accounts(id)
+);
+CREATE TABLE public.contract_draws (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  contract_id uuid NOT NULL,
+  order_id uuid NOT NULL,
+  quantity_drawn numeric NOT NULL,
+  remaining_after_draw numeric NOT NULL,
+  drawn_at timestamp with time zone NOT NULL DEFAULT now(),
+  drawn_by text NOT NULL,
+  CONSTRAINT contract_draws_pkey PRIMARY KEY (id),
+  CONSTRAINT contract_draws_contract_id_contracts_id_fk FOREIGN KEY (contract_id) REFERENCES public.contracts(id)
+);
+CREATE TABLE public.contracts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  contract_number text NOT NULL UNIQUE,
+  seller_id uuid NOT NULL,
+  buyer_id uuid NOT NULL,
+  product_id uuid NOT NULL,
+  total_quantity numeric NOT NULL,
+  remaining_quantity numeric NOT NULL,
+  unit text NOT NULL,
+  price_per_unit numeric NOT NULL,
+  currency text NOT NULL DEFAULT 'USD'::text,
+  total_value numeric NOT NULL,
+  valid_from timestamp with time zone NOT NULL,
+  valid_until timestamp with time zone NOT NULL,
+  status USER-DEFINED NOT NULL DEFAULT 'draft'::contract_status,
+  terms text,
+  notes text,
+  draft_document_url text,
+  draft_document_type text,
+  draft_generated_at timestamp with time zone,
+  executed_document_url text,
+  executed_document_type text,
+  executed_uploaded_at timestamp with time zone,
+  executed_uploaded_by text,
+  document_versions jsonb,
+  created_by text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  broker_name text,
+  broker_address text,
+  broker_phone text,
+  broker_email text,
+  CONSTRAINT contracts_pkey PRIMARY KEY (id),
+  CONSTRAINT contracts_seller_id_accounts_id_fk FOREIGN KEY (seller_id) REFERENCES public.accounts(id),
+  CONSTRAINT contracts_buyer_id_accounts_id_fk FOREIGN KEY (buyer_id) REFERENCES public.accounts(id),
+  CONSTRAINT contracts_product_id_products_id_fk FOREIGN KEY (product_id) REFERENCES public.products(id)
 );
 CREATE TABLE public.documents (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -247,6 +335,19 @@ CREATE TABLE public.notifications (
   CONSTRAINT notifications_pkey PRIMARY KEY (id),
   CONSTRAINT notifications_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
 );
+CREATE TABLE public.order_activities (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  order_id uuid NOT NULL,
+  clerk_user_id character varying,
+  user_name character varying,
+  activity_type character varying NOT NULL,
+  description text NOT NULL,
+  changes jsonb,
+  ip_address character varying,
+  created_at timestamp without time zone NOT NULL DEFAULT now(),
+  CONSTRAINT order_activities_pkey PRIMARY KEY (id),
+  CONSTRAINT order_activities_order_id_orders_id_fk FOREIGN KEY (order_id) REFERENCES public.orders(id)
+);
 CREATE TABLE public.order_lines (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   order_id uuid NOT NULL,
@@ -263,9 +364,12 @@ CREATE TABLE public.order_lines (
   line_total numeric NOT NULL,
   created_at timestamp without time zone NOT NULL DEFAULT now(),
   updated_at timestamp without time zone NOT NULL DEFAULT now(),
+  variant_id uuid,
+  package_type character varying,
   CONSTRAINT order_lines_pkey PRIMARY KEY (id),
   CONSTRAINT order_lines_order_id_orders_id_fk FOREIGN KEY (order_id) REFERENCES public.orders(id),
-  CONSTRAINT order_lines_product_id_products_id_fk FOREIGN KEY (product_id) REFERENCES public.products(id)
+  CONSTRAINT order_lines_product_id_products_id_fk FOREIGN KEY (product_id) REFERENCES public.products(id),
+  CONSTRAINT order_lines_variant_id_product_variants_id_fk FOREIGN KEY (variant_id) REFERENCES public.product_variants(id)
 );
 CREATE TABLE public.order_status_history (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -296,9 +400,26 @@ CREATE TABLE public.orders (
   created_by character varying NOT NULL,
   created_at timestamp without time zone NOT NULL DEFAULT now(),
   updated_at timestamp without time zone NOT NULL DEFAULT now(),
+  updated_by character varying,
+  sales_agent_id character varying,
+  contract_id uuid,
+  seller_billing_address_id uuid,
+  seller_pickup_address_id uuid,
+  buyer_billing_address_id uuid,
+  buyer_shipping_address_id uuid,
+  is_pickup boolean NOT NULL DEFAULT false,
+  agent_user_id character varying,
+  agent_name character varying,
+  broker_user_id character varying,
+  broker_name character varying,
+  memo text,
   CONSTRAINT orders_pkey PRIMARY KEY (id),
   CONSTRAINT orders_seller_id_accounts_id_fk FOREIGN KEY (seller_id) REFERENCES public.accounts(id),
-  CONSTRAINT orders_buyer_id_accounts_id_fk FOREIGN KEY (buyer_id) REFERENCES public.accounts(id)
+  CONSTRAINT orders_buyer_id_accounts_id_fk FOREIGN KEY (buyer_id) REFERENCES public.accounts(id),
+  CONSTRAINT orders_seller_billing_address_id_addresses_id_fk FOREIGN KEY (seller_billing_address_id) REFERENCES public.addresses(id),
+  CONSTRAINT orders_seller_pickup_address_id_addresses_id_fk FOREIGN KEY (seller_pickup_address_id) REFERENCES public.addresses(id),
+  CONSTRAINT orders_buyer_billing_address_id_addresses_id_fk FOREIGN KEY (buyer_billing_address_id) REFERENCES public.addresses(id),
+  CONSTRAINT orders_buyer_shipping_address_id_addresses_id_fk FOREIGN KEY (buyer_shipping_address_id) REFERENCES public.addresses(id)
 );
 CREATE TABLE public.organizations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -395,17 +516,39 @@ CREATE TABLE public.product_categories (
   CONSTRAINT product_categories_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
   CONSTRAINT product_categories_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.product_categories(id)
 );
+CREATE TABLE public.product_variants (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  product_id uuid NOT NULL,
+  sku character varying,
+  size numeric NOT NULL,
+  size_unit character varying NOT NULL,
+  package_type character varying NOT NULL,
+  is_default boolean NOT NULL DEFAULT false,
+  active boolean NOT NULL DEFAULT true,
+  created_at timestamp without time zone NOT NULL DEFAULT now(),
+  updated_at timestamp without time zone NOT NULL DEFAULT now(),
+  created_by character varying,
+  updated_by character varying,
+  CONSTRAINT product_variants_pkey PRIMARY KEY (id),
+  CONSTRAINT product_variants_product_id_products_id_fk FOREIGN KEY (product_id) REFERENCES public.products(id)
+);
 CREATE TABLE public.products (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   name character varying NOT NULL,
   variety character varying,
   grade character varying,
   default_unit_size numeric,
-  uom character varying NOT NULL,
+  uom character varying,
   qbo_item_id character varying,
   active boolean NOT NULL DEFAULT true,
   created_at timestamp without time zone NOT NULL DEFAULT now(),
   updated_at timestamp without time zone NOT NULL DEFAULT now(),
+  source character varying NOT NULL DEFAULT 'manual'::character varying,
+  archived_at timestamp without time zone,
+  archived_by character varying,
+  code character varying,
+  updated_by character varying,
+  category character varying,
   CONSTRAINT products_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.quickbooks_connections (
@@ -427,6 +570,19 @@ CREATE TABLE public.quickbooks_connections (
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT quickbooks_connections_pkey PRIMARY KEY (id),
   CONSTRAINT quickbooks_connections_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.quickbooks_tokens (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  realm_id text NOT NULL UNIQUE,
+  access_token text NOT NULL,
+  refresh_token text NOT NULL,
+  token_type text DEFAULT 'bearer'::text,
+  expires_at timestamp without time zone NOT NULL,
+  refresh_token_expires_at timestamp without time zone NOT NULL,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT now(),
+  updated_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT quickbooks_tokens_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.quickbooks_webhooks (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

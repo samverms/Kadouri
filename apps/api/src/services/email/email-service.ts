@@ -518,7 +518,7 @@ export class EmailService {
           </div>
 
           <div class="footer">
-            <p style="margin: 0;">This is an automated message from PACE CRM</p>
+            <p style="margin: 0;">This is an automated message from Kadouri CRM</p>
             <p style="margin: 5px 0 0 0;">For questions, please contact your sales representative</p>
           </div>
         </body>
@@ -662,7 +662,7 @@ export class EmailService {
           </div>
 
           <div class="footer">
-            <p style="margin: 0;">This is an automated message from PACE CRM</p>
+            <p style="margin: 0;">This is an automated message from Kadouri CRM</p>
             <p style="margin: 5px 0 0 0;">For questions, please contact your sales representative</p>
           </div>
         </body>

@@ -42,7 +42,7 @@ router.get('/connect', async (req, res) => {
     // Token is valid, proceed with OAuth flow
     const authUri = qboClient.authorizeUri({
       scope: QBO_SCOPES,
-      state: 'PACE_CRM_STATE', // Add CSRF protection in production
+      state: 'KADOURI_CRM_STATE', // Add CSRF protection in production
     })
     res.redirect(authUri)
   } catch (error: any) {
@@ -105,7 +105,7 @@ router.get('/callback', async (req, res) => {
         <head><title>QuickBooks Connected</title></head>
         <body style="font-family: Arial; text-align: center; padding: 50px;">
           <h1 style="color: #2ca01c;">✓ QuickBooks Connected Successfully!</h1>
-          <p>You can now close this window and return to PACE CRM.</p>
+          <p>You can now close this window and return to Kadouri CRM.</p>
           <p style="color: #666;">Company ID: ${authResponse.token.realmId}</p>
           <script>
             // Notify parent window of successful connection

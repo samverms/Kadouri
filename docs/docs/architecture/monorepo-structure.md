@@ -4,12 +4,12 @@ sidebar_position: 2
 
 # Monorepo Structure
 
-Detailed overview of the PACE CRM monorepo file structure.
+Detailed overview of the Kadouri CRM monorepo file structure.
 
 ## Root Structure
 
 ```
-pace-crm/
+kadouri-crm/
 ├── apps/                    # Application packages
 │   ├── api/                # Backend API server
 │   ├── web/                # Admin dashboard
@@ -17,7 +17,7 @@ pace-crm/
 ├── packages/               # Shared packages
 │   └── shared/            # Shared types, schemas, constants
 ├── docs/                   # Docusaurus documentation
-├── package.json            # Root workspace config
+├── package.json            # Root worksKadouri config
 ├── turbo.json             # Turborepo configuration
 ├── .gitignore
 └── README.md
@@ -145,7 +145,7 @@ Configures Turborepo pipelines:
 
 ```typescript
 // In apps/api or apps/web
-import { AccountSchema } from '@pace/shared'
+import { AccountSchema } from '@kadouri/shared'
 ```
 
 ### Within Apps

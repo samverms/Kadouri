@@ -4,7 +4,7 @@ sidebar_position: 6
 
 # Role-Based Access Control (RBAC)
 
-PACE CRM includes a comprehensive RBAC system for fine-grained access control across all features.
+Kadouri CRM includes a comprehensive RBAC system for fine-grained access control across all features.
 
 ## Overview
 
@@ -116,7 +116,7 @@ CREATE TABLE user_roles (
 
 ### Permission Hooks
 
-PACE CRM provides custom hooks for checking permissions:
+Kadouri CRM provides custom hooks for checking permissions:
 
 ```typescript
 import { usePermission, useUserRole } from '@/hooks/usePermissions'

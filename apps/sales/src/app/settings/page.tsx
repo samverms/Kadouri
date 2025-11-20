@@ -241,7 +241,7 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">Two-Way Sync</p>
-                    <p className="text-sm text-gray-500">Sync changes from QuickBooks back to PACE</p>
+                    <p className="text-sm text-gray-500">Sync changes from QuickBooks back to Kadouri</p>
                   </div>
                   <input type="checkbox" className="h-4 w-4" />
                 </div>

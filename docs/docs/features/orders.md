@@ -281,7 +281,7 @@ Total: $10,000.00
 Commission: $500.00
 ```
 
-**Note**: Commission is tracked in PACE only, NOT synced to QuickBooks.
+**Note**: Commission is tracked in Kadouri only, NOT synced to QuickBooks.
 
 ## QuickBooks Integration
 
@@ -310,7 +310,7 @@ See [QuickBooks Integration](./quickbooks-sync) for detailed documentation.
 ### Payment Sync
 
 When payment is received in QuickBooks:
-1. QB webhook notifies PACE
+1. QB webhook notifies Kadouri
 2. Order status → `paid`
 3. Order becomes read-only
 4. Activity: "Payment received in QuickBooks - Invoice marked as PAID"

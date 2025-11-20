@@ -99,3 +99,39 @@ export interface PDF {
   version: number
   createdAt: Date
 }
+
+export interface Agent {
+  id: string
+  name: string
+  companyName?: string
+  email?: string
+  phone?: string
+  addressLine1?: string
+  addressLine2?: string
+  city?: string
+  state?: string
+  postalCode?: string
+  country?: string
+  active: boolean
+  createdBy?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface Broker {
+  id: string
+  name: string
+  companyName?: string
+  email?: string
+  phone?: string
+  addressLine1?: string
+  addressLine2?: string
+  city?: string
+  state?: string
+  postalCode?: string
+  country?: string
+  active: boolean
+  createdBy?: string
+  createdAt: Date
+  updatedAt: Date
+}

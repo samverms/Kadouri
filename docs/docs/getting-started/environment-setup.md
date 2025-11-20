@@ -20,7 +20,7 @@ Edit `.env` and configure the following:
 ### Database Configuration
 
 ```env
-DATABASE_URL=postgresql://username:password@localhost:5432/pace_crm
+DATABASE_URL=postgresql://username:password@localhost:5432/Kadouri_crm
 ```
 
 ### Redis Configuration
@@ -44,7 +44,7 @@ CLERK_PUBLISHABLE_KEY=pk_test_...
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your_access_key
 AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_S3_BUCKET=pace-crm-pdfs
+AWS_S3_BUCKET=Kadouri-crm-pdfs
 ```
 
 ### QuickBooks Online

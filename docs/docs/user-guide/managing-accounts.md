@@ -4,11 +4,11 @@ sidebar_position: 1
 
 # Managing Accounts
 
-This guide will walk you through all the features of the Accounts module in PACE CRM.
+This guide will walk you through all the features of the Accounts module in Kadouri CRM.
 
 ## Accessing the Accounts Page
 
-1. Log in to PACE CRM
+1. Log in to Kadouri CRM
 2. Click **Accounts** in the main navigation menu
 3. You'll see a list of all accounts (by default, only active accounts)
 
@@ -37,7 +37,7 @@ By default, only **active accounts** are displayed. To see all accounts:
 
 ### Searching for Accounts
 
-PACE CRM offers powerful search capabilities:
+Kadouri CRM offers powerful search capabilities:
 
 #### Simple Search
 Just type in the search box to search across all fields:

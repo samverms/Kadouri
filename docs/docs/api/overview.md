@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # API Overview
 
-PACE CRM provides a RESTful API built with Express and TypeScript.
+Kadouri CRM provides a RESTful API built with Express and TypeScript.
 
 ## Base URL
 

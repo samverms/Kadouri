@@ -14,9 +14,9 @@ export default function ComposeEmailPage() {
   const [body, setBody] = useState('')
 
   const templates = [
-    { id: '1', name: 'Order Confirmation', subject: 'Order Confirmation - {{orderNumber}}', body: 'Dear {{customerName}},\n\nThank you for your order #{{orderNumber}}.\n\nOrder Details:\n- Date: {{orderDate}}\n- Total Amount: {{totalAmount}}\n\nBest regards,\nPACE CRM Team' },
-    { id: '2', name: 'Invoice Sent', subject: 'Invoice {{invoiceNumber}} - PACE CRM', body: 'Dear {{customerName}},\n\nPlease find attached invoice {{invoiceNumber}}.\n\nAmount Due: {{amount}}\nDue Date: {{dueDate}}\n\nThank you for your business!\n\nBest regards,\nPACE CRM Team' },
-    { id: '3', name: 'Quote Follow-up', subject: 'Following up on Quote {{quoteNumber}}', body: 'Dear {{customerName}},\n\nI wanted to follow up on the quote we sent you (Quote #{{quoteNumber}}).\n\nDo you have any questions or would you like to proceed?\n\nBest regards,\n{{agentName}}\nPACE CRM' },
+    { id: '1', name: 'Order Confirmation', subject: 'Order Confirmation - {{orderNumber}}', body: 'Dear {{customerName}},\n\nThank you for your order #{{orderNumber}}.\n\nOrder Details:\n- Date: {{orderDate}}\n- Total Amount: {{totalAmount}}\n\nBest regards,\nKadouri CRM Team' },
+    { id: '2', name: 'Invoice Sent', subject: 'Invoice {{invoiceNumber}} - Kadouri CRM', body: 'Dear {{customerName}},\n\nPlease find attached invoice {{invoiceNumber}}.\n\nAmount Due: {{amount}}\nDue Date: {{dueDate}}\n\nThank you for your business!\n\nBest regards,\nKadouri CRM Team' },
+    { id: '3', name: 'Quote Follow-up', subject: 'Following up on Quote {{quoteNumber}}', body: 'Dear {{customerName}},\n\nI wanted to follow up on the quote we sent you (Quote #{{quoteNumber}}).\n\nDo you have any questions or would you like to proceed?\n\nBest regards,\n{{agentName}}\nKadouri CRM' },
   ]
 
   useEffect(() => {
