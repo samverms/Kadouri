@@ -157,7 +157,8 @@ export class QuickBooksClient {
       return response.data.Invoice
     } catch (error: any) {
       logger.error('Failed to update QBO invoice:', error.message)
-      throw new AppError('Failed to update invoice in QuickBooks', 500)
+      logger.error('QB API Error Response:', JSON.stringify(error.response?.data, null, 2))
+      throw new AppError(`Failed to update invoice in QuickBooks: ${error.response?.data?.Fault?.Error?.[0]?.Message || error.message}`, 500)
     }
   }
 
@@ -192,7 +193,8 @@ export class QuickBooksClient {
       return response.data.Estimate
     } catch (error: any) {
       logger.error('Failed to update QBO estimate:', error.message)
-      throw new AppError('Failed to update estimate in QuickBooks', 500)
+      logger.error('QB API Error Response:', JSON.stringify(error.response?.data, null, 2))
+      throw new AppError(`Failed to update estimate in QuickBooks: ${error.response?.data?.Fault?.Error?.[0]?.Message || error.message}`, 500)
     }
   }
 
