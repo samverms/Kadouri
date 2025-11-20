@@ -150,8 +150,9 @@ export class QuickBooksClient {
 
   async updateInvoice(invoiceId: string, invoice: QBOInvoice): Promise<QBOInvoice> {
     try {
+      // sparse=false means full update - replace all lines
       const response = await this.axiosInstance.post('/invoice', invoice, {
-        params: { operation: 'update' },
+        params: { operation: 'update', minorversion: '65' },
       })
       logger.info(`Updated QBO invoice: ${invoiceId}`)
       return response.data.Invoice

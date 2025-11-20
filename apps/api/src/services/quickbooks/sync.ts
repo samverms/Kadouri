@@ -194,12 +194,25 @@ export class QuickBooksSync {
       let qboInvoice
 
       if (isUpdate) {
-        // Update existing invoice
+        // Update existing invoice - delete old lines and add new ones
         logger.info(`Updating existing QB invoice ${order.qboDocId} for order ${orderId}`)
         const existingInvoice = await this.qboClient.getInvoice(order.qboDocId!)
 
+        // Mark all existing lines for deletion using QB's deletion syntax
+        const deletedLines = (existingInvoice.Line || [])
+          .filter((line: any) => line.DetailType === 'SalesItemLineDetail')
+          .map((line: any) => ({
+            Id: line.Id,
+            DetailType: 'DescriptionOnly',
+            DescriptionLineDetail: {},
+          }))
+
+        // Combine deleted old lines with new lines
+        const allLines = [...deletedLines, ...qboLines]
+
         qboInvoice = await this.qboClient.updateInvoice(order.qboDocId!, {
           ...invoiceData,
+          Line: allLines,
           Id: order.qboDocId || undefined,
           SyncToken: existingInvoice.SyncToken,
         } as any)
@@ -234,12 +247,25 @@ export class QuickBooksSync {
       let qboEstimate
 
       if (isUpdate) {
-        // Update existing estimate
+        // Update existing estimate - delete old lines and add new ones
         logger.info(`Updating existing QB estimate ${order.qboDocId} for order ${orderId}`)
         const existingEstimate = await this.qboClient.getEstimate(order.qboDocId!)
 
+        // Mark all existing lines for deletion using QB's deletion syntax
+        const deletedLines = (existingEstimate.Line || [])
+          .filter((line: any) => line.DetailType === 'SalesItemLineDetail')
+          .map((line: any) => ({
+            Id: line.Id,
+            DetailType: 'DescriptionOnly',
+            DescriptionLineDetail: {},
+          }))
+
+        // Combine deleted old lines with new lines
+        const allLines = [...deletedLines, ...qboLines]
+
         qboEstimate = await this.qboClient.updateEstimate(order.qboDocId!, {
           ...estimateData,
+          Line: allLines,
           Id: order.qboDocId || undefined,
           SyncToken: existingEstimate.SyncToken,
         } as any)
