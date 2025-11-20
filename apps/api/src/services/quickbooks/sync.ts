@@ -202,7 +202,7 @@ export class QuickBooksSync {
           ...invoiceData,
           Id: order.qboDocId || undefined,
           SyncToken: existingInvoice.SyncToken,
-        })
+        } as any)
       } else {
         // Create new invoice
         logger.info(`Creating new QB invoice for order ${orderId}`)
@@ -242,7 +242,7 @@ export class QuickBooksSync {
           ...estimateData,
           Id: order.qboDocId || undefined,
           SyncToken: existingEstimate.SyncToken,
-        })
+        } as any)
       } else {
         // Create new estimate
         logger.info(`Creating new QB estimate for order ${orderId}`)
