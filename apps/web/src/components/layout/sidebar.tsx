@@ -73,8 +73,6 @@ const menuItems = [
       { name: 'Security', href: '/settings/security' },
       { name: 'Roles', href: '/settings/roles' },
       { name: 'Products', href: '/products' },
-      { name: 'Agents', href: '/settings/agents' },
-      { name: 'Brokers', href: '/settings/brokers' },
     ],
   },
   {
