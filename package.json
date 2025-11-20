@@ -24,7 +24,7 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "clean": "turbo run clean && rm -rf node_modules",
-    "heroku-postbuild": "if [ \"$APP_TYPE\" = \"api\" ]; then cd packages/shared && npm install --include=dev && npm run build && cd ../../apps/api && npm install && npm run build; elif [ \"$APP_TYPE\" = \"web\" ]; then cd packages/shared && npm install --include=dev && npm run build && cd ../../apps/web && npm install --legacy-peer-deps --include=dev && npm run build; else echo 'APP_TYPE not set'; fi"
+    "heroku-postbuild": "if [ \"$APP_TYPE\" = \"api\" ]; then cd packages/shared && npm install --include=dev && npm run build && cd ../../apps/api && npm install && npm run build; elif [ \"$APP_TYPE\" = \"web\" ]; then cd packages/shared && npm install --include=dev && npm run build && cd ../../apps/web && rm -rf node_modules && npm install --legacy-peer-deps --include=dev && npm run build; else echo 'APP_TYPE not set'; fi"
   },
   "devDependencies": {
     "turbo": "^2.6.1"
