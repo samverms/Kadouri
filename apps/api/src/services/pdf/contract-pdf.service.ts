@@ -102,20 +102,6 @@ export class ContractPDFService {
           doc.image(logoPath, margin, 40, { width: 150 })
         }
 
-        // Add watermark behind content
-        doc.save()
-        doc
-          .fontSize(100)
-          .font('Helvetica-Bold')
-          .fillColor('#f0f0f0')
-          .opacity(0.3)
-          .rotate(-45, { origin: [pageWidth / 2, doc.page.height / 2] })
-          .text('CONTRACT', 50, doc.page.height / 2 - 50, {
-            width: pageWidth,
-            align: 'center',
-          })
-        doc.restore()
-
         // CONTRACT # centered at top
         doc
           .fontSize(18)
@@ -136,10 +122,8 @@ export class ContractPDFService {
             width: pageWidth,
           })
 
-        doc.moveDown(2)
-
         // Seller and Buyer side by side
-        const topY = 120
+        const topY = 100
         const leftColX = margin
         const rightColX = pageWidth / 2 + 20
 
@@ -365,20 +349,6 @@ export class ContractPDFService {
 
         // PAGE 2
         doc.addPage()
-
-        // Add watermark to page 2
-        doc.save()
-        doc
-          .fontSize(100)
-          .font('Helvetica-Bold')
-          .fillColor('#f0f0f0')
-          .opacity(0.3)
-          .rotate(-45, { origin: [pageWidth / 2, doc.page.height / 2] })
-          .text('CONTRACT', 50, doc.page.height / 2 - 50, {
-            width: pageWidth,
-            align: 'center',
-          })
-        doc.restore()
 
         // Arbitration section
         const page2Top = 100
