@@ -95,6 +95,7 @@ export interface QBOInvoiceLine {
 export interface QBOEstimate {
   Id?: string
   DocNumber?: string
+  SyncToken?: string
   TxnDate: string
   CustomerRef: {
     value: string
