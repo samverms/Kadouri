@@ -23,6 +23,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.490.0",
     "@aws-sdk/s3-request-presigner": "^3.490.0",
+    "@clerk/backend": "^2.23.2",
     "@clerk/express": "^0.0.3",
     "@supabase/supabase-js": "^2.80.0",
     "@types/multer": "^2.0.0",
