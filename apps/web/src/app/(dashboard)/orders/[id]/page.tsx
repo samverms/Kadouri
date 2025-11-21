@@ -124,10 +124,14 @@ export default function OrderDetailPage() {
   }])
   const [commissionRate, setCommissionRate] = useState(0)
   const [numPallets, setNumPallets] = useState('')
+  const [poNumber, setPoNumber] = useState('')
+  const [contractNo, setContractNo] = useState('')
   const [conditions, setConditions] = useState('')
   const [paymentTerms, setPaymentTerms] = useState('')
   const [otherRemarks, setOtherRemarks] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [activeTab, setActiveTab] = useState<'notes' | 'attachments'>('notes')
+  const [attachments, setAttachments] = useState<any[]>([])
 
   // Products
   const [products, setProducts] = useState<Product[]>([])
@@ -369,6 +373,8 @@ export default function OrderDetailPage() {
       setOrderStatus(orderData.status || 'draft')
       setIsPickup(orderData.isPickup || false)
       setNumPallets(orderData.palletCount?.toString() || '')
+      setPoNumber(orderData.poNumber || '')
+      setContractNo(orderData.contractNo || '')
       setPaymentTerms(orderData.terms || '')
 
       // Set QuickBooks data
@@ -1146,6 +1152,8 @@ export default function OrderDetailPage() {
         isPickup,
         agentId: selectedAgent?.id,
         brokerId: selectedBroker?.id,
+        poNumber: poNumber || undefined,
+        contractNo: contractNo || undefined,
         palletCount: numPallets ? parseInt(numPallets) : undefined,
         terms: paymentTerms,
         notes: `${conditions}\n${otherRemarks}`.trim(),
