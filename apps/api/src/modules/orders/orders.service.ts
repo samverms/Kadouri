@@ -1,10 +1,11 @@
 import { db } from '../../db'
-import { orders, orderLines, accounts, products, agents, brokers, termsOptions } from '../../db/schema'
+import { orders, orderLines, accounts, products, agents, brokers, termsOptions, orderAttachments } from '../../db/schema'
 import { eq, desc, ilike, or, inArray } from 'drizzle-orm'
 import { AppError } from '../../middleware/error-handler'
 import { logger } from '../../utils/logger'
 import contractsService from '../contracts/contracts.service'
 import { OrderActivityService } from '../order-activities/order-activities.service'
+import { S3Service } from '../../services/storage/s3-service'
 
 export class OrdersService {
   // Generate order number (format: YYMM-NNNN)
@@ -522,5 +523,75 @@ export class OrdersService {
       .orderBy(termsOptions.name)
 
     return terms
+  }
+
+  // Attachment methods
+  async uploadAttachment(orderId: string, file: Express.Multer.File, userId: string) {
+    // Verify order exists
+    const [order] = await db.select().from(orders).where(eq(orders.id, orderId))
+    if (!order) {
+      throw new AppError('Order not found', 404)
+    }
+
+    // Upload to S3
+    const s3Service = new S3Service()
+    const key = `orders/${order.orderNo}/attachments/${Date.now()}-${file.originalname}`
+    const fileUrl = await s3Service.uploadFile(key, file.buffer, file.mimetype)
+
+    // Save to database
+    const [attachment] = await db
+      .insert(orderAttachments)
+      .values({
+        orderId,
+        fileName: file.originalname,
+        fileUrl,
+        fileSize: file.size,
+        fileType: file.mimetype,
+        uploadedBy: userId,
+      })
+      .returning()
+
+    logger.info(`Attachment uploaded for order ${orderId}: ${file.originalname}`)
+    return attachment
+  }
+
+  async getAttachments(orderId: string) {
+    const attachments = await db
+      .select()
+      .from(orderAttachments)
+      .where(eq(orderAttachments.orderId, orderId))
+      .orderBy(desc(orderAttachments.createdAt))
+
+    return attachments
+  }
+
+  async deleteAttachment(id: string, userId: string) {
+    const [attachment] = await db
+      .select()
+      .from(orderAttachments)
+      .where(eq(orderAttachments.id, id))
+
+    if (!attachment) {
+      throw new AppError('Attachment not found', 404)
+    }
+
+    // Delete from S3
+    try {
+      const s3Service = new S3Service()
+      const urlParts = attachment.fileUrl.split('.com/')
+      if (urlParts.length > 1) {
+        const key = urlParts[1]
+        await s3Service.deleteFile(key)
+      }
+    } catch (error) {
+      logger.error('Failed to delete file from S3:', error)
+      // Continue with database deletion even if S3 delete fails
+    }
+
+    // Delete from database
+    await db.delete(orderAttachments).where(eq(orderAttachments.id, id))
+
+    logger.info(`Attachment deleted: ${id} by user ${userId}`)
+    return { success: true }
   }
 }

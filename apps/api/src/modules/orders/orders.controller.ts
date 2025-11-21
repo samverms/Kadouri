@@ -72,4 +72,38 @@ export class OrdersController {
       next(error)
     }
   }
+
+  uploadAttachment = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' })
+      }
+      const attachment = await this.ordersService.uploadAttachment(
+        req.params.id,
+        req.file,
+        req.userId!
+      )
+      res.status(201).json(attachment)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  getAttachments = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const attachments = await this.ordersService.getAttachments(req.params.id)
+      res.json(attachments)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  deleteAttachment = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.ordersService.deleteAttachment(req.params.attachmentId, req.userId!)
+      res.json(result)
+    } catch (error) {
+      next(error)
+    }
+  }
 }
