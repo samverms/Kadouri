@@ -1395,25 +1395,31 @@ export default function OrderDetailPage() {
     try {
       setIsGeneratingSellerPDF(true)
       const token = await getToken()
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}/api/pdf/order/seller`, {
-        method: 'POST',
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}/api/pdf/invoice/${orderId}/seller`, {
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ orderId }),
       })
 
       if (!response.ok) {
-        throw new Error('Failed to generate seller PDF')
+        throw new Error('Failed to generate seller invoice PDF')
       }
 
-      const data = await response.json()
-      window.open(data.url, '_blank')
-      showToast('Seller PDF generated successfully', 'success')
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `invoice-seller-${orderId}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      showToast('Seller invoice PDF generated successfully', 'success')
     } catch (error) {
       console.error('Error generating seller PDF:', error)
-      showToast('Failed to generate seller PDF', 'error')
+      showToast('Failed to generate seller invoice PDF', 'error')
     } finally {
       setIsGeneratingSellerPDF(false)
     }
@@ -1423,25 +1429,31 @@ export default function OrderDetailPage() {
     try {
       setIsGeneratingBuyerPDF(true)
       const token = await getToken()
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}/api/pdf/order/buyer`, {
-        method: 'POST',
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}/api/pdf/invoice/${orderId}/buyer`, {
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ orderId }),
       })
 
       if (!response.ok) {
-        throw new Error('Failed to generate buyer PDF')
+        throw new Error('Failed to generate buyer invoice PDF')
       }
 
-      const data = await response.json()
-      window.open(data.url, '_blank')
-      showToast('Buyer PDF generated successfully', 'success')
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `invoice-buyer-${orderId}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      showToast('Buyer invoice PDF generated successfully', 'success')
     } catch (error) {
       console.error('Error generating buyer PDF:', error)
-      showToast('Failed to generate buyer PDF', 'error')
+      showToast('Failed to generate buyer invoice PDF', 'error')
     } finally {
       setIsGeneratingBuyerPDF(false)
     }
@@ -1633,7 +1645,7 @@ export default function OrderDetailPage() {
             </Button>
           )}
 
-          {/* PDF Generation Buttons */}
+          {/* Invoice PDF Generation Buttons */}
           <Button
             onClick={handleGenerateSellerPDF}
             disabled={isGeneratingSellerPDF}
@@ -1642,7 +1654,7 @@ export default function OrderDetailPage() {
             className="border-blue-300 text-blue-600 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-900/20"
           >
             <FileText className={`h-4 w-4 mr-1 ${isGeneratingSellerPDF ? 'animate-pulse' : ''}`} />
-            {isGeneratingSellerPDF ? 'Generating...' : 'Seller PDF'}
+            {isGeneratingSellerPDF ? 'Generating...' : 'Invoice for Seller'}
           </Button>
 
           <Button
@@ -1653,7 +1665,7 @@ export default function OrderDetailPage() {
             className="border-green-300 text-green-600 hover:bg-green-50 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-900/20"
           >
             <FileText className={`h-4 w-4 mr-1 ${isGeneratingBuyerPDF ? 'animate-pulse' : ''}`} />
-            {isGeneratingBuyerPDF ? 'Generating...' : 'Buyer PDF'}
+            {isGeneratingBuyerPDF ? 'Generating...' : 'Invoice for Buyer'}
           </Button>
 
           {/* Save Button */}
