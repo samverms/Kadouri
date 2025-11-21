@@ -4,7 +4,7 @@ import express from 'express'
 import { authenticate } from '../middleware/auth'
 import { accountsRouter } from '../modules/accounts/accounts.routes'
 import { productsRouter } from '../modules/products/products.routes'
-import { ordersRouter } from '../modules/orders/orders.routes'
+import { ordersRouter, termsOptionsRouter } from '../modules/orders/orders.routes'
 import { invitationRouter } from '../modules/users/invitation.routes'
 import orderActivitiesRouter from '../modules/order-activities/order-activities.routes'
 import pdfRouter from './pdf.routes'
@@ -34,6 +34,7 @@ router.use('/uploads', authenticate, express.static(uploadsPath))
 router.use('/accounts', authenticate, accountsRouter)
 router.use('/products', authenticate, productsRouter)
 router.use('/orders', authenticate, ordersRouter)
+router.use('/terms-options', authenticate, termsOptionsRouter)
 router.use('/contracts', authenticate, contractsRouter)
 router.use('/invoices', authenticate, invoicesRouter)
 router.use('/brokers', authenticate, brokersRouter)

@@ -1,5 +1,5 @@
 import { db } from '../../db'
-import { orders, orderLines, accounts, products, agents, brokers } from '../../db/schema'
+import { orders, orderLines, accounts, products, agents, brokers, termsOptions } from '../../db/schema'
 import { eq, desc, ilike, or, inArray } from 'drizzle-orm'
 import { AppError } from '../../middleware/error-handler'
 import { logger } from '../../utils/logger'
@@ -512,5 +512,15 @@ export class OrdersService {
     logger.info(`Deleted order: ${id}`)
 
     return { success: true }
+  }
+
+  async getTermsOptions() {
+    const terms = await db
+      .select()
+      .from(termsOptions)
+      .where(eq(termsOptions.isActive, true))
+      .orderBy(termsOptions.name)
+
+    return terms
   }
 }

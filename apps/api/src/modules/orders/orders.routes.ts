@@ -10,4 +10,8 @@ router.get('/:id', controller.getOrder)
 router.patch('/:id', controller.updateOrder)
 router.delete('/:id', controller.deleteOrder)
 
-export { router as ordersRouter }
+// Terms options endpoint (separate router for better organization)
+const termsRouter = Router()
+termsRouter.get('/', controller.getTermsOptions)
+
+export { router as ordersRouter, termsRouter as termsOptionsRouter }

@@ -63,4 +63,13 @@ export class OrdersController {
       next(error)
     }
   }
+
+  getTermsOptions = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const terms = await this.ordersService.getTermsOptions()
+      res.json(terms)
+    } catch (error) {
+      next(error)
+    }
+  }
 }

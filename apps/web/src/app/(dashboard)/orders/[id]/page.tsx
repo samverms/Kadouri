@@ -19,7 +19,12 @@ import {
   Upload,
   RefreshCw,
   ExternalLink,
+  FileText,
+  Download,
+  Paperclip,
+  StickyNote,
 } from 'lucide-react'
+import { OrderModals } from './OrderModals'
 
 interface ProductVariant {
   id: string
@@ -109,6 +114,8 @@ export default function OrderDetailPage() {
   const [qboDocNumber, setQboDocNumber] = useState<string | null>(null)
   const [isPostingToQB, setIsPostingToQB] = useState(false)
   const [isUpdatingQB, setIsUpdatingQB] = useState(false)
+  const [isGeneratingSellerPDF, setIsGeneratingSellerPDF] = useState(false)
+  const [isGeneratingBuyerPDF, setIsGeneratingBuyerPDF] = useState(false)
 
   // Order state
   const [orderLines, setOrderLines] = useState<OrderLine[]>([{
@@ -128,7 +135,9 @@ export default function OrderDetailPage() {
   const [contractNo, setContractNo] = useState('')
   const [conditions, setConditions] = useState('')
   const [paymentTerms, setPaymentTerms] = useState('')
+  const [termsOptions, setTermsOptions] = useState<Array<{ id: string; name: string }>>([])
   const [otherRemarks, setOtherRemarks] = useState('')
+  const [notes, setNotes] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<'notes' | 'attachments'>('notes')
   const [attachments, setAttachments] = useState<any[]>([])
@@ -236,6 +245,8 @@ export default function OrderDetailPage() {
       await fetchOrder()
       // Fetch activities in background (non-blocking)
       fetchActivities()
+      // Fetch terms options
+      fetchTermsOptions()
     }
     initializeData()
   }, [orderId])
@@ -351,6 +362,25 @@ export default function OrderDetailPage() {
     }
   }
 
+  const fetchTermsOptions = async () => {
+    try {
+      const token = await getToken()
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}/api/terms-options`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setTermsOptions(data.filter((term: any) => term.isActive))
+      } else {
+        console.error('Failed to fetch terms options:', await response.text())
+      }
+    } catch (err) {
+      console.error('Fetch terms options error:', err)
+    }
+  }
+
   const fetchOrder = async () => {
     try {
       setIsLoading(true)
@@ -382,13 +412,14 @@ export default function OrderDetailPage() {
       setQboDocNumber(orderData.qboDocNumber || null)
 
       // Parse notes for conditions and remarks
-      const notes = orderData.notes || ''
-      const notesParts = notes.split('\n')
+      const orderNotes = orderData.notes || ''
+      setNotes(orderNotes)
+      const notesParts = orderNotes.split('\n')
       if (notesParts.length > 1) {
         setConditions(notesParts[0] || '')
         setOtherRemarks(notesParts.slice(1).join('\n') || '')
       } else {
-        setConditions(notes)
+        setConditions(orderNotes)
         setOtherRemarks('')
       }
 
@@ -1156,7 +1187,7 @@ export default function OrderDetailPage() {
         contractNo: contractNo || undefined,
         palletCount: numPallets ? parseInt(numPallets) : undefined,
         terms: paymentTerms,
-        notes: `${conditions}\n${otherRemarks}`.trim(),
+        notes: notes || `${conditions}\n${otherRemarks}`.trim(),
         lines: orderLines
           .filter(line => line.productId && line.quantity > 0)
           .map(line => ({
@@ -1282,6 +1313,63 @@ export default function OrderDetailPage() {
     }
   }
 
+  // PDF generation handlers
+  const handleGenerateSellerPDF = async () => {
+    try {
+      setIsGeneratingSellerPDF(true)
+      const token = await getToken()
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}/api/pdf/order/seller`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ orderId }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate seller PDF')
+      }
+
+      const data = await response.json()
+      window.open(data.url, '_blank')
+      showToast('Seller PDF generated successfully', 'success')
+    } catch (error) {
+      console.error('Error generating seller PDF:', error)
+      showToast('Failed to generate seller PDF', 'error')
+    } finally {
+      setIsGeneratingSellerPDF(false)
+    }
+  }
+
+  const handleGenerateBuyerPDF = async () => {
+    try {
+      setIsGeneratingBuyerPDF(true)
+      const token = await getToken()
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:2000'}/api/pdf/order/buyer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ orderId }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate buyer PDF')
+      }
+
+      const data = await response.json()
+      window.open(data.url, '_blank')
+      showToast('Buyer PDF generated successfully', 'success')
+    } catch (error) {
+      console.error('Error generating buyer PDF:', error)
+      showToast('Failed to generate buyer PDF', 'error')
+    } finally {
+      setIsGeneratingBuyerPDF(false)
+    }
+  }
+
   // Format date for activity display
   const formatActivityDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -1377,6 +1465,29 @@ export default function OrderDetailPage() {
               {isPostingToQB ? 'Posting...' : 'Post to QB'}
             </Button>
           )}
+
+          {/* PDF Generation Buttons */}
+          <Button
+            onClick={handleGenerateSellerPDF}
+            disabled={isGeneratingSellerPDF}
+            size="sm"
+            variant="outline"
+            className="border-blue-300 text-blue-600 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-900/20"
+          >
+            <FileText className={`h-4 w-4 mr-1 ${isGeneratingSellerPDF ? 'animate-pulse' : ''}`} />
+            {isGeneratingSellerPDF ? 'Generating...' : 'Seller PDF'}
+          </Button>
+
+          <Button
+            onClick={handleGenerateBuyerPDF}
+            disabled={isGeneratingBuyerPDF}
+            size="sm"
+            variant="outline"
+            className="border-green-300 text-green-600 hover:bg-green-50 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-900/20"
+          >
+            <FileText className={`h-4 w-4 mr-1 ${isGeneratingBuyerPDF ? 'animate-pulse' : ''}`} />
+            {isGeneratingBuyerPDF ? 'Generating...' : 'Buyer PDF'}
+          </Button>
 
           {/* Save Button */}
           <Button
@@ -1821,6 +1932,56 @@ export default function OrderDetailPage() {
                 </select>
               </div>
             </div>
+
+            {/* PO Number, Contract Number, and Payment Terms Section */}
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              {/* PO Number */}
+              <div>
+                <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                  PO Number
+                </label>
+                <Input
+                  type="text"
+                  value={poNumber}
+                  onChange={(e) => setPoNumber(e.target.value)}
+                  placeholder="Purchase Order #"
+                  className="w-full h-7 text-xs bg-white dark:bg-gray-800"
+                />
+              </div>
+
+              {/* Contract Number */}
+              <div>
+                <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                  Contract Number
+                </label>
+                <Input
+                  type="text"
+                  value={contractNo}
+                  onChange={(e) => setContractNo(e.target.value)}
+                  placeholder="Sales Contract #"
+                  className="w-full h-7 text-xs bg-white dark:bg-gray-800"
+                />
+              </div>
+
+              {/* Payment Terms */}
+              <div>
+                <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                  Payment Terms
+                </label>
+                <select
+                  className="w-full rounded border border-gray-300 dark:border-gray-600 px-1.5 py-1 text-xs bg-white dark:bg-gray-800 dark:text-white h-7"
+                  value={paymentTerms}
+                  onChange={(e) => setPaymentTerms(e.target.value)}
+                >
+                  <option value="">Select terms...</option>
+                  {termsOptions.map((term) => (
+                    <option key={term.id} value={term.name}>
+                      {term.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -2039,6 +2200,102 @@ export default function OrderDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Notes and Attachments Tabs */}
+      <Card className="mt-2">
+        <CardHeader className="py-2 px-3">
+          <div className="flex items-center gap-4 border-b border-gray-200 dark:border-gray-700">
+            <button
+              onClick={() => setActiveTab('notes')}
+              className={`flex items-center gap-2 pb-2 px-2 text-sm font-medium transition-colors ${
+                activeTab === 'notes'
+                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <StickyNote className="h-4 w-4" />
+              Notes
+            </button>
+            <button
+              onClick={() => setActiveTab('attachments')}
+              className={`flex items-center gap-2 pb-2 px-2 text-sm font-medium transition-colors ${
+                activeTab === 'attachments'
+                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <Paperclip className="h-4 w-4" />
+              Attachments ({attachments.length})
+            </button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-3 pt-2">
+          {activeTab === 'notes' ? (
+            <div className="space-y-2">
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add notes about this order..."
+                className="w-full min-h-[120px] px-3 py-2 text-sm text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none resize-y"
+              />
+              <div className="flex justify-end">
+                <Button
+                  onClick={() => {
+                    // Update order with new notes
+                    handleSave()
+                  }}
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Save className="h-3 w-3 mr-1" />
+                  Save Notes
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {attachments.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <Paperclip className="h-12 w-12 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+                  <p className="text-sm">No attachments yet</p>
+                  <p className="text-xs mt-1">Upload files related to this order</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {attachments.map((attachment, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Paperclip className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm text-gray-900 dark:text-white">{attachment.name}</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7"
+                      >
+                        <Download className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex justify-center pt-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-dashed"
+                >
+                  <Upload className="h-3 w-3 mr-1" />
+                  Upload Attachment
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Activities Section */}
       <Card className="mt-2">
         <CardHeader className="py-2 px-3">
@@ -2089,357 +2346,28 @@ export default function OrderDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Add Address Modal */}
-      {showAddAddressModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-2xl">
-            <CardHeader>
-              <CardTitle>Add New Address for {modalAccountType === 'seller' ? 'Seller' : 'Buyer'}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form className="space-y-4">
-                <div>
-                  <Label>Address Type *</Label>
-                  <select
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-white"
-                    value={newAddress.type}
-                    onChange={(e) => setNewAddress({ ...newAddress, type: e.target.value })}
-                  >
-                    <option value="billing">Billing</option>
-                    <option value="shipping">Shipping</option>
-                    <option value="warehouse">Warehouse</option>
-                    <option value="pickup">Pickup</option>
-                  </select>
-                </div>
-
-                <div>
-                  <Label>Address Line 1 *</Label>
-                  <Input
-                    value={newAddress.line1}
-                    onChange={(e) => setNewAddress({ ...newAddress, line1: e.target.value })}
-                    placeholder="123 Main St"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label>Address Line 2</Label>
-                  <Input
-                    value={newAddress.line2}
-                    onChange={(e) => setNewAddress({ ...newAddress, line2: e.target.value })}
-                    placeholder="Suite 100"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>City *</Label>
-                    <Input
-                      value={newAddress.city}
-                      onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
-                      placeholder="Los Angeles"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label>State *</Label>
-                    <Input
-                      value={newAddress.state}
-                      onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value.toUpperCase() })}
-                      placeholder="CA"
-                      maxLength={2}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Postal Code *</Label>
-                    <Input
-                      value={newAddress.postalCode}
-                      onChange={(e) => setNewAddress({ ...newAddress, postalCode: e.target.value })}
-                      placeholder="90001"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label>Country *</Label>
-                    <Input
-                      value={newAddress.country}
-                      onChange={(e) => setNewAddress({ ...newAddress, country: e.target.value.toUpperCase() })}
-                      placeholder="US"
-                      maxLength={2}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="isPrimaryAddress"
-                    checked={newAddress.isPrimary}
-                    onChange={(e) => setNewAddress({ ...newAddress, isPrimary: e.target.checked })}
-                    className="rounded border-gray-300 dark:border-gray-600"
-                  />
-                  <Label htmlFor="isPrimaryAddress" className="cursor-pointer">Set as primary address</Label>
-                </div>
-
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowAddAddressModal(false)
-                      setNewAddress({
-                        type: 'billing',
-                        line1: '',
-                        line2: '',
-                        city: '',
-                        state: '',
-                        postalCode: '',
-                        country: 'US',
-                        isPrimary: false,
-                      })
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleAddAddress}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    Add Address
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Add Contact Modal */}
-      {showAddContactModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-2xl">
-            <CardHeader>
-              <CardTitle>Add New Contact for {modalAccountType === 'seller' ? 'Seller' : 'Buyer'}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form className="space-y-4">
-                <div>
-                  <Label>Contact Name *</Label>
-                  <Input
-                    value={newContact.name}
-                    onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
-                    placeholder="John Doe"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label>Email *</Label>
-                  <Input
-                    type="email"
-                    value={newContact.email}
-                    onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                    placeholder="john@example.com"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label>Phone</Label>
-                  <Input
-                    type="tel"
-                    value={newContact.phone}
-                    onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                    placeholder="(555) 123-4567"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="isPrimaryContact"
-                    checked={newContact.isPrimary}
-                    onChange={(e) => setNewContact({ ...newContact, isPrimary: e.target.checked })}
-                    className="rounded border-gray-300 dark:border-gray-600"
-                  />
-                  <Label htmlFor="isPrimaryContact" className="cursor-pointer">Set as primary contact</Label>
-                </div>
-
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowAddContactModal(false)
-                      setNewContact({
-                        name: '',
-                        email: '',
-                        phone: '',
-                        isPrimary: false,
-                      })
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleAddContact}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    Add Contact
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Add Agent Modal */}
-      {showAddAgentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Add New Agent</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form className="space-y-4">
-                <div>
-                  <Label>Name *</Label>
-                  <Input
-                    value={newUser.name}
-                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                    placeholder="John Doe"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label>Email *</Label>
-                  <Input
-                    type="email"
-                    value={newUser.email}
-                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                    placeholder="john@example.com"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label>Phone</Label>
-                  <Input
-                    type="tel"
-                    value={newUser.phone}
-                    onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
-                    placeholder="(555) 123-4567"
-                  />
-                </div>
-
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowAddAgentModal(false)
-                      setNewUser({
-                        name: '',
-                        email: '',
-                        phone: '',
-                      })
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleAddAgent}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    Add Agent
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Add Broker Modal */}
-      {showAddBrokerModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Add New Broker</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form className="space-y-4">
-                <div>
-                  <Label>Name *</Label>
-                  <Input
-                    value={newUser.name}
-                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                    placeholder="John Doe"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label>Email *</Label>
-                  <Input
-                    type="email"
-                    value={newUser.email}
-                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                    placeholder="john@example.com"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label>Phone</Label>
-                  <Input
-                    type="tel"
-                    value={newUser.phone}
-                    onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
-                    placeholder="(555) 123-4567"
-                  />
-                </div>
-
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowAddBrokerModal(false)
-                      setNewUser({
-                        name: '',
-                        email: '',
-                        phone: '',
-                      })
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleAddBroker}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    Add Broker
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {/* Modals */}
+      <OrderModals
+        showAddAddressModal={showAddAddressModal}
+        setShowAddAddressModal={setShowAddAddressModal}
+        modalAccountType={modalAccountType}
+        newAddress={newAddress}
+        setNewAddress={setNewAddress}
+        handleAddAddress={handleAddAddress}
+        showAddContactModal={showAddContactModal}
+        setShowAddContactModal={setShowAddContactModal}
+        newContact={newContact}
+        setNewContact={setNewContact}
+        handleAddContact={handleAddContact}
+        showAddAgentModal={showAddAgentModal}
+        setShowAddAgentModal={setShowAddAgentModal}
+        newUser={newUser}
+        setNewUser={setNewUser}
+        handleAddAgent={handleAddAgent}
+        showAddBrokerModal={showAddBrokerModal}
+        setShowAddBrokerModal={setShowAddBrokerModal}
+        handleAddBroker={handleAddBroker}
+      />
 
       {/* Add Product Modal */}
       {showAddProductModal && (
