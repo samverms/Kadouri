@@ -1,6 +1,6 @@
 import PDFDocument from 'pdfkit'
 import { db } from '../../db'
-import { orders, accounts, products, addresses } from '../../db/schema'
+import { orders, orderLines, accounts, products, addresses } from '../../db/schema'
 import { eq, and } from 'drizzle-orm'
 import path from 'path'
 import fs from 'fs'
@@ -16,6 +16,20 @@ export class InvoicePDFService {
     if (!order) {
       throw new Error('Order not found')
     }
+
+    // Fetch order lines with products
+    const lines = await db
+      .select({
+        id: orderLines.id,
+        productId: orderLines.productId,
+        quantity: orderLines.quantity,
+        unitPrice: orderLines.unitPrice,
+        lineTotal: orderLines.lineTotal,
+        productName: products.name,
+      })
+      .from(orderLines)
+      .leftJoin(products, eq(orderLines.productId, products.id))
+      .where(eq(orderLines.orderId, orderId))
 
     // Fetch seller with address
     const [seller] = await db
@@ -54,12 +68,6 @@ export class InvoicePDFService {
         eq(addresses.isPrimary, true)
       ))
       .where(eq(accounts.id, order.buyerId))
-
-    // Fetch product
-    const [product] = await db
-      .select()
-      .from(products)
-      .where(eq(products.id, order.productId))
 
     return new Promise((resolve, reject) => {
       try {
@@ -119,7 +127,7 @@ export class InvoicePDFService {
           .font('Helvetica-Bold')
           .text('Due Date:', rightX, currentY)
           .font('Helvetica')
-          .text(new Date(order.shipDate || order.createdAt).toLocaleDateString('en-US'), rightX + 70, currentY)
+          .text(new Date(order.createdAt).toLocaleDateString('en-US'), rightX + 70, currentY)
 
         // From/To section
         currentY = 100
@@ -206,25 +214,30 @@ export class InvoicePDFService {
 
         currentY += 25
 
-        // Table row
-        doc
-          .fontSize(10)
-          .font('Helvetica')
-          .fillColor('#000000')
-          .rect(margin, currentY, tableWidth, 30)
-          .stroke()
+        // Table rows - iterate through order lines
+        let grandTotal = 0
+        lines.forEach((line, index) => {
+          const quantity = parseFloat(line.quantity)
+          const price = parseFloat(line.unitPrice)
+          const total = parseFloat(line.lineTotal)
+          grandTotal += total
 
-        const quantity = parseFloat(order.quantity)
-        const price = parseFloat(order.pricePerUnit)
-        const total = parseFloat(order.totalValue)
+          const rowHeight = 30
+          doc
+            .fontSize(10)
+            .font('Helvetica')
+            .fillColor('#000000')
+            .rect(margin, currentY, tableWidth, rowHeight)
+            .stroke()
 
-        doc
-          .text(product?.name || 'Product', margin + 5, currentY + 10, { width: colWidths[0] })
-          .text(quantity.toLocaleString(), margin + colWidths[0] + 5, currentY + 10, { width: colWidths[1], align: 'right' })
-          .text(`$${price.toFixed(2)}`, margin + colWidths[0] + colWidths[1] + 5, currentY + 10, { width: colWidths[2], align: 'right' })
-          .text(`$${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, margin + colWidths[0] + colWidths[1] + colWidths[2] + 5, currentY + 10, { width: colWidths[3], align: 'right' })
+          doc
+            .text(line.productName || 'Product', margin + 5, currentY + 10, { width: colWidths[0] })
+            .text(quantity.toLocaleString(), margin + colWidths[0] + 5, currentY + 10, { width: colWidths[1], align: 'right' })
+            .text(`$${price.toFixed(2)}`, margin + colWidths[0] + colWidths[1] + 5, currentY + 10, { width: colWidths[2], align: 'right' })
+            .text(`$${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, margin + colWidths[0] + colWidths[1] + colWidths[2] + 5, currentY + 10, { width: colWidths[3], align: 'right' })
 
-        currentY += 30
+          currentY += rowHeight
+        })
 
         // Totals section
         currentY += 20
@@ -234,13 +247,13 @@ export class InvoicePDFService {
           .fontSize(10)
           .font('Helvetica-Bold')
           .text('Subtotal:', totalsX, currentY)
-          .text(`$${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, totalsX + 100, currentY, { align: 'right', width: 100 })
+          .text(`$${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, totalsX + 100, currentY, { align: 'right', width: 100 })
 
         currentY += 20
         doc
           .fontSize(12)
           .text('TOTAL:', totalsX, currentY)
-          .text(`$${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, totalsX + 100, currentY, { align: 'right', width: 100 })
+          .text(`$${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, totalsX + 100, currentY, { align: 'right', width: 100 })
 
         // Notes
         if (order.notes) {
