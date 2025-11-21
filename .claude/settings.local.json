@@ -98,7 +98,8 @@
       "Bash(powershell -Command \"heroku run ''cd apps/api && npx tsx src/db/migrate.ts'' --app kadouri-backend\")",
       "WebFetch(domain:kadouri.luminoustec.net)",
       "Bash(dir:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(timeout 60 cmd /c \"timeout /t 50 /nobreak > nul && echo done\")"
     ],
     "deny": [],
     "ask": []
