@@ -47,6 +47,7 @@ interface OrderLine {
   quantity: number
   pricePerUnit: number // price per lb
   commissionPercent: number
+  memo?: string
 }
 
 interface Product {
@@ -128,6 +129,7 @@ export default function OrderDetailPage() {
     quantity: 0,
     pricePerUnit: 0,
     commissionPercent: 0,
+    memo: '',
   }])
   const [commissionRate, setCommissionRate] = useState(0)
   const [numPallets, setNumPallets] = useState('')
@@ -139,7 +141,7 @@ export default function OrderDetailPage() {
   const [otherRemarks, setOtherRemarks] = useState('')
   const [notes, setNotes] = useState('')
   const [isSaving, setIsSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<'notes' | 'attachments'>('notes')
+  const [activeTab, setActiveTab] = useState<'notes' | 'attachments' | 'activity'>('notes')
   const [attachments, setAttachments] = useState<any[]>([])
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false)
   const [uploadError, setUploadError] = useState('')
@@ -267,6 +269,22 @@ export default function OrderDetailPage() {
       fetchProducts()
     }
   }, [orderLines.length])
+
+  // Auto-generate memos when line data changes
+  useEffect(() => {
+    if (products.length === 0) return // Wait for products to load
+
+    setOrderLines(prevLines =>
+      prevLines.map(line => {
+        // Only auto-generate if memo is empty or hasn't been manually edited
+        const newMemo = generateMemo(line)
+        if (!line.memo || line.memo === '') {
+          return { ...line, memo: newMemo }
+        }
+        return line
+      })
+    )
+  }, [orderLines.map(l => `${l.productId}-${l.variantId}-${l.quantity}-${l.pricePerUnit}`).join(','), isPickup, products.length])
 
   const fetchAccounts = async () => {
     try {
@@ -528,6 +546,7 @@ export default function OrderDetailPage() {
             pricePerUnit: parseFloat(line.unitPrice) || 0,
             // commissionPct is stored as 0-100 in the database (2 for 2%)
             commissionPercent: line.commissionPct ? parseFloat(line.commissionPct) : 0,
+            memo: line.memo || '',
           }
         })
         setOrderLines(loadedLines)
@@ -756,6 +775,7 @@ export default function OrderDetailPage() {
       quantity: 0,
       pricePerUnit: 0,
       commissionPercent: 0,
+      memo: '',
     }
     setOrderLines([...orderLines, newLine])
   }
@@ -794,6 +814,40 @@ export default function OrderDetailPage() {
     if (orderLines.length > 1) {
       setOrderLines(orderLines.filter((line) => line.id !== id))
     }
+  }
+
+  // Generate memo for order line
+  const generateMemo = (line: OrderLine): string => {
+    if (!line.productId || !line.quantity) return ''
+
+    const product = products.find(p => p.id === line.productId)
+    if (!product) return ''
+
+    const variant = product.variants?.find(v => v.id === line.variantId)
+    if (!variant) return ''
+
+    // Format: {quantity} {packageType} {productName} {variety} {size}{unit} ${price}/{unit} {pickup/delivery}
+    const parts = []
+
+    // Quantity and package type
+    if (line.quantity) parts.push(`${line.quantity} ${variant.packageType}${line.quantity > 1 ? 's' : ''}`)
+
+    // Product name
+    if (product.name) parts.push(product.name.toLowerCase())
+
+    // Variety (if available)
+    if (product.variety) parts.push(product.variety.toLowerCase())
+
+    // Size and unit
+    if (variant.size && variant.sizeUnit) parts.push(`${variant.size}${variant.sizeUnit}`)
+
+    // Price per unit
+    if (line.pricePerUnit) parts.push(`$${line.pricePerUnit.toFixed(2)}/${variant.sizeUnit}`)
+
+    // Pickup or delivery
+    parts.push(isPickup ? 'pick up' : 'delivery')
+
+    return parts.join(' ')
   }
 
   const handleSelectProduct = (lineId: string, product: Product) => {
@@ -1221,6 +1275,7 @@ export default function OrderDetailPage() {
             totalWeight: line.quantity * (line.variantSize || 1),
             unitPrice: line.pricePerUnit,
             commissionPct: line.commissionPercent, // API expects 0-100 (2 for 2%)
+            memo: line.memo || undefined,
           })),
       }
 
@@ -1794,6 +1849,20 @@ export default function OrderDetailPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* PO Number */}
+                  <div>
+                    <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                      PO Number
+                    </label>
+                    <Input
+                      type="text"
+                      value={poNumber}
+                      onChange={(e) => setPoNumber(e.target.value)}
+                      placeholder="Purchase Order #"
+                      className="w-full h-7 text-xs bg-white dark:bg-gray-800"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1984,6 +2053,20 @@ export default function OrderDetailPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Contract Number */}
+                  <div>
+                    <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                      Sales Contract #
+                    </label>
+                    <Input
+                      type="text"
+                      value={contractNo}
+                      onChange={(e) => setContractNo(e.target.value)}
+                      placeholder="Sales Contract #"
+                      className="w-full h-7 text-xs bg-white dark:bg-gray-800"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -2045,36 +2128,8 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
-            {/* PO Number, Contract Number, and Payment Terms Section */}
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {/* PO Number */}
-              <div>
-                <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
-                  PO Number
-                </label>
-                <Input
-                  type="text"
-                  value={poNumber}
-                  onChange={(e) => setPoNumber(e.target.value)}
-                  placeholder="Purchase Order #"
-                  className="w-full h-7 text-xs bg-white dark:bg-gray-800"
-                />
-              </div>
-
-              {/* Contract Number */}
-              <div>
-                <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
-                  Contract Number
-                </label>
-                <Input
-                  type="text"
-                  value={contractNo}
-                  onChange={(e) => setContractNo(e.target.value)}
-                  placeholder="Sales Contract #"
-                  className="w-full h-7 text-xs bg-white dark:bg-gray-800"
-                />
-              </div>
-
+            {/* Payment Terms Section */}
+            <div className="mt-2">
               {/* Payment Terms */}
               <div>
                 <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
@@ -2123,7 +2178,8 @@ export default function OrderDetailPage() {
 
           <div className="space-y-1">
             {orderLines.map((line, index) => (
-              <div key={line.id} className="grid grid-cols-12 gap-1 items-center bg-gray-50 dark:bg-gray-800/50 p-1.5 rounded-lg">
+              <div key={line.id} className="bg-gray-50 dark:bg-gray-800/50 p-1.5 rounded-lg space-y-1">
+                <div className="grid grid-cols-12 gap-1 items-center">
                 {/* Line number */}
                 <div className="col-span-1">
                   <span className="w-6 h-6 flex items-center justify-center bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-full text-xs font-bold">
@@ -2290,6 +2346,18 @@ export default function OrderDetailPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Memo field */}
+              <div className="w-full">
+                <input
+                  type="text"
+                  value={line.memo || ''}
+                  onChange={(e) => updateOrderLine(line.id, 'memo', e.target.value)}
+                  placeholder="Auto-generated memo (editable)..."
+                  className="w-full px-2 py-1 text-xs text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none italic"
+                />
+              </div>
+            </div>
             ))}
           </div>
 
@@ -2338,6 +2406,17 @@ export default function OrderDetailPage() {
               <Paperclip className="h-4 w-4" />
               Attachments ({attachments.length})
             </button>
+            <button
+              onClick={() => setActiveTab('activity')}
+              className={`flex items-center gap-2 pb-2 px-2 text-sm font-medium transition-colors ${
+                activeTab === 'activity'
+                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <Clock className="h-4 w-4" />
+              Activity Log ({activities.length})
+            </button>
           </div>
         </CardHeader>
         <CardContent className="p-3 pt-2">
@@ -2363,7 +2442,7 @@ export default function OrderDetailPage() {
                 </Button>
               </div>
             </div>
-          ) : (
+          ) : activeTab === 'attachments' ? (
             <div className="space-y-3">
               {attachments.length > 0 && (
                 <div className="space-y-2">
@@ -2452,55 +2531,49 @@ export default function OrderDetailPage() {
                 )}
               </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Activities Section */}
-      <Card className="mt-2">
-        <CardHeader className="py-2 px-3">
-          <CardTitle className="text-sm font-bold flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Activity Log
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-3 pt-0">
-          {isLoadingActivities ? (
-            <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-              Loading activities...
-            </div>
-          ) : activities.length === 0 ? (
-            <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-              No activities recorded yet.
-            </div>
           ) : (
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {activities.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-start gap-3 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
-                >
-                  <div className="flex-shrink-0 mt-0.5">
-                    <User className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-medium text-gray-900 dark:text-white">
-                        {activity.userName || 'System'}
-                      </span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400 flex-shrink-0">
-                        {formatActivityDate(activity.createdAt)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
-                      <span className="font-medium text-blue-600 dark:text-blue-400">
-                        {activity.activityType}
-                      </span>
-                      {activity.description && `: ${activity.description}`}
-                    </p>
-                  </div>
+            <div className="space-y-3">
+              {isLoadingActivities ? (
+                <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+                  <RefreshCw className="h-10 w-10 mx-auto mb-2 text-gray-300 dark:text-gray-600 animate-spin" />
+                  <p className="text-sm">Loading activities...</p>
                 </div>
-              ))}
+              ) : activities.length === 0 ? (
+                <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+                  <Clock className="h-10 w-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+                  <p className="text-sm">No activities recorded yet</p>
+                  <p className="text-xs mt-1">Activity will appear here as changes are made</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {activities.map((activity) => (
+                    <div
+                      key={activity.id}
+                      className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700"
+                    >
+                      <div className="flex-shrink-0 mt-0.5">
+                        <User className="h-4 w-4 text-blue-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-medium text-gray-900 dark:text-white">
+                            {activity.userName || 'System'}
+                          </span>
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 flex-shrink-0">
+                            {formatActivityDate(activity.createdAt)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
+                          <span className="font-medium text-blue-600 dark:text-blue-400">
+                            {activity.activityType}
+                          </span>
+                          {activity.description && `: ${activity.description}`}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </CardContent>
