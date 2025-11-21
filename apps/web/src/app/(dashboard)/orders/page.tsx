@@ -491,6 +491,48 @@ export default function OrdersPage() {
     }
   }
 
+  const handleGenerateInvoice = async (order: Order, type: 'seller' | 'buyer') => {
+    setGeneratingPdf({ orderId: order.id, type: `invoice-${type}` as any })
+
+    try {
+      if (!process.env.NEXT_PUBLIC_API_URL) {
+        showToast('API URL not configured. Please set NEXT_PUBLIC_API_URL in .env.local', 'error')
+        return
+      }
+
+      const token = await getToken()
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/pdf/invoice/${order.id}/${type}`
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to generate invoice: ${response.statusText}`)
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `invoice-${order.orderNo}-${type}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      showToast(`Invoice for ${type} generated successfully`, 'success')
+    } catch (error: any) {
+      console.error('Error generating invoice:', error)
+      showToast(`Error generating invoice: ${error.message || 'Network error or API not available'}`, 'error')
+    } finally {
+      setGeneratingPdf(null)
+    }
+  }
+
   const generateSinglePDF = async (orderData: any, type: 'seller' | 'buyer') => {
     const token = await getToken()
     const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/pdf/order/${type}`
@@ -1431,40 +1473,68 @@ export default function OrdersPage() {
           <tr className="bg-gray-50 dark:bg-gray-800">
             <td colSpan={12} className="px-6 py-4">
               {/* PDF Generation Buttons */}
-              <div className="mb-4 flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleGeneratePDF(order, 'seller')}
-                  disabled={generatingPdf?.orderId === order.id}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  {generatingPdf?.orderId === order.id && generatingPdf?.type === 'seller'
-                    ? 'Generating...'
-                    : 'Seller PDF'}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleGeneratePDF(order, 'buyer')}
-                  disabled={generatingPdf?.orderId === order.id}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  {generatingPdf?.orderId === order.id && generatingPdf?.type === 'buyer'
-                    ? 'Generating...'
-                    : 'Buyer PDF'}
-                </Button>
-                <Button
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-700"
-                  onClick={() => handleGeneratePDF(order, 'both')}
-                  disabled={generatingPdf?.orderId === order.id}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  {generatingPdf?.orderId === order.id && generatingPdf?.type === 'both'
-                    ? 'Generating...'
-                    : 'Generate Both PDFs'}
-                </Button>
+              <div className="mb-4 flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleGeneratePDF(order, 'seller')}
+                    disabled={generatingPdf?.orderId === order.id}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    {generatingPdf?.orderId === order.id && generatingPdf?.type === 'seller'
+                      ? 'Generating...'
+                      : 'Seller PDF'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleGeneratePDF(order, 'buyer')}
+                    disabled={generatingPdf?.orderId === order.id}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    {generatingPdf?.orderId === order.id && generatingPdf?.type === 'buyer'
+                      ? 'Generating...'
+                      : 'Buyer PDF'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => handleGeneratePDF(order, 'both')}
+                    disabled={generatingPdf?.orderId === order.id}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    {generatingPdf?.orderId === order.id && generatingPdf?.type === 'both'
+                      ? 'Generating...'
+                      : 'Generate Both PDFs'}
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                    onClick={() => handleGenerateInvoice(order, 'seller')}
+                    disabled={generatingPdf?.orderId === order.id}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    {generatingPdf?.orderId === order.id && generatingPdf?.type === 'invoice-seller'
+                      ? 'Generating...'
+                      : 'Invoice for Seller'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                    onClick={() => handleGenerateInvoice(order, 'buyer')}
+                    disabled={generatingPdf?.orderId === order.id}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    {generatingPdf?.orderId === order.id && generatingPdf?.type === 'invoice-buyer'
+                      ? 'Generating...'
+                      : 'Invoice for Buyer'}
+                  </Button>
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-6">

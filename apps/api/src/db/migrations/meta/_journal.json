@@ -148,6 +148,13 @@
       "when": 1763661091109,
       "tag": "0020_special_doctor_faustus",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "5",
+      "when": 1763698353254,
+      "tag": "0021_spooky_vision",
+      "breakpoints": true
     }
   ]
 }

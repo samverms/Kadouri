@@ -32,8 +32,9 @@ export const orders = pgTable('orders', {
   brokerName: varchar('broker_name', { length: 255 }),
   salesAgentId: varchar('sales_agent_id', { length: 255 }),
   status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, confirmed, posted_to_qb, paid
+  poNumber: varchar('po_number', { length: 100 }), // Purchase Order number
   contractId: uuid('contract_id'), // Link to contracts table (if this order is a contract draw)
-  contractNo: varchar('contract_no', { length: 100 }),
+  contractNo: varchar('contract_no', { length: 100 }), // Sales Contract number
   qboDocType: varchar('qbo_doc_type', { length: 20 }), // estimate or invoice
   qboDocId: varchar('qbo_doc_id', { length: 50 }),
   qboDocNumber: varchar('qbo_doc_number', { length: 50 }),
@@ -128,5 +129,34 @@ export const orderLinesRelations = relations(orderLines, ({ one }) => ({
   variant: one(productVariants, {
     fields: [orderLines.variantId],
     references: [productVariants.id],
+  }),
+}))
+
+// Terms Options table - configurable payment terms
+export const termsOptions = pgTable('terms_options', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: varchar('name', { length: 255 }).notNull().unique(), // e.g., "Net 30", "Net 60", "COD", "Due on Receipt"
+  description: text('description'),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+})
+
+// Order Attachments table - file uploads for orders
+export const orderAttachments = pgTable('order_attachments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  orderId: uuid('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  fileName: varchar('file_name', { length: 255 }).notNull(),
+  fileUrl: text('file_url').notNull(), // S3 URL or storage path
+  fileSize: integer('file_size'), // in bytes
+  fileType: varchar('file_type', { length: 100 }), // MIME type
+  uploadedBy: varchar('uploaded_by', { length: 50 }).notNull(), // Clerk user ID
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+})
+
+export const orderAttachmentsRelations = relations(orderAttachments, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderAttachments.orderId],
+    references: [orders.id],
   }),
 }))

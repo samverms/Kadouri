@@ -97,7 +97,8 @@
       "Bash(cmd /c \"taskkill /PID 22968 /F && taskkill /PID 16632 /F\")",
       "Bash(powershell -Command \"heroku run ''cd apps/api && npx tsx src/db/migrate.ts'' --app kadouri-backend\")",
       "WebFetch(domain:kadouri.luminoustec.net)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
