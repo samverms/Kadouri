@@ -73,6 +73,42 @@ export class OrdersController {
     }
   }
 
+  getAllTermsOptions = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const terms = await this.ordersService.getAllTermsOptions()
+      res.json(terms)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  createTermOption = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const term = await this.ordersService.createTermOption(req.body)
+      res.status(201).json(term)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  updateTermOption = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const term = await this.ordersService.updateTermOption(req.params.id, req.body)
+      res.json(term)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  deleteTermOption = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.ordersService.deleteTermOption(req.params.id)
+      res.json(result)
+    } catch (error) {
+      next(error)
+    }
+  }
+
   uploadAttachment = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.file) {

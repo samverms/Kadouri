@@ -525,6 +525,63 @@ export class OrdersService {
     return terms
   }
 
+  async getAllTermsOptions() {
+    const terms = await db
+      .select()
+      .from(termsOptions)
+      .orderBy(termsOptions.name)
+
+    return terms
+  }
+
+  async createTermOption(data: { name: string; description?: string; isActive?: boolean }) {
+    const [term] = await db
+      .insert(termsOptions)
+      .values({
+        name: data.name,
+        description: data.description,
+        isActive: data.isActive ?? true,
+      })
+      .returning()
+
+    logger.info(`Payment term created: ${term.name}`)
+    return term
+  }
+
+  async updateTermOption(id: string, data: { name?: string; description?: string; isActive?: boolean }) {
+    const [term] = await db
+      .update(termsOptions)
+      .set({
+        name: data.name,
+        description: data.description,
+        isActive: data.isActive,
+        updatedAt: new Date(),
+      })
+      .where(eq(termsOptions.id, id))
+      .returning()
+
+    if (!term) {
+      throw new AppError('Payment term not found', 404)
+    }
+
+    logger.info(`Payment term updated: ${term.name}`)
+    return term
+  }
+
+  async deleteTermOption(id: string) {
+    const [term] = await db
+      .delete(termsOptions)
+      .where(eq(termsOptions.id, id))
+      .returning()
+
+    if (!term) {
+      throw new AppError('Payment term not found', 404)
+    }
+
+    logger.info(`Payment term deleted: ${term.name}`)
+    return { success: true }
+  }
+
   // Attachment methods
   async uploadAttachment(orderId: string, file: Express.Multer.File, userId: string) {
     // Verify order exists

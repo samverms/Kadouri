@@ -27,5 +27,9 @@ router.delete('/:id/attachments/:attachmentId', controller.deleteAttachment)
 // Terms options endpoint (separate router for better organization)
 const termsRouter = Router()
 termsRouter.get('/', controller.getTermsOptions)
+termsRouter.get('/all', controller.getAllTermsOptions)
+termsRouter.post('/', controller.createTermOption)
+termsRouter.patch('/:id', controller.updateTermOption)
+termsRouter.delete('/:id', controller.deleteTermOption)
 
 export { router as ordersRouter, termsRouter as termsOptionsRouter }
