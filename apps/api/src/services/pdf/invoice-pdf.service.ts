@@ -79,6 +79,25 @@ export class InvoicePDFService {
       sellerAddress = addr || null
     }
 
+    // Fallback to primary address if order doesn't have address ID
+    if (!sellerAddress) {
+      const [addr] = await db
+        .select({
+          id: addresses.id,
+          line1: addresses.line1,
+          line2: addresses.line2,
+          city: addresses.city,
+          state: addresses.state,
+          postalCode: addresses.postalCode,
+        })
+        .from(addresses)
+        .where(and(
+          eq(addresses.accountId, order.sellerId),
+          eq(addresses.isPrimary, true)
+        ))
+      sellerAddress = addr || null
+    }
+
     // Fetch buyer account
     const [buyer] = await db
       .select({
@@ -113,6 +132,25 @@ export class InvoicePDFService {
       buyerAddress = addr || null
     }
 
+    // Fallback to primary address if order doesn't have address ID
+    if (!buyerAddress) {
+      const [addr] = await db
+        .select({
+          id: addresses.id,
+          line1: addresses.line1,
+          line2: addresses.line2,
+          city: addresses.city,
+          state: addresses.state,
+          postalCode: addresses.postalCode,
+        })
+        .from(addresses)
+        .where(and(
+          eq(addresses.accountId, order.buyerId),
+          eq(addresses.isPrimary, true)
+        ))
+      buyerAddress = addr || null
+    }
+
     // Fetch agent name
     let agentName = 'N/A'
     if (order.agentId) {
@@ -139,7 +177,8 @@ export class InvoicePDFService {
 
           // Upload to Cloudinary and save to database
           try {
-            const fileName = `${type}-invoice-${order.orderNo}.pdf`
+            // Don't include .pdf extension - Cloudinary auto-adds it based on content type
+            const fileName = `${type}-invoice-${order.orderNo}`
             const key = `invoices/${order.orderNo}/${fileName}`
             const fileUrl = await this.cloudinaryService.uploadFile(key, pdfBuffer, 'application/pdf')
 
