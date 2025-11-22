@@ -274,7 +274,7 @@ export class InvoicePDFService {
         for (const logoPath of logoPaths) {
           if (fs.existsSync(logoPath)) {
             try {
-              doc.image(logoPath, margin, 40, { width: 80 })
+              doc.image(logoPath, margin, 40, { width: 50 })
               logoLoaded = true
               break
             } catch (err) {
@@ -283,21 +283,22 @@ export class InvoicePDFService {
           }
         }
 
-        // Order details - right side
+        // "Kadouri Connection" text below logo
+        doc
+          .fontSize(12)
+          .font('Helvetica-Bold')
+          .fillColor('#000000')
+          .text('Kadouri Connection', margin, 95)
+
+        // Order details - right side (Order # removed, now on cards)
         const rightX = pageWidth - margin - 200
         let currentY = 50
         const paymentTerms = order.terms || 'NET 30 DAYS'
 
         doc
-          .fontSize(14)
-          .font('Helvetica-Bold')
-          .fillColor('#000000')
-          .text(`Order #${order.orderNo}`, rightX, currentY, { align: 'right', width: 200 })
-
-        currentY += 20
-        doc
           .fontSize(10)
           .font('Helvetica')
+          .fillColor('#000000')
           .text(`Date: ${new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}`, rightX, currentY, { align: 'right', width: 200 })
 
         currentY += 15
@@ -386,9 +387,9 @@ export class InvoicePDFService {
           sellerBoxY += 12
         }
 
-        // PO# at bottom
+        // Order # and PO# at bottom
         sellerBoxY += 5
-        doc.fontSize(9).font('Helvetica').text(`PO#: ${order.poNumber || 'TBA'}`, leftBoxX + 10, sellerBoxY)
+        doc.fontSize(9).font('Helvetica-Bold').text(`Order #${order.orderNo} | PO#: ${order.poNumber || 'TBA'}`, leftBoxX + 10, sellerBoxY)
         sellerBoxY += 15
 
         // Calculate seller box height
@@ -458,9 +459,9 @@ export class InvoicePDFService {
           buyerBoxY += 12
         }
 
-        // Sales Confirmation No. at bottom
+        // Order # and PO# at bottom
         buyerBoxY += 5
-        doc.fontSize(9).font('Helvetica').text(`Sales Confirmation No.: ${order.contractNo || 'TBA'}`, rightBoxX + 10, buyerBoxY)
+        doc.fontSize(9).font('Helvetica-Bold').text(`Order #${order.orderNo} | PO#: ${order.poNumber || 'TBA'}`, rightBoxX + 10, buyerBoxY)
         buyerBoxY += 15
 
         // Calculate buyer box height
@@ -510,14 +511,14 @@ export class InvoicePDFService {
           .font('Helvetica-Bold')
           .fillColor('#FFFFFF')
           .rect(margin, currentY, tableWidth, 20)
-          .fill('#8B4513') // Brown color matching logo
+          .fill('#4A5568') // Professional gray color
 
         let colX = margin + 5
         doc.fillColor('#FFFFFF').text('#', colX, currentY + 6, { width: colWidths[0] - 10 })
         colX += colWidths[0]
         doc.text('Product', colX, currentY + 6, { width: colWidths[1] - 10 })
         colX += colWidths[1]
-        doc.text('Variant', colX, currentY + 6, { width: colWidths[2] - 10 })
+        doc.text('Pack Size', colX, currentY + 6, { width: colWidths[2] - 10 })
         colX += colWidths[2]
         doc.text('Qty', colX, currentY + 6, { width: colWidths[3] - 10, align: 'right' })
         colX += colWidths[3]
@@ -711,25 +712,10 @@ export class InvoicePDFService {
             { width: tableWidth, lineGap: 1 }
           )
 
-        // Company Footer - 3 column layout (logo left, company center, contact right)
+        // Company Footer - Center-aligned 3 rows
         currentY += 30
         const footerY = currentY
 
-        // Logo on left
-        const footerLogoX = margin
-        for (const logoPath of logoPaths) {
-          if (fs.existsSync(logoPath)) {
-            try {
-              doc.image(logoPath, footerLogoX, footerY, { width: 60 })
-              break
-            } catch (err) {
-              // Try next path
-            }
-          }
-        }
-
-        // Company info in center
-        const centerX = pageWidth / 2
         doc
           .fontSize(8)
           .font('Helvetica-Bold')
@@ -741,21 +727,8 @@ export class InvoicePDFService {
           .font('Helvetica')
           .text('525 Northern Boulevard Suite 205 | Great Neck, NY 11021', 0, footerY + 12, { align: 'center', width: pageWidth })
 
-        doc.text('United States', 0, footerY + 22, { align: 'center', width: pageWidth })
-
-        // Contact info on right
-        const contactX = pageWidth - margin - 100
         doc
-          .fontSize(8)
-          .font('Helvetica-Bold')
-          .text('Contact Information', contactX, footerY, { width: 100 })
-
-        doc
-          .fontSize(7)
-          .font('Helvetica')
-          .text('(516) 399-0155', contactX, footerY + 12, { width: 100 })
-
-        doc.text('www.thekadouriconnection.com', contactX, footerY + 22, { width: 100 })
+          .text('(P) (516) 399-0155 • (F) (516) 439-4436 • (E) support@thekadouriconnection.com', 0, footerY + 24, { align: 'center', width: pageWidth })
 
         doc.end()
       } catch (error) {
