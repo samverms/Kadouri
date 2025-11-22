@@ -1265,7 +1265,7 @@ export default function OrderDetailPage() {
         contractNo: contractNo || undefined,
         palletCount: numPallets ? parseInt(numPallets) : undefined,
         terms: paymentTerms,
-        notes: notes || `${conditions}\n${otherRemarks}`.trim(),
+        notes: notes,
         lines: orderLines
           .filter(line => line.productId && line.quantity > 0)
           .map(line => ({
