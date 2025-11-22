@@ -270,53 +270,47 @@ export class InvoicePDFService {
         boxY += 15
 
         // Billing Address
-        doc.font('Helvetica-Bold').text('Billing Address:', rightBoxX + 10, boxY)
-        boxY += 12
-        doc.font('Helvetica')
-        if (buyer?.addressLine1) {
-          doc.text(buyer.addressLine1, rightBoxX + 10, boxY, { width: boxWidth - 20 })
+        if (buyerBillingAddress) {
+          doc.font('Helvetica-Bold').text('Billing Address:', rightBoxX + 10, boxY)
           boxY += 12
-        }
-        if (buyer?.addressLine2) {
-          doc.text(buyer.addressLine2, rightBoxX + 10, boxY, { width: boxWidth - 20 })
-          boxY += 12
-        }
-        if (buyer?.city || buyer?.state || buyer?.postalCode) {
-          doc.text(
-            `${buyer?.city || ''}, ${buyer?.state || ''}, ${buyer?.postalCode || ''}`.trim().replace(/,\s*,/g, ','),
-            rightBoxX + 10,
-            boxY,
-            { width: boxWidth - 20 }
-          )
-          boxY += 15
+          doc.font('Helvetica')
+          if (buyerBillingAddress.line1) {
+            doc.text(buyerBillingAddress.line1, rightBoxX + 10, boxY, { width: boxWidth - 20 })
+            boxY += 12
+          }
+          if (buyerBillingAddress.line2) {
+            doc.text(buyerBillingAddress.line2, rightBoxX + 10, boxY, { width: boxWidth - 20 })
+            boxY += 12
+          }
+          const cityStateZip = [buyerBillingAddress.city, buyerBillingAddress.state, buyerBillingAddress.postalCode].filter(Boolean).join(', ')
+          if (cityStateZip) {
+            doc.text(cityStateZip, rightBoxX + 10, boxY, { width: boxWidth - 20 })
+            boxY += 15
+          }
         }
 
-        // Shipping Address - use either dedicated shipping address or buyer primary address
-        const shipAddr = shippingAddress || buyer
+        // Shipping Address - use either dedicated shipping address or buyer billing address
+        const shipAddr = shippingAddress || buyerBillingAddress
         if (shipAddr) {
           doc.font('Helvetica-Bold').text('Shipping Address:', rightBoxX + 10, boxY)
           boxY += 12
           doc.font('Helvetica')
-          if (shipAddr.line1 || shipAddr.addressLine1) {
-            doc.text(shipAddr.line1 || shipAddr.addressLine1, rightBoxX + 10, boxY, { width: boxWidth - 20 })
+          if (shipAddr.line1) {
+            doc.text(shipAddr.line1, rightBoxX + 10, boxY, { width: boxWidth - 20 })
             boxY += 12
           }
-          if (shipAddr.line2 || shipAddr.addressLine2) {
-            doc.text(shipAddr.line2 || shipAddr.addressLine2, rightBoxX + 10, boxY, { width: boxWidth - 20 })
+          if (shipAddr.line2) {
+            doc.text(shipAddr.line2, rightBoxX + 10, boxY, { width: boxWidth - 20 })
             boxY += 12
           }
-          if (shipAddr.city || shipAddr.state || shipAddr.postalCode) {
-            doc.text(
-              `${shipAddr.city || ''}, ${shipAddr.state || ''}, ${shipAddr.postalCode || ''}`.trim().replace(/,\s*,/g, ','),
-              rightBoxX + 10,
-              boxY,
-              { width: boxWidth - 20 }
-            )
+          const cityStateZip = [shipAddr.city, shipAddr.state, shipAddr.postalCode].filter(Boolean).join(', ')
+          if (cityStateZip) {
+            doc.text(cityStateZip, rightBoxX + 10, boxY, { width: boxWidth - 20 })
           }
         }
 
-        // Purchase Order No. at bottom of box
-        doc.fontSize(9).text(`Purchase Order No.: ${order.poNumber || 'TBA'}`, rightBoxX + 10, currentY + 125)
+        // Sales Confirmation No. at bottom of box (buyer gets sales conf)
+        doc.fontSize(9).text(`Sales Confirmation No.: ${order.contractNo || 'TBA'}`, rightBoxX + 10, currentY + 125)
 
         // Product Details section
         currentY = 290
@@ -329,15 +323,15 @@ export class InvoicePDFService {
         currentY += 25
 
         // Table setup - matching orders page format
-        const tableWidth = pageWidth - (margin * 2)
+        const tableWidth = pageWidth - (margin * 2) // 512px for LETTER size
         let colWidths: number[]
 
         if (isSeller) {
-          // Seller: #, Product, Variant, Qty, $/lb, Total, %, Comm
-          colWidths = [30, 150, 120, 60, 60, 80, 50, 70]
+          // Seller: #, Product, Variant, Qty, $/lb, Total, %, Comm (total = 512px)
+          colWidths = [25, 120, 100, 50, 50, 70, 40, 57]
         } else {
-          // Buyer: #, Product, Variant, Qty, $/lb, Total (NO commission columns)
-          colWidths = [40, 180, 140, 70, 70, 100]
+          // Buyer: #, Product, Variant, Qty, $/lb, Total (NO commission columns) (total = 512px)
+          colWidths = [30, 150, 120, 60, 60, 92]
         }
 
         // Table header
@@ -436,18 +430,9 @@ export class InvoicePDFService {
           currentY += rowHeight
         })
 
-        // Pallets and Payment Terms
-        currentY += 20
-        const palletCount = order.palletCount || 0
-        const paymentTerms = order.terms || 'NET 30 DAYS'
-        doc
-          .fontSize(10)
-          .font('Helvetica')
-          .fillColor('#000000')
-          .text(`# of Pallets: ${palletCount}    Payment Terms: - ${paymentTerms}`, margin, currentY)
-
         // Remarks and Order Summary boxes
         currentY += 25
+        const palletCount = order.palletCount || 0
         const remarksBoxWidth = boxWidth
         const summaryBoxWidth = boxWidth
 
@@ -468,6 +453,13 @@ export class InvoicePDFService {
             .font('Helvetica')
             .text(order.notes, margin + 10, currentY + 30, { width: remarksBoxWidth - 20 })
         }
+
+        // # of Pallets (above Order Summary)
+        doc
+          .fontSize(10)
+          .font('Helvetica')
+          .fillColor('#000000')
+          .text(`# of Pallets: ${palletCount}`, rightBoxX, currentY - 10)
 
         // Order Summary box (right)
         doc
