@@ -274,7 +274,7 @@ export class InvoicePDFService {
         for (const logoPath of logoPaths) {
           if (fs.existsSync(logoPath)) {
             try {
-              doc.image(logoPath, margin, 40, { width: 50 })
+              doc.image(logoPath, margin, 32, { width: 50 })
               logoLoaded = true
               break
             } catch (err) {
@@ -288,7 +288,7 @@ export class InvoicePDFService {
           .fontSize(12)
           .font('Helvetica-Bold')
           .fillColor('#000000')
-          .text('Kadouri Connection', margin, 95)
+          .text('Kadouri Connection', margin, 100)
 
         // Order details - right side (Order # removed, now on cards)
         const rightX = pageWidth - margin - 200
@@ -387,9 +387,9 @@ export class InvoicePDFService {
           sellerBoxY += 12
         }
 
-        // Order # and PO# at bottom
+        // PO# at bottom
         sellerBoxY += 5
-        doc.fontSize(9).font('Helvetica-Bold').text(`Order #${order.orderNo} | PO#: ${order.poNumber || 'TBA'}`, leftBoxX + 10, sellerBoxY)
+        doc.fontSize(9).font('Helvetica-Bold').text(`PO#: ${order.poNumber || 'TBA'}`, leftBoxX + 10, sellerBoxY)
         sellerBoxY += 15
 
         // Calculate seller box height
@@ -439,7 +439,10 @@ export class InvoicePDFService {
         buyerBoxY += 5
         doc.fontSize(8).font('Helvetica').text('Shipping Address:', rightBoxX + 10, buyerBoxY)
         buyerBoxY += 10
-        if (buyerShippingAddress) {
+        if (order.isPickup) {
+          doc.fontSize(9).font('Helvetica-Bold').text('Will Pick Up', rightBoxX + 10, buyerBoxY)
+          buyerBoxY += 12
+        } else if (buyerShippingAddress) {
           doc.fontSize(9).font('Helvetica')
           if (buyerShippingAddress.line1) {
             doc.text(buyerShippingAddress.line1, rightBoxX + 10, buyerBoxY, { width: boxWidth - 20 })
@@ -455,13 +458,13 @@ export class InvoicePDFService {
             buyerBoxY += 12
           }
         } else {
-          doc.fontSize(9).font('Helvetica-Bold').text('Will Pick Up', rightBoxX + 10, buyerBoxY)
+          doc.fontSize(9).text('N/A', rightBoxX + 10, buyerBoxY)
           buyerBoxY += 12
         }
 
-        // Order # and PO# at bottom
+        // Order Confirmation # at bottom
         buyerBoxY += 5
-        doc.fontSize(9).font('Helvetica-Bold').text(`Order #${order.orderNo} | PO#: ${order.poNumber || 'TBA'}`, rightBoxX + 10, buyerBoxY)
+        doc.fontSize(9).font('Helvetica-Bold').text(`Order Confirmation #: ${order.contractNo || order.orderNo}`, rightBoxX + 10, buyerBoxY)
         buyerBoxY += 15
 
         // Calculate buyer box height
@@ -689,8 +692,8 @@ export class InvoicePDFService {
             { width: tableWidth, align: 'center', lineGap: 1 }
           )
 
-        // Notice text
-        currentY += 25
+        // Notice text (with line break after PALLETS)
+        currentY += 35
         doc
           .fontSize(8)
           .font('Helvetica')
@@ -709,12 +712,11 @@ export class InvoicePDFService {
             'Sales confirmation has been sent electronically. For an original mailed copy, please call or fax our office.',
             margin,
             currentY,
-            { width: tableWidth, lineGap: 1 }
+            { width: tableWidth, align: 'center', lineGap: 1 }
           )
 
-        // Company Footer - Center-aligned 3 rows
-        currentY += 30
-        const footerY = currentY
+        // Company Footer - Center-aligned 3 rows - Positioned at absolute bottom with 1cm margin
+        const footerY = doc.page.height - 60
 
         doc
           .fontSize(8)
