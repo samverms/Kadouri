@@ -50,11 +50,31 @@ export class OrderActivityService {
    * Get all activities for an order
    */
   static async getOrderActivities(orderId: string): Promise<OrderActivity[]> {
-    return await db
+    const activities = await db
       .select()
       .from(orderActivities)
       .where(eq(orderActivities.orderId, orderId))
       .orderBy(desc(orderActivities.createdAt))
+
+    // Enrich activities with user names from Clerk if missing
+    return await Promise.all(
+      activities.map(async (activity) => {
+        if (!activity.userName && activity.clerkUserId) {
+          try {
+            const user = await clerkClient.users.getUser(activity.clerkUserId)
+            return {
+              ...activity,
+              userName: user.firstName && user.lastName
+                ? `${user.firstName} ${user.lastName}`
+                : user.emailAddresses?.[0]?.emailAddress || 'Unknown User',
+            }
+          } catch (err) {
+            return { ...activity, userName: 'Unknown User' }
+          }
+        }
+        return activity
+      })
+    )
   }
 
   /**

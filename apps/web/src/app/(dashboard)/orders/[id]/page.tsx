@@ -252,6 +252,8 @@ export default function OrderDetailPage() {
       fetchAttachments()
       // Fetch terms options
       fetchTermsOptions()
+      // Fetch agents and brokers for dropdowns
+      fetchAgentsAndBrokers()
     }
     initializeData()
   }, [orderId])

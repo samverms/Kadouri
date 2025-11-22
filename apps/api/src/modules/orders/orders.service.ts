@@ -5,7 +5,7 @@ import { AppError } from '../../middleware/error-handler'
 import { logger } from '../../utils/logger'
 import contractsService from '../contracts/contracts.service'
 import { OrderActivityService } from '../order-activities/order-activities.service'
-import { S3Service } from '../../services/storage/s3-service'
+import { CloudinaryService } from '../../services/storage/cloudinary-service'
 
 export class OrdersService {
   // Generate order number (format: YYMM-NNNN)
@@ -590,10 +590,10 @@ export class OrdersService {
       throw new AppError('Order not found', 404)
     }
 
-    // Upload to S3
-    const s3Service = new S3Service()
+    // Upload to Cloudinary
+    const cloudinaryService = new CloudinaryService()
     const key = `orders/${order.orderNo}/attachments/${Date.now()}-${file.originalname}`
-    const fileUrl = await s3Service.uploadFile(key, file.buffer, file.mimetype)
+    const fileUrl = await cloudinaryService.uploadFile(key, file.buffer, file.mimetype)
 
     // Save to database
     const [attachment] = await db
@@ -634,15 +634,17 @@ export class OrdersService {
 
     // Delete from S3
     try {
-      const s3Service = new S3Service()
-      const urlParts = attachment.fileUrl.split('.com/')
+      const cloudinaryService = new CloudinaryService()
+      // Extract public_id from Cloudinary URL
+      // URL format: https://res.cloudinary.com/{cloud_name}/image/upload/{public_id}
+      const urlParts = attachment.fileUrl.split('/kadouri-crm/')
       if (urlParts.length > 1) {
         const key = urlParts[1]
-        await s3Service.deleteFile(key)
+        await cloudinaryService.deleteFile(key)
       }
     } catch (error) {
-      logger.error('Failed to delete file from S3:', error)
-      // Continue with database deletion even if S3 delete fails
+      logger.error('Failed to delete file from Cloudinary:', error)
+      // Continue with database deletion even if Cloudinary delete fails
     }
 
     // Delete from database
