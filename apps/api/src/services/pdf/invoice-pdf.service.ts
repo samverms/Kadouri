@@ -234,17 +234,17 @@ export class InvoicePDFService {
         boxY += 15
 
         // Address
-        if (seller) {
+        if (sellerAddress) {
           doc.font('Helvetica')
-          if (seller.addressLine1) {
-            doc.text(seller.addressLine1, leftBoxX + 10, boxY, { width: boxWidth - 20 })
+          if (sellerAddress.line1) {
+            doc.text(sellerAddress.line1, leftBoxX + 10, boxY, { width: boxWidth - 20 })
             boxY += 12
           }
-          if (seller.addressLine2) {
-            doc.text(seller.addressLine2, leftBoxX + 10, boxY, { width: boxWidth - 20 })
+          if (sellerAddress.line2) {
+            doc.text(sellerAddress.line2, leftBoxX + 10, boxY, { width: boxWidth - 20 })
             boxY += 12
           }
-          const cityStateZip = [seller.city, seller.state, seller.postalCode].filter(Boolean).join(', ')
+          const cityStateZip = [sellerAddress.city, sellerAddress.state, sellerAddress.postalCode].filter(Boolean).join(', ')
           if (cityStateZip) {
             doc.text(cityStateZip, leftBoxX + 10, boxY, { width: boxWidth - 20 })
             boxY += 15
@@ -270,17 +270,17 @@ export class InvoicePDFService {
         boxY += 15
 
         // Address
-        if (buyer) {
+        if (buyerAddress) {
           doc.font('Helvetica')
-          if (buyer.addressLine1) {
-            doc.text(buyer.addressLine1, rightBoxX + 10, boxY, { width: boxWidth - 20 })
+          if (buyerAddress.line1) {
+            doc.text(buyerAddress.line1, rightBoxX + 10, boxY, { width: boxWidth - 20 })
             boxY += 12
           }
-          if (buyer.addressLine2) {
-            doc.text(buyer.addressLine2, rightBoxX + 10, boxY, { width: boxWidth - 20 })
+          if (buyerAddress.line2) {
+            doc.text(buyerAddress.line2, rightBoxX + 10, boxY, { width: boxWidth - 20 })
             boxY += 12
           }
-          const cityStateZip = [buyer.city, buyer.state, buyer.postalCode].filter(Boolean).join(', ')
+          const cityStateZip = [buyerAddress.city, buyerAddress.state, buyerAddress.postalCode].filter(Boolean).join(', ')
           if (cityStateZip) {
             doc.text(cityStateZip, rightBoxX + 10, boxY, { width: boxWidth - 20 })
             boxY += 15
