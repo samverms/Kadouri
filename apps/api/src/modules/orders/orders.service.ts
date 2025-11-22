@@ -384,6 +384,7 @@ export class OrdersService {
       agentId?: string
       brokerId?: string
       contractNo?: string
+      poNumber?: string
       contractId?: string
       terms?: string
       notes?: string
@@ -412,6 +413,8 @@ export class OrdersService {
     if (data.buyerId && data.buyerId !== current.buyerId) changes.push('buyer')
     if (data.agentId !== undefined && data.agentId !== current.agentId) changes.push('agent')
     if (data.brokerId !== undefined && data.brokerId !== current.brokerId) changes.push('broker')
+    if (data.contractNo && data.contractNo !== current.contractNo) changes.push('contract number')
+    if (data.poNumber !== undefined && data.poNumber !== current.poNumber) changes.push('PO number')
     if (data.terms && data.terms !== current.terms) changes.push('terms')
     if (data.notes && data.notes !== current.notes) changes.push('notes')
     if (data.status && data.status !== current.status) changes.push('status')

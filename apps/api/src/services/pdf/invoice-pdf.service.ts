@@ -38,43 +38,43 @@ export class InvoicePDFService {
       .leftJoin(products, eq(orderLines.productId, products.id))
       .where(eq(orderLines.orderId, orderId))
 
-    // Fetch seller with primary billing address
+    // Fetch seller account
     const [seller] = await db
       .select({
         id: accounts.id,
         name: accounts.name,
         code: accounts.code,
-        addressLine1: addresses.line1,
-        addressLine2: addresses.line2,
-        city: addresses.city,
-        state: addresses.state,
-        postalCode: addresses.postalCode,
       })
       .from(accounts)
-      .leftJoin(addresses, and(
-        eq(addresses.accountId, accounts.id),
-        eq(addresses.isPrimary, true)
-      ))
       .where(eq(accounts.id, order.sellerId))
 
-    // Fetch buyer with primary billing address
+    // Fetch seller billing address
+    let sellerBillingAddress: any = null
+    if (order.sellerBillingAddressId) {
+      [sellerBillingAddress] = await db
+        .select()
+        .from(addresses)
+        .where(eq(addresses.id, order.sellerBillingAddressId))
+    }
+
+    // Fetch buyer account
     const [buyer] = await db
       .select({
         id: accounts.id,
         name: accounts.name,
         code: accounts.code,
-        addressLine1: addresses.line1,
-        addressLine2: addresses.line2,
-        city: addresses.city,
-        state: addresses.state,
-        postalCode: addresses.postalCode,
       })
       .from(accounts)
-      .leftJoin(addresses, and(
-        eq(addresses.accountId, accounts.id),
-        eq(addresses.isPrimary, true)
-      ))
       .where(eq(accounts.id, order.buyerId))
+
+    // Fetch buyer billing address
+    let buyerBillingAddress: any = null
+    if (order.buyerBillingAddressId) {
+      [buyerBillingAddress] = await db
+        .select()
+        .from(addresses)
+        .where(eq(addresses.id, order.buyerBillingAddressId))
+    }
 
     // Fetch pickup address (seller pickup address)
     let pickupAddress: any = null
@@ -137,7 +137,7 @@ export class InvoicePDFService {
         for (const logoPath of logoPaths) {
           if (fs.existsSync(logoPath)) {
             try {
-              doc.image(logoPath, margin, 40, { width: 150 })
+              doc.image(logoPath, margin, 40, { width: 80 })
               logoLoaded = true
               break
             } catch (err) {
@@ -149,6 +149,7 @@ export class InvoicePDFService {
         // Order details - right side
         const rightX = pageWidth - margin - 200
         let currentY = 50
+        const paymentTerms = order.terms || 'NET 30 DAYS'
 
         doc
           .fontSize(14)
@@ -165,6 +166,10 @@ export class InvoicePDFService {
         currentY += 15
         doc
           .text(`Agent: ${agentName}`, rightX, currentY, { align: 'right', width: 200 })
+
+        currentY += 15
+        doc
+          .text(`Payment Terms: ${paymentTerms}`, rightX, currentY, { align: 'right', width: 200 })
 
         // "Confirmation of Sale" subtitle
         doc
@@ -207,53 +212,47 @@ export class InvoicePDFService {
         boxY += 15
 
         // Billing Address
-        doc.font('Helvetica-Bold').text('Billing Address:', leftBoxX + 10, boxY)
-        boxY += 12
-        doc.font('Helvetica')
-        if (seller?.addressLine1) {
-          doc.text(seller.addressLine1, leftBoxX + 10, boxY, { width: boxWidth - 20 })
+        if (sellerBillingAddress) {
+          doc.font('Helvetica-Bold').text('Billing Address:', leftBoxX + 10, boxY)
           boxY += 12
-        }
-        if (seller?.addressLine2) {
-          doc.text(seller.addressLine2, leftBoxX + 10, boxY, { width: boxWidth - 20 })
-          boxY += 12
-        }
-        if (seller?.city || seller?.state || seller?.postalCode) {
-          doc.text(
-            `${seller?.city || ''}, ${seller?.state || ''}, ${seller?.postalCode || ''}`.trim().replace(/,\s*,/g, ','),
-            leftBoxX + 10,
-            boxY,
-            { width: boxWidth - 20 }
-          )
-          boxY += 15
+          doc.font('Helvetica')
+          if (sellerBillingAddress.line1) {
+            doc.text(sellerBillingAddress.line1, leftBoxX + 10, boxY, { width: boxWidth - 20 })
+            boxY += 12
+          }
+          if (sellerBillingAddress.line2) {
+            doc.text(sellerBillingAddress.line2, leftBoxX + 10, boxY, { width: boxWidth - 20 })
+            boxY += 12
+          }
+          const cityStateZip = [sellerBillingAddress.city, sellerBillingAddress.state, sellerBillingAddress.postalCode].filter(Boolean).join(', ')
+          if (cityStateZip) {
+            doc.text(cityStateZip, leftBoxX + 10, boxY, { width: boxWidth - 20 })
+            boxY += 15
+          }
         }
 
-        // Pickup Address - use either dedicated pickup address or seller primary address
-        const pickupAddr = pickupAddress || seller
+        // Pickup Address - use either dedicated pickup address or seller billing address
+        const pickupAddr = pickupAddress || sellerBillingAddress
         if (pickupAddr) {
           doc.font('Helvetica-Bold').text('Pickup Address:', leftBoxX + 10, boxY)
           boxY += 12
           doc.font('Helvetica')
-          if (pickupAddr.line1 || pickupAddr.addressLine1) {
-            doc.text(pickupAddr.line1 || pickupAddr.addressLine1, leftBoxX + 10, boxY, { width: boxWidth - 20 })
+          if (pickupAddr.line1) {
+            doc.text(pickupAddr.line1, leftBoxX + 10, boxY, { width: boxWidth - 20 })
             boxY += 12
           }
-          if (pickupAddr.line2 || pickupAddr.addressLine2) {
-            doc.text(pickupAddr.line2 || pickupAddr.addressLine2, leftBoxX + 10, boxY, { width: boxWidth - 20 })
+          if (pickupAddr.line2) {
+            doc.text(pickupAddr.line2, leftBoxX + 10, boxY, { width: boxWidth - 20 })
             boxY += 12
           }
-          if (pickupAddr.city || pickupAddr.state || pickupAddr.postalCode) {
-            doc.text(
-              `${pickupAddr.city || ''}, ${pickupAddr.state || ''}, ${pickupAddr.postalCode || ''}`.trim().replace(/,\s*,/g, ','),
-              leftBoxX + 10,
-              boxY,
-              { width: boxWidth - 20 }
-            )
+          const cityStateZip = [pickupAddr.city, pickupAddr.state, pickupAddr.postalCode].filter(Boolean).join(', ')
+          if (cityStateZip) {
+            doc.text(cityStateZip, leftBoxX + 10, boxY, { width: boxWidth - 20 })
           }
         }
 
-        // Sales Confirmation No. at bottom of box
-        doc.fontSize(9).text(`Sales Confirmation No.: TBA`, leftBoxX + 10, currentY + 125)
+        // PO# at bottom of box (seller gets PO)
+        doc.fontSize(9).text(`PO#: ${order.poNumber || 'TBA'}`, leftBoxX + 10, currentY + 125)
 
         // Buyer Information
         boxY = currentY + 10

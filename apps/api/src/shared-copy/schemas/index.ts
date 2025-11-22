@@ -139,6 +139,7 @@ export const updateOrderSchema = z.object({
   agentId: z.string().uuid().optional(),
   brokerId: z.string().uuid().optional(),
   contractNo: z.string().optional(),
+  poNumber: z.string().optional(),
   terms: z.string().optional(),
   notes: z.string().optional(),
   status: orderStatusSchema.optional(),

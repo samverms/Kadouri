@@ -101,7 +101,8 @@
       "Bash(npm run build:*)",
       "Bash(timeout 60 cmd /c \"timeout /t 50 /nobreak > nul && echo done\")",
       "Bash(powershell -Command \"heroku run ''cd apps/api && npx tsx src/db/seed-terms.ts'' --app kadouri-backend\")",
-      "Bash(git status:*)"
+      "Bash(git status:*)",
+      "Bash(git pull:*)"
     ],
     "deny": [],
     "ask": []
