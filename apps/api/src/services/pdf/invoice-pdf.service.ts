@@ -104,8 +104,39 @@ export class InvoicePDFService {
         const buffers: Buffer[] = []
 
         doc.on('data', buffers.push.bind(buffers))
-        doc.on('end', () => {
+        doc.on('end', async () => {
           const pdfBuffer = Buffer.concat(buffers)
+
+          // Upload to S3 and save to database
+          try {
+            const fileName = `${type}-invoice-${order.orderNo}.pdf`
+            const s3Key = `invoices/${order.orderNo}/${fileName}`
+            const s3Url = await this.s3Service.uploadFile(s3Key, pdfBuffer, 'application/pdf')
+
+            // Save to pdfs table
+            await db.insert(pdfs).values({
+              orderId: order.id,
+              type,
+              url: s3Url,
+              version: 1,
+            })
+
+            // Save to orderAttachments table
+            if (userId) {
+              await db.insert(orderAttachments).values({
+                orderId: order.id,
+                fileName,
+                fileUrl: s3Url,
+                fileSize: pdfBuffer.length,
+                fileType: 'application/pdf',
+                uploadedBy: userId,
+              })
+            }
+          } catch (error) {
+            console.error('Failed to save PDF to S3/database:', error)
+            // Don't reject - still return the PDF buffer to user
+          }
+
           resolve(pdfBuffer)
         })
         doc.on('error', reject)
@@ -497,39 +528,6 @@ export class InvoicePDFService {
         )
 
         doc.end()
-
-        // After PDF is generated, upload to S3 and save to database
-        doc.on('end', async () => {
-          try {
-            // Upload PDF to S3
-            const fileName = `${type}-invoice-${order.orderNo}.pdf`
-            const s3Key = `invoices/${order.orderNo}/${fileName}`
-            const s3Url = await this.s3Service.uploadFile(s3Key, buffer, 'application/pdf')
-
-            // Save to pdfs table
-            await db.insert(pdfs).values({
-              orderId: order.id,
-              type,
-              url: s3Url,
-              version: 1,
-            })
-
-            // Save to orderAttachments table
-            if (userId) {
-              await db.insert(orderAttachments).values({
-                orderId: order.id,
-                fileName,
-                fileUrl: s3Url,
-                fileSize: buffer.length,
-                fileType: 'application/pdf',
-                uploadedBy: userId,
-              })
-            }
-          } catch (error) {
-            console.error('Failed to save PDF to S3/database:', error)
-            // Don't reject - still return the PDF buffer to user
-          }
-        })
       } catch (error) {
         reject(error)
       }
