@@ -273,21 +273,22 @@ export default function OrderDetailPage() {
     }
   }, [orderLines.length])
 
+  // DISABLED: Memo generation now happens on the backend
   // Auto-generate memos when line data changes
-  useEffect(() => {
-    if (products.length === 0) return // Wait for products to load
+  // useEffect(() => {
+  //   if (products.length === 0) return // Wait for products to load
 
-    setOrderLines(prevLines =>
-      prevLines.map(line => {
-        // Only auto-generate if memo is empty or hasn't been manually edited
-        const newMemo = generateMemo(line)
-        if (!line.memo || line.memo === '') {
-          return { ...line, memo: newMemo }
-        }
-        return line
-      })
-    )
-  }, [orderLines.map(l => `${l.productId}-${l.variantId}-${l.quantity}-${l.pricePerUnit}`).join(','), isPickup, products.length])
+  //   setOrderLines(prevLines =>
+  //     prevLines.map(line => {
+  //       // Only auto-generate if memo is empty or hasn't been manually edited
+  //       const newMemo = generateMemo(line)
+  //       if (!line.memo || line.memo === '') {
+  //         return { ...line, memo: newMemo }
+  //       }
+  //       return line
+  //     })
+  //   )
+  // }, [orderLines.map(l => `${l.productId}-${l.variantId}-${l.quantity}-${l.pricePerUnit}`).join(','), isPickup, products.length])
 
   const fetchAccounts = async () => {
     try {
@@ -1281,7 +1282,7 @@ export default function OrderDetailPage() {
             totalWeight: line.quantity * (line.variantSize || 1),
             unitPrice: line.pricePerUnit,
             commissionPct: line.commissionPercent, // API expects 0-100 (2 for 2%)
-            memo: line.memo || undefined,
+            // memo: Backend will auto-generate this
           })),
       }
 
