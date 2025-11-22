@@ -448,8 +448,8 @@ export class OrdersService {
       changeDescriptions.push(`status from "${current.status}" to "${data.status}"`)
     }
     if (data.lines) {
-      changeDetails.push({ field: 'lines', from: current.lines?.length || 0, to: data.lines.length })
-      changeDescriptions.push(`line items (${data.lines.length} items)`)
+      changeDetails.push({ field: 'lines', from: 'updated', to: data.lines.length })
+      changeDescriptions.push(`line items updated (${data.lines.length} items)`)
     }
 
     // If lines are provided, recalculate totals
