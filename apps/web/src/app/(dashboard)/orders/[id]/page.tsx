@@ -44,6 +44,7 @@ interface OrderLine {
   variantId: string
   variantLabel: string
   variantSize: number // e.g., 15 for "15 lb box"
+  packageType?: string // e.g., "case", "box", "bag"
   quantity: number
   pricePerUnit: number // price per lb
   commissionPercent: number
@@ -870,6 +871,7 @@ export default function OrderDetailPage() {
             variantId: defaultVariant?.id || '',
             variantLabel: variantLabel,
             variantSize: defaultVariant ? parseFloat(defaultVariant.size) : 1,
+            packageType: defaultVariant?.packageType,
           }
         : line
     ))
@@ -887,6 +889,7 @@ export default function OrderDetailPage() {
             variantId: variant.id,
             variantLabel: variantLabel,
             variantSize: parseFloat(variant.size),
+            packageType: variant.packageType,
           }
         : line
     ))
@@ -1271,6 +1274,7 @@ export default function OrderDetailPage() {
           .map(line => ({
             productId: line.productId,
             variantId: line.variantId || undefined,
+            packageType: line.packageType || undefined,
             quantity: line.quantity,
             unitSize: line.variantSize || 1,
             uom: 'lb', // Default to lb for now
