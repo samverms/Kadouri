@@ -2081,6 +2081,21 @@ export default function OrderDetailPage() {
                       className="w-full h-7 text-xs bg-white dark:bg-gray-800"
                     />
                   </div>
+
+                  {/* Pallet Count */}
+                  <div>
+                    <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                      Pallet Count
+                    </label>
+                    <Input
+                      type="number"
+                      value={numPallets}
+                      onChange={(e) => setNumPallets(e.target.value)}
+                      placeholder="Number of pallets"
+                      className="w-full h-7 text-xs bg-white dark:bg-gray-800"
+                      min="0"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

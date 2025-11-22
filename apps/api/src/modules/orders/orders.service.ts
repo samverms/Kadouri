@@ -472,6 +472,7 @@ export class OrdersService {
     let updateData: any = {
       ...data,
       updatedAt: new Date(),
+      updatedBy: userId || undefined,
     }
 
     if (data.lines) {
