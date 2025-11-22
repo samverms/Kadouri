@@ -705,19 +705,11 @@ export class InvoicePDFService {
           .fontSize(8)
           .font('Helvetica')
           .text(
-            'This is the copy you will receive from Kadouri Connection',
+            'Sales confirmation has been sent electronically. For an original mailed copy, please call or fax our office.',
             margin,
             currentY,
             { width: tableWidth, lineGap: 1 }
           )
-
-        currentY += 12
-        doc.text(
-          'If you require an original by mail please call or FAX your request to our office',
-          margin,
-          currentY,
-          { width: tableWidth, lineGap: 1 }
-        )
 
         // Company Footer - 3 column layout (logo left, company center, contact right)
         currentY += 30
