@@ -17,7 +17,7 @@ export class InvoicePDFService {
       throw new Error('Order not found')
     }
 
-    // Fetch order lines with products
+    // Fetch order lines with products and package type info
     const lines = await db
       .select({
         id: orderLines.id,
@@ -30,12 +30,15 @@ export class InvoicePDFService {
         lineTotal: orderLines.lineTotal,
         productName: products.name,
         sizeGrade: orderLines.sizeGrade,
+        packageType: orderLines.packageType,
+        commissionPct: orderLines.commissionPct,
+        commissionAmt: orderLines.commissionAmt,
       })
       .from(orderLines)
       .leftJoin(products, eq(orderLines.productId, products.id))
       .where(eq(orderLines.orderId, orderId))
 
-    // Fetch seller with addresses
+    // Fetch seller with primary billing address
     const [seller] = await db
       .select({
         id: accounts.id,
@@ -54,7 +57,7 @@ export class InvoicePDFService {
       ))
       .where(eq(accounts.id, order.sellerId))
 
-    // Fetch buyer with addresses
+    // Fetch buyer with primary billing address
     const [buyer] = await db
       .select({
         id: accounts.id,
@@ -122,10 +125,25 @@ export class InvoicePDFService {
         const margin = 50
         const isSeller = type === 'seller'
 
-        // Logo at top-left
-        const logoPath = path.join(__dirname, '../../assets/logo.png')
-        if (fs.existsSync(logoPath)) {
-          doc.image(logoPath, margin, 40, { width: 150 })
+        // Logo at top-left - try multiple paths for Heroku compatibility
+        const logoPaths = [
+          path.join(__dirname, '../../assets/logo.png'),
+          path.join(process.cwd(), 'apps/api/src/assets/logo.png'),
+          path.join(process.cwd(), 'dist/assets/logo.png'),
+          '/app/dist/assets/logo.png', // Heroku absolute path
+        ]
+
+        let logoLoaded = false
+        for (const logoPath of logoPaths) {
+          if (fs.existsSync(logoPath)) {
+            try {
+              doc.image(logoPath, margin, 40, { width: 150 })
+              logoLoaded = true
+              break
+            } catch (err) {
+              // Try next path
+            }
+          }
         }
 
         // Order details - right side
@@ -165,11 +183,11 @@ export class InvoicePDFService {
         doc
           .strokeColor('#CCCCCC')
           .lineWidth(1)
-          .rect(leftBoxX, currentY, boxWidth, 120)
+          .rect(leftBoxX, currentY, boxWidth, 140)
           .stroke()
 
         doc
-          .rect(rightBoxX, currentY, boxWidth, 120)
+          .rect(rightBoxX, currentY, boxWidth, 140)
           .stroke()
 
         // Seller Information
@@ -184,49 +202,56 @@ export class InvoicePDFService {
         doc
           .fontSize(10)
           .font('Helvetica-Bold')
-          .text(seller?.name || 'N/A', leftBoxX + 10, boxY)
+          .text(seller?.name || 'N/A', leftBoxX + 10, boxY, { width: boxWidth - 20 })
 
         boxY += 15
         doc.font('Helvetica')
         if (seller?.addressLine1) {
           doc.text(`Address:`, leftBoxX + 10, boxY)
           boxY += 12
-          doc.text(seller.addressLine1, leftBoxX + 10, boxY)
+          doc.text(seller.addressLine1, leftBoxX + 10, boxY, { width: boxWidth - 20 })
           boxY += 12
         }
         if (seller?.addressLine2) {
-          doc.text(seller.addressLine2, leftBoxX + 10, boxY)
+          doc.text(seller.addressLine2, leftBoxX + 10, boxY, { width: boxWidth - 20 })
           boxY += 12
         }
         if (seller?.city || seller?.state || seller?.postalCode) {
           doc.text(
             `${seller?.city || ''}, ${seller?.state || ''} ${seller?.postalCode || ''}`.trim(),
             leftBoxX + 10,
-            boxY
+            boxY,
+            { width: boxWidth - 20 }
           )
-          boxY += 12
+          boxY += 15
         }
 
-        // Pickup Location
-        if (pickupAddress) {
-          boxY += 3
-          doc.text(`Pickup Location:`, leftBoxX + 10, boxY)
+        // Pickup Location - use either dedicated pickup address or seller primary address
+        const pickupAddr = pickupAddress || seller
+        if (pickupAddr) {
+          doc.font('Helvetica-Bold').text(`Pickup Location:`, leftBoxX + 10, boxY)
           boxY += 12
-          doc.text(pickupAddress.line1 || '', leftBoxX + 10, boxY)
-          boxY += 12
-          if (pickupAddress.line2) {
-            doc.text(pickupAddress.line2, leftBoxX + 10, boxY)
+          doc.font('Helvetica')
+          if (pickupAddr.line1 || pickupAddr.addressLine1) {
+            doc.text(pickupAddr.line1 || pickupAddr.addressLine1, leftBoxX + 10, boxY, { width: boxWidth - 20 })
             boxY += 12
           }
-          doc.text(
-            `${pickupAddress.city || ''}, ${pickupAddress.state || ''} ${pickupAddress.postalCode || ''}`.trim(),
-            leftBoxX + 10,
-            boxY
-          )
+          if (pickupAddr.line2 || pickupAddr.addressLine2) {
+            doc.text(pickupAddr.line2 || pickupAddr.addressLine2, leftBoxX + 10, boxY, { width: boxWidth - 20 })
+            boxY += 12
+          }
+          if (pickupAddr.city || pickupAddr.state || pickupAddr.postalCode) {
+            doc.text(
+              `${pickupAddr.city || ''}, ${pickupAddr.state || ''} ${pickupAddr.postalCode || ''}`.trim(),
+              leftBoxX + 10,
+              boxY,
+              { width: boxWidth - 20 }
+            )
+          }
         }
 
         // Sales Confirmation No. at bottom of box
-        doc.text(`Sales Confirmation No.: TBA`, leftBoxX + 10, currentY + 105)
+        doc.fontSize(9).text(`Sales Confirmation No.: TBA`, leftBoxX + 10, currentY + 125)
 
         // Buyer Information
         boxY = currentY + 10
@@ -239,109 +264,113 @@ export class InvoicePDFService {
         doc
           .fontSize(10)
           .font('Helvetica-Bold')
-          .text(buyer?.name || 'N/A', rightBoxX + 10, boxY)
+          .text(buyer?.name || 'N/A', rightBoxX + 10, boxY, { width: boxWidth - 20 })
 
         boxY += 15
         doc.font('Helvetica')
         if (buyer?.addressLine1) {
           doc.text(`Address:`, rightBoxX + 10, boxY)
           boxY += 12
-          doc.text(buyer.addressLine1, rightBoxX + 10, boxY)
+          doc.text(buyer.addressLine1, rightBoxX + 10, boxY, { width: boxWidth - 20 })
           boxY += 12
         }
         if (buyer?.addressLine2) {
-          doc.text(buyer.addressLine2, rightBoxX + 10, boxY)
+          doc.text(buyer.addressLine2, rightBoxX + 10, boxY, { width: boxWidth - 20 })
           boxY += 12
         }
         if (buyer?.city || buyer?.state || buyer?.postalCode) {
           doc.text(
             `${buyer?.city || ''}, ${buyer?.state || ''} ${buyer?.postalCode || ''}`.trim(),
             rightBoxX + 10,
-            boxY
+            boxY,
+            { width: boxWidth - 20 }
           )
-          boxY += 12
+          boxY += 15
         }
 
-        // Shipping Address
-        if (shippingAddress) {
-          boxY += 3
-          doc.text(`Shipping Address:`, rightBoxX + 10, boxY)
+        // Shipping Address - use either dedicated shipping address or buyer primary address
+        const shipAddr = shippingAddress || buyer
+        if (shipAddr) {
+          doc.font('Helvetica-Bold').text(`Shipping Address:`, rightBoxX + 10, boxY)
           boxY += 12
-          doc.text(shippingAddress.line1 || '', rightBoxX + 10, boxY)
-          boxY += 12
-          if (shippingAddress.line2) {
-            doc.text(shippingAddress.line2, rightBoxX + 10, boxY)
+          doc.font('Helvetica')
+          if (shipAddr.line1 || shipAddr.addressLine1) {
+            doc.text(shipAddr.line1 || shipAddr.addressLine1, rightBoxX + 10, boxY, { width: boxWidth - 20 })
             boxY += 12
           }
-          doc.text(
-            `${shippingAddress.city || ''}, ${shippingAddress.state || ''} ${shippingAddress.postalCode || ''}`.trim(),
-            rightBoxX + 10,
-            boxY
-          )
+          if (shipAddr.line2 || shipAddr.addressLine2) {
+            doc.text(shipAddr.line2 || shipAddr.addressLine2, rightBoxX + 10, boxY, { width: boxWidth - 20 })
+            boxY += 12
+          }
+          if (shipAddr.city || shipAddr.state || shipAddr.postalCode) {
+            doc.text(
+              `${shipAddr.city || ''}, ${shipAddr.state || ''} ${shipAddr.postalCode || ''}`.trim(),
+              rightBoxX + 10,
+              boxY,
+              { width: boxWidth - 20 }
+            )
+          }
         }
 
         // Purchase Order No. at bottom of box
-        doc.text(`Purchase Order No.: ${order.poNumber || 'TBA'}`, rightBoxX + 10, currentY + 105)
+        doc.fontSize(9).text(`Purchase Order No.: ${order.poNumber || 'TBA'}`, rightBoxX + 10, currentY + 125)
 
         // Product Details section
-        currentY = 270
+        currentY = 290
         doc
           .fontSize(12)
           .font('Helvetica-Bold')
+          .fillColor('#000000')
           .text('Product Details', margin, currentY)
 
         currentY += 25
 
-        // Table setup - different columns for buyer and seller
+        // Table setup - matching orders page format
         const tableWidth = pageWidth - (margin * 2)
-        let colWidths: number[]
-
-        if (isSeller) {
-          // Seller: 6 columns - Product, Quantity, Unit Size, Total Weight, Unit Price, Total
-          colWidths = [180, 70, 70, 90, 80, 90]
-        } else {
-          // Buyer: 5 columns - Product, Quantity, Unit Size, Total Weight, Unit Price
-          colWidths = [200, 80, 80, 100, 100]
-        }
+        // Columns: #, Product, Variant, Qty, $/lb, Total, %, Comm
+        const colWidths = [30, 150, 120, 60, 60, 80, 50, 70]
 
         // Table header
         doc
           .fontSize(9)
           .font('Helvetica-Bold')
-          .fillColor('#000000')
-          .strokeColor('#CCCCCC')
-          .lineWidth(1)
+          .fillColor('#FFFFFF')
           .rect(margin, currentY, tableWidth, 20)
-          .stroke()
+          .fill('#4F46E5') // Indigo color matching orders page
 
         let colX = margin + 5
-        doc.text('Product / Variety', colX, currentY + 6, { width: colWidths[0] - 10 })
+        doc.fillColor('#FFFFFF').text('#', colX, currentY + 6, { width: colWidths[0] - 10 })
         colX += colWidths[0]
-        doc.text('Quantity', colX, currentY + 6, { width: colWidths[1] - 10 })
+        doc.text('Product', colX, currentY + 6, { width: colWidths[1] - 10 })
         colX += colWidths[1]
-        doc.text('Unit Size', colX, currentY + 6, { width: colWidths[2] - 10 })
+        doc.text('Variant', colX, currentY + 6, { width: colWidths[2] - 10 })
         colX += colWidths[2]
-        doc.text('Total Weight', colX, currentY + 6, { width: colWidths[3] - 10 })
+        doc.text('Qty', colX, currentY + 6, { width: colWidths[3] - 10, align: 'right' })
         colX += colWidths[3]
-        doc.text('Unit Price', colX, currentY + 6, { width: colWidths[4] - 10 })
-        if (isSeller) {
-          colX += colWidths[4]
-          doc.text('Total', colX, currentY + 6, { width: colWidths[5] - 10 })
-        }
+        doc.text('$/lb', colX, currentY + 6, { width: colWidths[4] - 10, align: 'right' })
+        colX += colWidths[4]
+        doc.text('Total', colX, currentY + 6, { width: colWidths[5] - 10, align: 'right' })
+        colX += colWidths[5]
+        doc.text('%', colX, currentY + 6, { width: colWidths[6] - 10, align: 'right' })
+        colX += colWidths[6]
+        doc.text('Comm', colX, currentY + 6, { width: colWidths[7] - 10, align: 'right' })
 
         currentY += 20
 
         // Table rows - iterate through order lines
         let grandTotal = 0
-        lines.forEach((line) => {
+        let totalCommission = 0
+
+        lines.forEach((line, index) => {
           const quantity = parseFloat(line.quantity)
           const price = parseFloat(line.unitPrice)
           const total = parseFloat(line.lineTotal)
-          const unitSize = parseFloat(line.unitSize)
-          const totalWeight = parseFloat(line.totalWeight)
+          const commissionPct = parseFloat(line.commissionPct || '0')
+          const commissionAmt = parseFloat(line.commissionAmt || '0')
           grandTotal += total
+          totalCommission += commissionAmt
 
-          const rowHeight = 25
+          const rowHeight = 30
           doc
             .strokeColor('#CCCCCC')
             .rect(margin, currentY, tableWidth, rowHeight)
@@ -354,44 +383,51 @@ export class InvoicePDFService {
 
           colX = margin + 5
 
-          // Product / Variety
-          const productVariety = line.sizeGrade
-            ? `${line.productName || 'Product'}\n${line.sizeGrade}`
-            : line.productName || 'Product'
-          doc.text(productVariety, colX, currentY + 6, { width: colWidths[0] - 10 })
+          // Line number
+          doc.text((index + 1).toString(), colX, currentY + 10, { width: colWidths[0] - 10 })
           colX += colWidths[0]
 
-          // Quantity
-          doc.text(quantity.toLocaleString(), colX, currentY + 6, { width: colWidths[1] - 10 })
+          // Product name
+          doc.text(line.productName || 'Product', colX, currentY + 10, { width: colWidths[1] - 10 })
           colX += colWidths[1]
 
-          // Unit Size
-          doc.text(`${unitSize.toLocaleString()} ${line.uom}`, colX, currentY + 6, { width: colWidths[2] - 10 })
+          // Variant (size + unit + package type)
+          const variantLabel = line.unitSize && line.uom && line.packageType
+            ? `${parseFloat(line.unitSize).toLocaleString()} ${line.uom} ${line.packageType}`
+            : (line.sizeGrade || '-')
+          doc.text(variantLabel, colX, currentY + 10, { width: colWidths[2] - 10 })
           colX += colWidths[2]
 
-          // Total Weight
-          doc.text(`${totalWeight.toLocaleString()} ${line.uom}`, colX, currentY + 6, { width: colWidths[3] - 10 })
+          // Quantity
+          doc.text(quantity.toLocaleString(), colX, currentY + 10, { width: colWidths[3] - 10, align: 'right' })
           colX += colWidths[3]
 
-          // Unit Price
-          doc.text(`$${price.toFixed(2)}`, colX, currentY + 6, { width: colWidths[4] - 10 })
+          // Price per unit
+          doc.text(`$${price.toFixed(2)}`, colX, currentY + 10, { width: colWidths[4] - 10, align: 'right' })
+          colX += colWidths[4]
 
-          // Total (seller only)
-          if (isSeller) {
-            colX += colWidths[4]
-            doc.text(`$${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, colX, currentY + 6, { width: colWidths[5] - 10 })
-          }
+          // Total
+          doc.text(`$${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, colX, currentY + 10, { width: colWidths[5] - 10, align: 'right' })
+          colX += colWidths[5]
+
+          // Commission %
+          doc.text(commissionPct.toFixed(1), colX, currentY + 10, { width: colWidths[6] - 10, align: 'right' })
+          colX += colWidths[6]
+
+          // Commission amount
+          doc.fillColor('#10B981').text(`$${commissionAmt.toFixed(2)}`, colX, currentY + 10, { width: colWidths[7] - 10, align: 'right' })
 
           currentY += rowHeight
         })
 
         // Pallets and Payment Terms
-        currentY += 15
+        currentY += 20
         const palletCount = order.palletCount || 0
         const paymentTerms = order.terms || 'NET 30 DAYS'
         doc
           .fontSize(10)
           .font('Helvetica')
+          .fillColor('#000000')
           .text(`# of Pallets: ${palletCount}    Payment Terms: - ${paymentTerms}`, margin, currentY)
 
         // Remarks and Order Summary boxes
@@ -429,29 +465,29 @@ export class InvoicePDFService {
           .text('Order Summary', rightBoxX + 10, currentY + 10)
 
         let summaryY = currentY + 35
+
+        // Total (value of transaction)
         doc
           .fontSize(10)
           .font('Helvetica')
           .text('Total:', rightBoxX + 10, summaryY)
           .text(`$${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, rightBoxX + summaryBoxWidth - 110, summaryY, { align: 'right', width: 100 })
 
-        // Commission (seller only)
-        if (isSeller) {
-          summaryY += 15
-          const commissionTotal = parseFloat(order.commissionTotal || '0')
-          const commissionPct = grandTotal > 0 ? (commissionTotal / grandTotal * 100).toFixed(1) : '0.0'
-          doc
-            .text('Commission:', rightBoxX + 10, summaryY)
-            .text(`$${commissionTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${commissionPct}%)`, rightBoxX + summaryBoxWidth - 110, summaryY, { align: 'right', width: 100 })
-        }
+        // Amount Due (commission - what the brokerage gets paid)
+        summaryY += 20
+        doc
+          .font('Helvetica-Bold')
+          .text('Amount Due:', rightBoxX + 10, summaryY)
+          .fillColor('#10B981')
+          .text(`$${totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, rightBoxX + summaryBoxWidth - 110, summaryY, { align: 'right', width: 100 })
 
-        // Footer disclaimer
-        currentY += 100
+        // Footer disclaimer - adjusted spacing to prevent overlap
+        currentY += 115
         doc
           .strokeColor('#CCCCCC')
           .lineWidth(1)
           .dash(5, { space: 3 })
-          .rect(margin, currentY, tableWidth, 60)
+          .rect(margin, currentY, tableWidth, 80)
           .stroke()
           .undash()
 
@@ -462,36 +498,33 @@ export class InvoicePDFService {
           .text(
             'The parties acknowledge and agree that Global Crop Exchange is acting as a broker in this transaction and cannot control and shall have no liability for delivery goods, quality, or timeliness of shipments. All obligations under this agreement are between buyer and seller as principal.',
             margin + 10,
-            currentY + 10,
-            { width: tableWidth - 20, align: 'justify' }
+            currentY + 8,
+            { width: tableWidth - 20, align: 'justify', lineGap: 2 }
           )
 
-        currentY += 25
         doc
           .font('Helvetica-Bold')
           .text(
             'PALLETS MUST BE PURCHASED OR EXCHANGED BY BUYER-BROKER WILL NOT BE RESPONSIBLE FOR ANY PALLET DEDUCTIONS.',
             margin + 10,
-            currentY,
-            { width: tableWidth - 20 }
+            currentY + 35,
+            { width: tableWidth - 20, lineGap: 2 }
           )
 
-        currentY += 12
         doc
           .font('Helvetica')
           .text(
             'This is the copy you will receive from Global Crop Exchange.',
             margin + 10,
-            currentY,
-            { width: tableWidth - 20 }
+            currentY + 52,
+            { width: tableWidth - 20, lineGap: 1 }
           )
 
-        currentY += 10
         doc.text(
           'If you require an original by mail please call or FAX your request to our office',
           margin + 10,
-          currentY,
-          { width: tableWidth - 20 }
+          currentY + 65,
+          { width: tableWidth - 20, lineGap: 1 }
         )
 
         doc.end()
