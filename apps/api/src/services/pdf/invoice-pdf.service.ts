@@ -56,13 +56,27 @@ export class InvoicePDFService {
       .where(eq(accounts.id, order.sellerId))
 
     // Fetch seller billing address from order's address ID
-    let sellerAddress = null
+    let sellerAddress: {
+      id: string
+      line1: string
+      line2: string | null
+      city: string
+      state: string
+      postalCode: string
+    } | null = null
     if (order.sellerBillingAddressId) {
       const [addr] = await db
-        .select()
+        .select({
+          id: addresses.id,
+          line1: addresses.line1,
+          line2: addresses.line2,
+          city: addresses.city,
+          state: addresses.state,
+          postalCode: addresses.postalCode,
+        })
         .from(addresses)
         .where(eq(addresses.id, order.sellerBillingAddressId))
-      sellerAddress = addr
+      sellerAddress = addr || null
     }
 
     // Fetch buyer account
@@ -76,13 +90,27 @@ export class InvoicePDFService {
       .where(eq(accounts.id, order.buyerId))
 
     // Fetch buyer billing address from order's address ID
-    let buyerAddress = null
+    let buyerAddress: {
+      id: string
+      line1: string
+      line2: string | null
+      city: string
+      state: string
+      postalCode: string
+    } | null = null
     if (order.buyerBillingAddressId) {
       const [addr] = await db
-        .select()
+        .select({
+          id: addresses.id,
+          line1: addresses.line1,
+          line2: addresses.line2,
+          city: addresses.city,
+          state: addresses.state,
+          postalCode: addresses.postalCode,
+        })
         .from(addresses)
         .where(eq(addresses.id, order.buyerBillingAddressId))
-      buyerAddress = addr
+      buyerAddress = addr || null
     }
 
     // Fetch agent name
