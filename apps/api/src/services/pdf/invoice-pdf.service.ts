@@ -48,13 +48,22 @@ export class InvoicePDFService {
       .from(accounts)
       .where(eq(accounts.id, order.sellerId))
 
-    // Fetch seller billing address
+    // Fetch seller billing address (use specific ID or fall back to primary)
     let sellerBillingAddress: any = null
     if (order.sellerBillingAddressId) {
       [sellerBillingAddress] = await db
         .select()
         .from(addresses)
         .where(eq(addresses.id, order.sellerBillingAddressId))
+    } else {
+      // Fallback to primary address
+      [sellerBillingAddress] = await db
+        .select()
+        .from(addresses)
+        .where(and(
+          eq(addresses.accountId, order.sellerId),
+          eq(addresses.isPrimary, true)
+        ))
     }
 
     // Fetch buyer account
@@ -67,13 +76,22 @@ export class InvoicePDFService {
       .from(accounts)
       .where(eq(accounts.id, order.buyerId))
 
-    // Fetch buyer billing address
+    // Fetch buyer billing address (use specific ID or fall back to primary)
     let buyerBillingAddress: any = null
     if (order.buyerBillingAddressId) {
       [buyerBillingAddress] = await db
         .select()
         .from(addresses)
         .where(eq(addresses.id, order.buyerBillingAddressId))
+    } else {
+      // Fallback to primary address
+      [buyerBillingAddress] = await db
+        .select()
+        .from(addresses)
+        .where(and(
+          eq(addresses.accountId, order.buyerId),
+          eq(addresses.isPrimary, true)
+        ))
     }
 
     // Fetch pickup address (seller pickup address)
@@ -421,17 +439,17 @@ export class InvoicePDFService {
           if (isSeller) {
             colX += colWidths[5]
             // Commission %
-            doc.text(commissionPct.toFixed(1), colX, currentY + 10, { width: colWidths[6] - 10, align: 'right' })
+            doc.fillColor('#000000').text(commissionPct.toFixed(1), colX, currentY + 10, { width: colWidths[6] - 10, align: 'right' })
             colX += colWidths[6]
-            // Commission amount
-            doc.fillColor('#10B981').text(`$${commissionAmt.toFixed(2)}`, colX, currentY + 10, { width: colWidths[7] - 10, align: 'right' })
+            // Commission amount (NO GREEN COLOR)
+            doc.fillColor('#000000').text(`$${commissionAmt.toFixed(2)}`, colX, currentY + 10, { width: colWidths[7] - 10, align: 'right' })
           }
 
           currentY += rowHeight
         })
 
         // Remarks and Order Summary boxes
-        currentY += 25
+        currentY += 30
         const palletCount = order.palletCount || 0
         const remarksBoxWidth = boxWidth
         const summaryBoxWidth = boxWidth
@@ -454,12 +472,12 @@ export class InvoicePDFService {
             .text(order.notes, margin + 10, currentY + 30, { width: remarksBoxWidth - 20 })
         }
 
-        // # of Pallets (above Order Summary)
+        // # of Pallets (above Order Summary) - RIGHT ALIGNED
         doc
           .fontSize(10)
           .font('Helvetica')
           .fillColor('#000000')
-          .text(`# of Pallets: ${palletCount}`, rightBoxX, currentY - 10)
+          .text(`# of Pallets: ${palletCount}`, rightBoxX, currentY - 10, { align: 'right', width: summaryBoxWidth })
 
         // Order Summary box (right)
         doc
@@ -491,8 +509,9 @@ export class InvoicePDFService {
           summaryY += 15
           doc
             .font('Helvetica-Bold')
+            .fillColor('#000000')
             .text('Total Due:', rightBoxX + 10, summaryY)
-            .fillColor('#10B981')
+            .font('Helvetica-Bold') // BOLD THE AMOUNT
             .text(`$${totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, rightBoxX + summaryBoxWidth - 110, summaryY, { align: 'right', width: 100 })
         } else {
           // BUYER: Just Total
@@ -504,8 +523,8 @@ export class InvoicePDFService {
             .text(`$${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, rightBoxX + summaryBoxWidth - 110, summaryY, { align: 'right', width: 100 })
         }
 
-        // Footer disclaimer - adjusted spacing to prevent overlap
-        currentY += 115
+        // Footer disclaimer - MORE spacing to prevent overlap
+        currentY += 130
         doc
           .strokeColor('#CCCCCC')
           .lineWidth(1)
