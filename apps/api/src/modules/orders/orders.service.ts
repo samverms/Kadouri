@@ -76,6 +76,9 @@ export class OrdersService {
         const uom = line.uom
         const deliveryMethod = orderData.isPickup ? 'pick up' : 'delivery'
 
+        // Log values for debugging
+        logger.info('Generating memo line:', { quantity, packageType, productName, unitSize, unitPrice, uom, deliveryMethod })
+
         return `${quantity} ${packageType} ${productName} ${unitSize}# $${unitPrice}/${uom} ${deliveryMethod}`
       }).filter(Boolean)
 
