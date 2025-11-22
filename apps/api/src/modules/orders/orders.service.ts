@@ -84,7 +84,7 @@ export class OrdersService {
         .where(inArray(products.id, productIds))
 
       // Fetch variant details if variantIds exist
-      let variantDetails = []
+      let variantDetails: any[] = []
       if (variantIds.length > 0) {
         variantDetails = await db
           .select()
