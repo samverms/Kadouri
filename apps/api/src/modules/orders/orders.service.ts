@@ -376,20 +376,20 @@ export class OrdersService {
     data: {
       sellerId?: string
       buyerId?: string
-      sellerBillingAddressId?: string
-      sellerPickupAddressId?: string
-      buyerBillingAddressId?: string
-      buyerShippingAddressId?: string
+      sellerBillingAddressId?: string | null
+      sellerPickupAddressId?: string | null
+      buyerBillingAddressId?: string | null
+      buyerShippingAddressId?: string | null
       isPickup?: boolean
-      agentId?: string
-      brokerId?: string
+      agentId?: string | null
+      brokerId?: string | null
       contractNo?: string
+      contractId?: string | null
       poNumber?: string
-      contractId?: string
       terms?: string
       notes?: string
       memo?: string
-      palletCount?: number
+      palletCount?: number | null
       status?: string
       lines?: any[]
     },
