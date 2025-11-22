@@ -47,6 +47,45 @@ export class OrdersService {
     }
   }
 
+  // Generate memo from order lines
+  // Format: "140 cases edamame beans roasted salted 22# $2.40/lbs pick up"
+  private async generateMemo(orderData: { lines: any[]; isPickup?: boolean }): Promise<string> {
+    try {
+      // Get all product IDs from lines
+      const productIds = orderData.lines.map(line => line.productId)
+
+      // Fetch product details
+      const productDetails = await db
+        .select()
+        .from(products)
+        .where(inArray(products.id, productIds))
+
+      // Create a map for quick lookup
+      const productMap = new Map(productDetails.map(p => [p.id, p]))
+
+      // Generate memo lines
+      const memoLines = orderData.lines.map(line => {
+        const product = productMap.get(line.productId)
+        if (!product) return ''
+
+        const quantity = line.quantity
+        const packageType = line.packageType || 'units'
+        const productName = product.name
+        const unitSize = line.unitSize
+        const unitPrice = line.unitPrice
+        const uom = line.uom
+        const deliveryMethod = orderData.isPickup ? 'pick up' : 'delivery'
+
+        return `${quantity} ${packageType} ${productName} ${unitSize}# $${unitPrice}/${uom} ${deliveryMethod}`
+      }).filter(Boolean)
+
+      return memoLines.join('\n')
+    } catch (error) {
+      logger.error('Failed to generate memo:', error)
+      return ''
+    }
+  }
+
   async createOrder(
     data: {
       sellerId: string
@@ -90,6 +129,9 @@ export class OrdersService {
 
     const totalAmount = subtotal
 
+    // Auto-generate memo if not provided
+    const generatedMemo = data.memo || await this.generateMemo({ lines: data.lines, isPickup: data.isPickup })
+
     // Create order
     const [order] = await db
       .insert(orders)
@@ -108,7 +150,7 @@ export class OrdersService {
         contractNo: data.contractNo,
         terms: data.terms,
         notes: data.notes,
-        memo: data.memo,
+        memo: generatedMemo,
         palletCount: data.palletCount,
         status: 'draft',
         subtotal: subtotal.toString(),
@@ -522,6 +564,15 @@ export class OrdersService {
       }
 
       delete updateData.lines
+
+      // Auto-generate memo if lines were updated and memo wasn't manually provided
+      if (!data.memo) {
+        const generatedMemo = await this.generateMemo({
+          lines: data.lines,
+          isPickup: data.isPickup !== undefined ? data.isPickup : current.isPickup
+        })
+        updateData.memo = generatedMemo
+      }
     }
 
     const [updated] = await db

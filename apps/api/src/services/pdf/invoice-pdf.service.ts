@@ -45,43 +45,45 @@ export class InvoicePDFService {
       .leftJoin(products, eq(orderLines.productId, products.id))
       .where(eq(orderLines.orderId, orderId))
 
-    // Fetch seller account with primary address
+    // Fetch seller account
     const [seller] = await db
       .select({
         id: accounts.id,
         name: accounts.name,
         code: accounts.code,
-        addressLine1: addresses.line1,
-        addressLine2: addresses.line2,
-        city: addresses.city,
-        state: addresses.state,
-        postalCode: addresses.postalCode,
       })
       .from(accounts)
-      .leftJoin(addresses, and(
-        eq(addresses.accountId, accounts.id),
-        eq(addresses.isPrimary, true)
-      ))
       .where(eq(accounts.id, order.sellerId))
 
-    // Fetch buyer account with primary address
+    // Fetch seller billing address from order's address ID
+    let sellerAddress = null
+    if (order.sellerBillingAddressId) {
+      const [addr] = await db
+        .select()
+        .from(addresses)
+        .where(eq(addresses.id, order.sellerBillingAddressId))
+      sellerAddress = addr
+    }
+
+    // Fetch buyer account
     const [buyer] = await db
       .select({
         id: accounts.id,
         name: accounts.name,
         code: accounts.code,
-        addressLine1: addresses.line1,
-        addressLine2: addresses.line2,
-        city: addresses.city,
-        state: addresses.state,
-        postalCode: addresses.postalCode,
       })
       .from(accounts)
-      .leftJoin(addresses, and(
-        eq(addresses.accountId, accounts.id),
-        eq(addresses.isPrimary, true)
-      ))
       .where(eq(accounts.id, order.buyerId))
+
+    // Fetch buyer billing address from order's address ID
+    let buyerAddress = null
+    if (order.buyerBillingAddressId) {
+      const [addr] = await db
+        .select()
+        .from(addresses)
+        .where(eq(addresses.id, order.buyerBillingAddressId))
+      buyerAddress = addr
+    }
 
     // Fetch agent name
     let agentName = 'N/A'
