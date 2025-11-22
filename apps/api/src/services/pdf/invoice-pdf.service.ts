@@ -38,79 +38,43 @@ export class InvoicePDFService {
       .leftJoin(products, eq(orderLines.productId, products.id))
       .where(eq(orderLines.orderId, orderId))
 
-    // Fetch seller account
+    // Fetch seller account with primary address
     const [seller] = await db
       .select({
         id: accounts.id,
         name: accounts.name,
         code: accounts.code,
+        addressLine1: addresses.line1,
+        addressLine2: addresses.line2,
+        city: addresses.city,
+        state: addresses.state,
+        postalCode: addresses.postalCode,
       })
       .from(accounts)
+      .leftJoin(addresses, and(
+        eq(addresses.accountId, accounts.id),
+        eq(addresses.isPrimary, true)
+      ))
       .where(eq(accounts.id, order.sellerId))
 
-    // Fetch seller billing address (use specific ID or fall back to primary)
-    let sellerBillingAddress: any = null
-    if (order.sellerBillingAddressId) {
-      [sellerBillingAddress] = await db
-        .select()
-        .from(addresses)
-        .where(eq(addresses.id, order.sellerBillingAddressId))
-    } else {
-      // Fallback to primary address
-      [sellerBillingAddress] = await db
-        .select()
-        .from(addresses)
-        .where(and(
-          eq(addresses.accountId, order.sellerId),
-          eq(addresses.isPrimary, true)
-        ))
-    }
-
-    // Fetch buyer account
+    // Fetch buyer account with primary address
     const [buyer] = await db
       .select({
         id: accounts.id,
         name: accounts.name,
         code: accounts.code,
+        addressLine1: addresses.line1,
+        addressLine2: addresses.line2,
+        city: addresses.city,
+        state: addresses.state,
+        postalCode: addresses.postalCode,
       })
       .from(accounts)
+      .leftJoin(addresses, and(
+        eq(addresses.accountId, accounts.id),
+        eq(addresses.isPrimary, true)
+      ))
       .where(eq(accounts.id, order.buyerId))
-
-    // Fetch buyer billing address (use specific ID or fall back to primary)
-    let buyerBillingAddress: any = null
-    if (order.buyerBillingAddressId) {
-      [buyerBillingAddress] = await db
-        .select()
-        .from(addresses)
-        .where(eq(addresses.id, order.buyerBillingAddressId))
-    } else {
-      // Fallback to primary address
-      [buyerBillingAddress] = await db
-        .select()
-        .from(addresses)
-        .where(and(
-          eq(addresses.accountId, order.buyerId),
-          eq(addresses.isPrimary, true)
-        ))
-    }
-
-    // Fetch pickup address (seller pickup address)
-    let pickupAddress: any = null
-    if (order.sellerPickupAddressId) {
-      [pickupAddress] = await db
-        .select()
-        .from(addresses)
-        .where(eq(addresses.id, order.sellerPickupAddressId))
-    }
-
-    // Fetch shipping address (buyer shipping address)
-    let shippingAddress: any = null
-    if (order.buyerShippingAddressId) {
-      [shippingAddress] = await db
-        .select()
-        .from(addresses)
-        .where(eq(addresses.id, order.buyerShippingAddressId))
-    }
 
     // Fetch agent name
     let agentName = 'N/A'
@@ -229,43 +193,21 @@ export class InvoicePDFService {
 
         boxY += 15
 
-        // Billing Address
-        if (sellerBillingAddress) {
-          doc.font('Helvetica-Bold').text('Billing Address:', leftBoxX + 10, boxY)
-          boxY += 12
+        // Address
+        if (seller) {
           doc.font('Helvetica')
-          if (sellerBillingAddress.line1) {
-            doc.text(sellerBillingAddress.line1, leftBoxX + 10, boxY, { width: boxWidth - 20 })
+          if (seller.addressLine1) {
+            doc.text(seller.addressLine1, leftBoxX + 10, boxY, { width: boxWidth - 20 })
             boxY += 12
           }
-          if (sellerBillingAddress.line2) {
-            doc.text(sellerBillingAddress.line2, leftBoxX + 10, boxY, { width: boxWidth - 20 })
+          if (seller.addressLine2) {
+            doc.text(seller.addressLine2, leftBoxX + 10, boxY, { width: boxWidth - 20 })
             boxY += 12
           }
-          const cityStateZip = [sellerBillingAddress.city, sellerBillingAddress.state, sellerBillingAddress.postalCode].filter(Boolean).join(', ')
+          const cityStateZip = [seller.city, seller.state, seller.postalCode].filter(Boolean).join(', ')
           if (cityStateZip) {
             doc.text(cityStateZip, leftBoxX + 10, boxY, { width: boxWidth - 20 })
             boxY += 15
-          }
-        }
-
-        // Pickup Address - use either dedicated pickup address or seller billing address
-        const pickupAddr = pickupAddress || sellerBillingAddress
-        if (pickupAddr) {
-          doc.font('Helvetica-Bold').text('Pickup Address:', leftBoxX + 10, boxY)
-          boxY += 12
-          doc.font('Helvetica')
-          if (pickupAddr.line1) {
-            doc.text(pickupAddr.line1, leftBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 12
-          }
-          if (pickupAddr.line2) {
-            doc.text(pickupAddr.line2, leftBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 12
-          }
-          const cityStateZip = [pickupAddr.city, pickupAddr.state, pickupAddr.postalCode].filter(Boolean).join(', ')
-          if (cityStateZip) {
-            doc.text(cityStateZip, leftBoxX + 10, boxY, { width: boxWidth - 20 })
           }
         }
 
@@ -287,43 +229,21 @@ export class InvoicePDFService {
 
         boxY += 15
 
-        // Billing Address
-        if (buyerBillingAddress) {
-          doc.font('Helvetica-Bold').text('Billing Address:', rightBoxX + 10, boxY)
-          boxY += 12
+        // Address
+        if (buyer) {
           doc.font('Helvetica')
-          if (buyerBillingAddress.line1) {
-            doc.text(buyerBillingAddress.line1, rightBoxX + 10, boxY, { width: boxWidth - 20 })
+          if (buyer.addressLine1) {
+            doc.text(buyer.addressLine1, rightBoxX + 10, boxY, { width: boxWidth - 20 })
             boxY += 12
           }
-          if (buyerBillingAddress.line2) {
-            doc.text(buyerBillingAddress.line2, rightBoxX + 10, boxY, { width: boxWidth - 20 })
+          if (buyer.addressLine2) {
+            doc.text(buyer.addressLine2, rightBoxX + 10, boxY, { width: boxWidth - 20 })
             boxY += 12
           }
-          const cityStateZip = [buyerBillingAddress.city, buyerBillingAddress.state, buyerBillingAddress.postalCode].filter(Boolean).join(', ')
+          const cityStateZip = [buyer.city, buyer.state, buyer.postalCode].filter(Boolean).join(', ')
           if (cityStateZip) {
             doc.text(cityStateZip, rightBoxX + 10, boxY, { width: boxWidth - 20 })
             boxY += 15
-          }
-        }
-
-        // Shipping Address - use either dedicated shipping address or buyer billing address
-        const shipAddr = shippingAddress || buyerBillingAddress
-        if (shipAddr) {
-          doc.font('Helvetica-Bold').text('Shipping Address:', rightBoxX + 10, boxY)
-          boxY += 12
-          doc.font('Helvetica')
-          if (shipAddr.line1) {
-            doc.text(shipAddr.line1, rightBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 12
-          }
-          if (shipAddr.line2) {
-            doc.text(shipAddr.line2, rightBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 12
-          }
-          const cityStateZip = [shipAddr.city, shipAddr.state, shipAddr.postalCode].filter(Boolean).join(', ')
-          if (cityStateZip) {
-            doc.text(cityStateZip, rightBoxX + 10, boxY, { width: boxWidth - 20 })
           }
         }
 
