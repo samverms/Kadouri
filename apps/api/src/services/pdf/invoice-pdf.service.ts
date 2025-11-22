@@ -193,12 +193,12 @@ export class InvoicePDFService {
         doc
           .text(`Payment Terms: ${paymentTerms}`, rightX, currentY, { align: 'right', width: 200 })
 
-        // "Confirmation of Sale" subtitle
+        // "Confirmation of Sale" subtitle - below logo
         doc
-          .fontSize(11)
-          .font('Helvetica')
-          .fillColor('#999999')
-          .text('Confirmation of Sale', margin, 100)
+          .fontSize(14)
+          .font('Helvetica-Bold')
+          .fillColor('#333333')
+          .text('Confirmation of Sale', margin, 115)
 
         // Seller and Buyer Information boxes - side by side
         currentY = 130
