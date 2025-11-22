@@ -205,10 +205,12 @@ export class InvoicePDFService {
           .text(seller?.name || 'N/A', leftBoxX + 10, boxY, { width: boxWidth - 20 })
 
         boxY += 15
+
+        // Billing Address
+        doc.font('Helvetica-Bold').text('Billing Address:', leftBoxX + 10, boxY)
+        boxY += 12
         doc.font('Helvetica')
         if (seller?.addressLine1) {
-          doc.text(`Address:`, leftBoxX + 10, boxY)
-          boxY += 12
           doc.text(seller.addressLine1, leftBoxX + 10, boxY, { width: boxWidth - 20 })
           boxY += 12
         }
@@ -218,7 +220,7 @@ export class InvoicePDFService {
         }
         if (seller?.city || seller?.state || seller?.postalCode) {
           doc.text(
-            `${seller?.city || ''}, ${seller?.state || ''} ${seller?.postalCode || ''}`.trim(),
+            `${seller?.city || ''}, ${seller?.state || ''}, ${seller?.postalCode || ''}`.trim().replace(/,\s*,/g, ','),
             leftBoxX + 10,
             boxY,
             { width: boxWidth - 20 }
@@ -226,10 +228,10 @@ export class InvoicePDFService {
           boxY += 15
         }
 
-        // Pickup Location - use either dedicated pickup address or seller primary address
+        // Pickup Address - use either dedicated pickup address or seller primary address
         const pickupAddr = pickupAddress || seller
         if (pickupAddr) {
-          doc.font('Helvetica-Bold').text(`Pickup Location:`, leftBoxX + 10, boxY)
+          doc.font('Helvetica-Bold').text('Pickup Address:', leftBoxX + 10, boxY)
           boxY += 12
           doc.font('Helvetica')
           if (pickupAddr.line1 || pickupAddr.addressLine1) {
@@ -242,7 +244,7 @@ export class InvoicePDFService {
           }
           if (pickupAddr.city || pickupAddr.state || pickupAddr.postalCode) {
             doc.text(
-              `${pickupAddr.city || ''}, ${pickupAddr.state || ''} ${pickupAddr.postalCode || ''}`.trim(),
+              `${pickupAddr.city || ''}, ${pickupAddr.state || ''}, ${pickupAddr.postalCode || ''}`.trim().replace(/,\s*,/g, ','),
               leftBoxX + 10,
               boxY,
               { width: boxWidth - 20 }
@@ -267,10 +269,12 @@ export class InvoicePDFService {
           .text(buyer?.name || 'N/A', rightBoxX + 10, boxY, { width: boxWidth - 20 })
 
         boxY += 15
+
+        // Billing Address
+        doc.font('Helvetica-Bold').text('Billing Address:', rightBoxX + 10, boxY)
+        boxY += 12
         doc.font('Helvetica')
         if (buyer?.addressLine1) {
-          doc.text(`Address:`, rightBoxX + 10, boxY)
-          boxY += 12
           doc.text(buyer.addressLine1, rightBoxX + 10, boxY, { width: boxWidth - 20 })
           boxY += 12
         }
@@ -280,7 +284,7 @@ export class InvoicePDFService {
         }
         if (buyer?.city || buyer?.state || buyer?.postalCode) {
           doc.text(
-            `${buyer?.city || ''}, ${buyer?.state || ''} ${buyer?.postalCode || ''}`.trim(),
+            `${buyer?.city || ''}, ${buyer?.state || ''}, ${buyer?.postalCode || ''}`.trim().replace(/,\s*,/g, ','),
             rightBoxX + 10,
             boxY,
             { width: boxWidth - 20 }
@@ -291,7 +295,7 @@ export class InvoicePDFService {
         // Shipping Address - use either dedicated shipping address or buyer primary address
         const shipAddr = shippingAddress || buyer
         if (shipAddr) {
-          doc.font('Helvetica-Bold').text(`Shipping Address:`, rightBoxX + 10, boxY)
+          doc.font('Helvetica-Bold').text('Shipping Address:', rightBoxX + 10, boxY)
           boxY += 12
           doc.font('Helvetica')
           if (shipAddr.line1 || shipAddr.addressLine1) {
@@ -304,7 +308,7 @@ export class InvoicePDFService {
           }
           if (shipAddr.city || shipAddr.state || shipAddr.postalCode) {
             doc.text(
-              `${shipAddr.city || ''}, ${shipAddr.state || ''} ${shipAddr.postalCode || ''}`.trim(),
+              `${shipAddr.city || ''}, ${shipAddr.state || ''}, ${shipAddr.postalCode || ''}`.trim().replace(/,\s*,/g, ','),
               rightBoxX + 10,
               boxY,
               { width: boxWidth - 20 }
@@ -477,24 +481,36 @@ export class InvoicePDFService {
           .font('Helvetica-Bold')
           .text('Order Summary', rightBoxX + 10, currentY + 10)
 
-        let summaryY = currentY + 35
+        let summaryY = currentY + 30
 
-        // Total (value of transaction)
-        doc
-          .fontSize(10)
-          .font('Helvetica')
-          .text('Total:', rightBoxX + 10, summaryY)
-          .text(`$${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, rightBoxX + summaryBoxWidth - 110, summaryY, { align: 'right', width: 100 })
-
-        // Amount Due (commission - what the brokerage gets paid) - SELLER ONLY
         if (isSeller) {
-          summaryY += 20
+          // SELLER: Item Total, Commission Total, Total Due
+          doc
+            .fontSize(10)
+            .font('Helvetica')
+            .fillColor('#000000')
+            .text('Item Total:', rightBoxX + 10, summaryY)
+            .text(`$${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, rightBoxX + summaryBoxWidth - 110, summaryY, { align: 'right', width: 100 })
+
+          summaryY += 15
+          doc
+            .text('Commission Total:', rightBoxX + 10, summaryY)
+            .text(`$${totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, rightBoxX + summaryBoxWidth - 110, summaryY, { align: 'right', width: 100 })
+
+          summaryY += 15
           doc
             .font('Helvetica-Bold')
-            .fillColor('#000000')
-            .text('Amount Due:', rightBoxX + 10, summaryY)
+            .text('Total Due:', rightBoxX + 10, summaryY)
             .fillColor('#10B981')
             .text(`$${totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, rightBoxX + summaryBoxWidth - 110, summaryY, { align: 'right', width: 100 })
+        } else {
+          // BUYER: Just Total
+          doc
+            .fontSize(10)
+            .font('Helvetica')
+            .fillColor('#000000')
+            .text('Total:', rightBoxX + 10, summaryY)
+            .text(`$${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, rightBoxX + summaryBoxWidth - 110, summaryY, { align: 'right', width: 100 })
         }
 
         // Footer disclaimer - adjusted spacing to prevent overlap

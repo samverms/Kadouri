@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "nodemon --exec ts-node src/main.ts",
     "prebuild": "if [ -d ../../packages/shared ]; then cd ../../packages/shared && npm install && npm run build && cd ../../apps/api && npm link ../../packages/shared; fi || true",
-    "build": "tsc",
+    "build": "tsc && mkdir -p dist/assets && cp -r src/assets/* dist/assets/",
     "start": "node dist/main.js",
     "lint": "eslint src --ext .ts",
     "test": "jest",
