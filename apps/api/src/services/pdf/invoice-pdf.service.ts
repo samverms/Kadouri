@@ -4,13 +4,13 @@ import { orders, orderLines, accounts, products, addresses, agents, pdfs, orderA
 import { eq, and } from 'drizzle-orm'
 import path from 'path'
 import fs from 'fs'
-import { S3Service } from '../storage/s3-service'
+import { CloudinaryService } from '../storage/cloudinary-service'
 
 export class InvoicePDFService {
-  private s3Service: S3Service
+  private cloudinaryService: CloudinaryService
 
   constructor() {
-    this.s3Service = new S3Service()
+    this.cloudinaryService = new CloudinaryService()
   }
 
   async generateInvoicePDF(orderId: string, type: 'seller' | 'buyer', userId?: string): Promise<Buffer> {
@@ -107,17 +107,17 @@ export class InvoicePDFService {
         doc.on('end', async () => {
           const pdfBuffer = Buffer.concat(buffers)
 
-          // Upload to S3 and save to database
+          // Upload to Cloudinary and save to database
           try {
             const fileName = `${type}-invoice-${order.orderNo}.pdf`
-            const s3Key = `invoices/${order.orderNo}/${fileName}`
-            const s3Url = await this.s3Service.uploadFile(s3Key, pdfBuffer, 'application/pdf')
+            const key = `invoices/${order.orderNo}/${fileName}`
+            const fileUrl = await this.cloudinaryService.uploadFile(key, pdfBuffer, 'application/pdf')
 
             // Save to pdfs table
             await db.insert(pdfs).values({
               orderId: order.id,
               type,
-              url: s3Url,
+              url: fileUrl,
               version: 1,
             })
 
@@ -126,14 +126,14 @@ export class InvoicePDFService {
               await db.insert(orderAttachments).values({
                 orderId: order.id,
                 fileName,
-                fileUrl: s3Url,
+                fileUrl,
                 fileSize: pdfBuffer.length,
                 fileType: 'application/pdf',
                 uploadedBy: userId,
               })
             }
           } catch (error) {
-            console.error('Failed to save PDF to S3/database:', error)
+            console.error('Failed to save PDF to Cloudinary/database:', error)
             // Don't reject - still return the PDF buffer to user
           }
 
