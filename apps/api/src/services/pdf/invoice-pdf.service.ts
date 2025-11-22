@@ -315,153 +315,175 @@ export class InvoicePDFService {
           .fillColor('#000000')
           .text('Confirmation of Sale', 0, 115, { align: 'center', width: pageWidth })
 
-        // Seller and Buyer Information boxes - side by side
+        // Seller and Buyer Information boxes - side by side (DYNAMIC HEIGHT)
         currentY = 140
         const boxWidth = (pageWidth - margin * 2 - 20) / 2
         const leftBoxX = margin
         const rightBoxX = margin + boxWidth + 20
-        const boxHeight = 200
-
-        // Draw boxes
-        doc
-          .strokeColor('#CCCCCC')
-          .lineWidth(1)
-          .rect(leftBoxX, currentY, boxWidth, boxHeight)
-          .stroke()
-
-        doc
-          .rect(rightBoxX, currentY, boxWidth, boxHeight)
-          .stroke()
+        const boxStartY = currentY
 
         // Seller Information
-        let boxY = currentY + 10
+        let sellerBoxY = boxStartY + 10
         doc
           .fontSize(9)
           .font('Helvetica-Bold')
-          .fillColor('#000000')
-          .text('Seller Information', leftBoxX + 10, boxY)
+          .fillColor('#0066CC')  // BLUE for Seller Information
+          .text('Seller Information', leftBoxX + 10, sellerBoxY)
 
-        boxY += 15
+        sellerBoxY += 15
         doc
           .fontSize(12)
           .font('Helvetica-Bold')
-          .text(seller?.name || 'N/A', leftBoxX + 10, boxY, { width: boxWidth - 20 })
+          .fillColor('#000000')
+          .text(seller?.name || 'N/A', leftBoxX + 10, sellerBoxY, { width: boxWidth - 20 })
 
-        boxY += 18
+        sellerBoxY += 18
 
         // Billing Address
-        doc.fontSize(8).font('Helvetica').text('Billing Address:', leftBoxX + 10, boxY)
-        boxY += 10
+        doc.fontSize(8).font('Helvetica').text('Billing Address:', leftBoxX + 10, sellerBoxY)
+        sellerBoxY += 10
         if (sellerAddress) {
           doc.fontSize(9).font('Helvetica')
           if (sellerAddress.line1) {
-            doc.text(sellerAddress.line1, leftBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 10
+            doc.text(sellerAddress.line1, leftBoxX + 10, sellerBoxY, { width: boxWidth - 20 })
+            sellerBoxY += 10
           }
           if (sellerAddress.line2) {
-            doc.text(sellerAddress.line2, leftBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 10
+            doc.text(sellerAddress.line2, leftBoxX + 10, sellerBoxY, { width: boxWidth - 20 })
+            sellerBoxY += 10
           }
           const cityStateZip = [sellerAddress.city, sellerAddress.state, sellerAddress.postalCode].filter(Boolean).join(', ')
           if (cityStateZip) {
-            doc.text(cityStateZip, leftBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 12
+            doc.text(cityStateZip, leftBoxX + 10, sellerBoxY, { width: boxWidth - 20 })
+            sellerBoxY += 12
           }
         } else {
-          doc.fontSize(9).text('N/A', leftBoxX + 10, boxY)
-          boxY += 12
+          doc.fontSize(9).text('N/A', leftBoxX + 10, sellerBoxY)
+          sellerBoxY += 12
         }
 
         // Pickup Address
-        boxY += 5
-        doc.fontSize(8).font('Helvetica').text('Pickup Address:', leftBoxX + 10, boxY)
-        boxY += 10
+        sellerBoxY += 5
+        doc.fontSize(8).font('Helvetica').text('Pickup Address:', leftBoxX + 10, sellerBoxY)
+        sellerBoxY += 10
         if (sellerPickupAddress) {
           doc.fontSize(9).font('Helvetica')
           if (sellerPickupAddress.line1) {
-            doc.text(sellerPickupAddress.line1, leftBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 10
+            doc.text(sellerPickupAddress.line1, leftBoxX + 10, sellerBoxY, { width: boxWidth - 20 })
+            sellerBoxY += 10
           }
           if (sellerPickupAddress.line2) {
-            doc.text(sellerPickupAddress.line2, leftBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 10
+            doc.text(sellerPickupAddress.line2, leftBoxX + 10, sellerBoxY, { width: boxWidth - 20 })
+            sellerBoxY += 10
           }
           const cityStateZip = [sellerPickupAddress.city, sellerPickupAddress.state, sellerPickupAddress.postalCode].filter(Boolean).join(', ')
           if (cityStateZip) {
-            doc.text(cityStateZip, leftBoxX + 10, boxY, { width: boxWidth - 20 })
+            doc.text(cityStateZip, leftBoxX + 10, sellerBoxY, { width: boxWidth - 20 })
+            sellerBoxY += 12
           }
         } else {
-          doc.fontSize(9).text('N/A', leftBoxX + 10, boxY)
+          doc.fontSize(9).text('N/A', leftBoxX + 10, sellerBoxY)
+          sellerBoxY += 12
         }
 
-        // PO# at bottom of box (seller gets PO)
-        doc.fontSize(9).font('Helvetica').text(`PO#: ${order.poNumber || 'TBA'}`, leftBoxX + 10, currentY + boxHeight - 15)
+        // PO# at bottom
+        sellerBoxY += 5
+        doc.fontSize(9).font('Helvetica').text(`PO#: ${order.poNumber || 'TBA'}`, leftBoxX + 10, sellerBoxY)
+        sellerBoxY += 15
+
+        // Calculate seller box height
+        const sellerBoxHeight = sellerBoxY - boxStartY
 
         // Buyer Information
-        boxY = currentY + 10
+        let buyerBoxY = boxStartY + 10
         doc
           .fontSize(9)
           .font('Helvetica-Bold')
-          .text('Buyer Information', rightBoxX + 10, boxY)
+          .fillColor('#008000')  // GREEN for Buyer Information
+          .text('Buyer Information', rightBoxX + 10, buyerBoxY)
 
-        boxY += 15
+        buyerBoxY += 15
         doc
           .fontSize(12)
           .font('Helvetica-Bold')
-          .text(buyer?.name || 'N/A', rightBoxX + 10, boxY, { width: boxWidth - 20 })
+          .fillColor('#000000')
+          .text(buyer?.name || 'N/A', rightBoxX + 10, buyerBoxY, { width: boxWidth - 20 })
 
-        boxY += 18
+        buyerBoxY += 18
 
         // Billing Address
-        doc.fontSize(8).font('Helvetica').text('Billing Address:', rightBoxX + 10, boxY)
-        boxY += 10
+        doc.fontSize(8).font('Helvetica').text('Billing Address:', rightBoxX + 10, buyerBoxY)
+        buyerBoxY += 10
         if (buyerAddress) {
           doc.fontSize(9).font('Helvetica')
           if (buyerAddress.line1) {
-            doc.text(buyerAddress.line1, rightBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 10
+            doc.text(buyerAddress.line1, rightBoxX + 10, buyerBoxY, { width: boxWidth - 20 })
+            buyerBoxY += 10
           }
           if (buyerAddress.line2) {
-            doc.text(buyerAddress.line2, rightBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 10
+            doc.text(buyerAddress.line2, rightBoxX + 10, buyerBoxY, { width: boxWidth - 20 })
+            buyerBoxY += 10
           }
           const cityStateZip = [buyerAddress.city, buyerAddress.state, buyerAddress.postalCode].filter(Boolean).join(', ')
           if (cityStateZip) {
-            doc.text(cityStateZip, rightBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 12
+            doc.text(cityStateZip, rightBoxX + 10, buyerBoxY, { width: boxWidth - 20 })
+            buyerBoxY += 12
           }
         } else {
-          doc.fontSize(9).text('N/A', rightBoxX + 10, boxY)
-          boxY += 12
+          doc.fontSize(9).text('N/A', rightBoxX + 10, buyerBoxY)
+          buyerBoxY += 12
         }
 
         // Shipping Address or "Will Pick Up"
-        boxY += 5
-        doc.fontSize(8).font('Helvetica').text('Shipping Address:', rightBoxX + 10, boxY)
-        boxY += 10
+        buyerBoxY += 5
+        doc.fontSize(8).font('Helvetica').text('Shipping Address:', rightBoxX + 10, buyerBoxY)
+        buyerBoxY += 10
         if (buyerShippingAddress) {
           doc.fontSize(9).font('Helvetica')
           if (buyerShippingAddress.line1) {
-            doc.text(buyerShippingAddress.line1, rightBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 10
+            doc.text(buyerShippingAddress.line1, rightBoxX + 10, buyerBoxY, { width: boxWidth - 20 })
+            buyerBoxY += 10
           }
           if (buyerShippingAddress.line2) {
-            doc.text(buyerShippingAddress.line2, rightBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 10
+            doc.text(buyerShippingAddress.line2, rightBoxX + 10, buyerBoxY, { width: boxWidth - 20 })
+            buyerBoxY += 10
           }
           const cityStateZip = [buyerShippingAddress.city, buyerShippingAddress.state, buyerShippingAddress.postalCode].filter(Boolean).join(', ')
           if (cityStateZip) {
-            doc.text(cityStateZip, rightBoxX + 10, boxY, { width: boxWidth - 20 })
+            doc.text(cityStateZip, rightBoxX + 10, buyerBoxY, { width: boxWidth - 20 })
+            buyerBoxY += 12
           }
         } else {
-          doc.fontSize(9).font('Helvetica-Bold').text('Will Pick Up', rightBoxX + 10, boxY)
+          doc.fontSize(9).font('Helvetica-Bold').text('Will Pick Up', rightBoxX + 10, buyerBoxY)
+          buyerBoxY += 12
         }
 
-        // Sales Confirmation No. at bottom of box (buyer gets sales conf)
-        doc.fontSize(9).font('Helvetica').text(`Sales Confirmation No.: ${order.contractNo || 'TBA'}`, rightBoxX + 10, currentY + boxHeight - 15)
+        // Sales Confirmation No. at bottom
+        buyerBoxY += 5
+        doc.fontSize(9).font('Helvetica').text(`Sales Confirmation No.: ${order.contractNo || 'TBA'}`, rightBoxX + 10, buyerBoxY)
+        buyerBoxY += 15
+
+        // Calculate buyer box height
+        const buyerBoxHeight = buyerBoxY - boxStartY
+
+        // Use the max height for both boxes
+        const maxBoxHeight = Math.max(sellerBoxHeight, buyerBoxHeight)
+
+        // Now draw the boxes with dynamic height
+        doc
+          .strokeColor('#CCCCCC')
+          .lineWidth(1)
+          .rect(leftBoxX, boxStartY, boxWidth, maxBoxHeight)
+          .stroke()
+
+        doc
+          .rect(rightBoxX, boxStartY, boxWidth, maxBoxHeight)
+          .stroke()
+
+        // Update currentY to after the boxes
+        currentY = boxStartY + maxBoxHeight + 20
 
         // Product Details section
-        currentY = 360
         doc
           .fontSize(12)
           .font('Helvetica-Bold')
@@ -488,7 +510,7 @@ export class InvoicePDFService {
           .font('Helvetica-Bold')
           .fillColor('#FFFFFF')
           .rect(margin, currentY, tableWidth, 20)
-          .fill('#4F46E5') // Indigo color matching orders page
+          .fill('#8B4513') // Brown color matching logo
 
         let colX = margin + 5
         doc.fillColor('#FFFFFF').text('#', colX, currentY + 6, { width: colWidths[0] - 10 })
@@ -697,34 +719,51 @@ export class InvoicePDFService {
           { width: tableWidth, lineGap: 1 }
         )
 
-        // Company Footer
+        // Company Footer - 3 column layout (logo left, company center, contact right)
         currentY += 30
+        const footerY = currentY
+
+        // Logo on left
+        const footerLogoX = margin
+        for (const logoPath of logoPaths) {
+          if (fs.existsSync(logoPath)) {
+            try {
+              doc.image(logoPath, footerLogoX, footerY, { width: 60 })
+              break
+            } catch (err) {
+              // Try next path
+            }
+          }
+        }
+
+        // Company info in center
+        const centerX = pageWidth / 2
         doc
           .fontSize(8)
           .font('Helvetica-Bold')
           .fillColor('#000000')
-          .text('Golden Nuts Inc. | dba The Kadouri Connection', 0, currentY, { align: 'center', width: pageWidth })
+          .text('Golden Nuts Inc. | dba The Kadouri Connection', 0, footerY, { align: 'center', width: pageWidth })
 
-        currentY += 12
         doc
           .fontSize(7)
           .font('Helvetica')
-          .text('525 Northern Boulevard Suite 205 | Great Neck, NY 11021', 0, currentY, { align: 'center', width: pageWidth })
+          .text('525 Northern Boulevard Suite 205 | Great Neck, NY 11021', 0, footerY + 12, { align: 'center', width: pageWidth })
 
-        currentY += 10
-        doc.text('P: (516) 399-0155', 0, currentY, { align: 'center', width: pageWidth })
+        doc.text('United States', 0, footerY + 22, { align: 'center', width: pageWidth })
 
-        currentY += 10
-        doc.text('C: (516) 987-1101', 0, currentY, { align: 'center', width: pageWidth })
+        // Contact info on right
+        const contactX = pageWidth - margin - 100
+        doc
+          .fontSize(8)
+          .font('Helvetica-Bold')
+          .text('Contact Information', contactX, footerY, { width: 100 })
 
-        currentY += 10
-        doc.text('F: (516) 439-4436', 0, currentY, { align: 'center', width: pageWidth })
+        doc
+          .fontSize(7)
+          .font('Helvetica')
+          .text('(516) 399-0155', contactX, footerY + 12, { width: 100 })
 
-        currentY += 10
-        doc.text('Email - support@thekadourconnection.com', 0, currentY, { align: 'center', width: pageWidth })
-
-        currentY += 10
-        doc.text('Website  -  www.thekadouriconnection.com', 0, currentY, { align: 'center', width: pageWidth })
+        doc.text('www.thekadouriconnection.com', contactX, footerY + 22, { width: 100 })
 
         doc.end()
       } catch (error) {
