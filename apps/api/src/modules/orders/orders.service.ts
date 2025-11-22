@@ -427,6 +427,22 @@ export class OrdersService {
       changeDetails.push({ field: 'brokerId', from: current.brokerId, to: data.brokerId })
       changeDescriptions.push('broker')
     }
+    if (data.sellerBillingAddressId !== undefined && data.sellerBillingAddressId !== current.sellerBillingAddressId) {
+      changeDetails.push({ field: 'sellerBillingAddressId', from: current.sellerBillingAddressId, to: data.sellerBillingAddressId })
+      changeDescriptions.push('seller billing address')
+    }
+    if (data.sellerPickupAddressId !== undefined && data.sellerPickupAddressId !== current.sellerPickupAddressId) {
+      changeDetails.push({ field: 'sellerPickupAddressId', from: current.sellerPickupAddressId, to: data.sellerPickupAddressId })
+      changeDescriptions.push('seller pickup address')
+    }
+    if (data.buyerBillingAddressId !== undefined && data.buyerBillingAddressId !== current.buyerBillingAddressId) {
+      changeDetails.push({ field: 'buyerBillingAddressId', from: current.buyerBillingAddressId, to: data.buyerBillingAddressId })
+      changeDescriptions.push('buyer billing address')
+    }
+    if (data.buyerShippingAddressId !== undefined && data.buyerShippingAddressId !== current.buyerShippingAddressId) {
+      changeDetails.push({ field: 'buyerShippingAddressId', from: current.buyerShippingAddressId, to: data.buyerShippingAddressId })
+      changeDescriptions.push('buyer shipping address')
+    }
     if (data.contractNo && data.contractNo !== current.contractNo) {
       changeDetails.push({ field: 'contractNo', from: current.contractNo || '(none)', to: data.contractNo })
       changeDescriptions.push(`contract # from "${current.contractNo || '(none)'}" to "${data.contractNo}"`)
