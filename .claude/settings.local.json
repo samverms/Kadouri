@@ -102,7 +102,10 @@
       "Bash(timeout 60 cmd /c \"timeout /t 50 /nobreak > nul && echo done\")",
       "Bash(powershell -Command \"heroku run ''cd apps/api && npx tsx src/db/seed-terms.ts'' --app kadouri-backend\")",
       "Bash(git status:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(heroku pg:psql:*)",
+      "Bash(powershell -Command \"heroku pg:psql --app kadouri-backend -c ''ALTER TABLE orders DROP COLUMN IF EXISTS sales_agent_id;''\")",
+      "Bash(powershell -Command \"heroku run ''cd apps/api && echo \"\"ALTER TABLE orders DROP COLUMN IF EXISTS sales_agent_id;\"\" | npx tsx -e \"\"import postgres from ''''postgres''''; const sql = postgres(process.env.DATABASE_URL); await sql\\`ALTER TABLE orders DROP COLUMN IF EXISTS sales_agent_id\\`; console.log(''''Column dropped''''); process.exit(0);\"\"'' --app kadouri-backend\")"
     ],
     "deny": [],
     "ask": []
