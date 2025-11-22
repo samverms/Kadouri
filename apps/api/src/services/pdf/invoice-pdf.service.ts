@@ -98,6 +98,30 @@ export class InvoicePDFService {
       sellerAddress = addr || null
     }
 
+    // Fetch seller pickup address
+    let sellerPickupAddress: {
+      id: string
+      line1: string
+      line2: string | null
+      city: string
+      state: string
+      postalCode: string
+    } | null = null
+    if (order.sellerPickupAddressId) {
+      const [addr] = await db
+        .select({
+          id: addresses.id,
+          line1: addresses.line1,
+          line2: addresses.line2,
+          city: addresses.city,
+          state: addresses.state,
+          postalCode: addresses.postalCode,
+        })
+        .from(addresses)
+        .where(eq(addresses.id, order.sellerPickupAddressId))
+      sellerPickupAddress = addr || null
+    }
+
     // Fetch buyer account
     const [buyer] = await db
       .select({
@@ -149,6 +173,30 @@ export class InvoicePDFService {
           eq(addresses.isPrimary, true)
         ))
       buyerAddress = addr || null
+    }
+
+    // Fetch buyer shipping address
+    let buyerShippingAddress: {
+      id: string
+      line1: string
+      line2: string | null
+      city: string
+      state: string
+      postalCode: string
+    } | null = null
+    if (order.buyerShippingAddressId) {
+      const [addr] = await db
+        .select({
+          id: addresses.id,
+          line1: addresses.line1,
+          line2: addresses.line2,
+          city: addresses.city,
+          state: addresses.state,
+          postalCode: addresses.postalCode,
+        })
+        .from(addresses)
+        .where(eq(addresses.id, order.buyerShippingAddressId))
+      buyerShippingAddress = addr || null
     }
 
     // Fetch agent name
@@ -260,105 +308,160 @@ export class InvoicePDFService {
         doc
           .text(`Payment Terms: ${paymentTerms}`, rightX, currentY, { align: 'right', width: 200 })
 
-        // "Confirmation of Sale" subtitle - below logo
+        // "Confirmation of Sale" - CENTERED H1
         doc
-          .fontSize(14)
+          .fontSize(18)
           .font('Helvetica-Bold')
-          .fillColor('#333333')
-          .text('Confirmation of Sale', margin, 115)
+          .fillColor('#000000')
+          .text('Confirmation of Sale', 0, 115, { align: 'center', width: pageWidth })
 
         // Seller and Buyer Information boxes - side by side
-        currentY = 130
+        currentY = 140
         const boxWidth = (pageWidth - margin * 2 - 20) / 2
         const leftBoxX = margin
         const rightBoxX = margin + boxWidth + 20
+        const boxHeight = 200
 
         // Draw boxes
         doc
           .strokeColor('#CCCCCC')
           .lineWidth(1)
-          .rect(leftBoxX, currentY, boxWidth, 140)
+          .rect(leftBoxX, currentY, boxWidth, boxHeight)
           .stroke()
 
         doc
-          .rect(rightBoxX, currentY, boxWidth, 140)
+          .rect(rightBoxX, currentY, boxWidth, boxHeight)
           .stroke()
 
         // Seller Information
         let boxY = currentY + 10
         doc
-          .fontSize(11)
+          .fontSize(9)
           .font('Helvetica-Bold')
           .fillColor('#000000')
           .text('Seller Information', leftBoxX + 10, boxY)
 
-        boxY += 20
+        boxY += 15
         doc
-          .fontSize(10)
+          .fontSize(12)
           .font('Helvetica-Bold')
           .text(seller?.name || 'N/A', leftBoxX + 10, boxY, { width: boxWidth - 20 })
 
-        boxY += 15
+        boxY += 18
 
-        // Address
+        // Billing Address
+        doc.fontSize(8).font('Helvetica').text('Billing Address:', leftBoxX + 10, boxY)
+        boxY += 10
         if (sellerAddress) {
-          doc.font('Helvetica')
+          doc.fontSize(9).font('Helvetica')
           if (sellerAddress.line1) {
             doc.text(sellerAddress.line1, leftBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 12
+            boxY += 10
           }
           if (sellerAddress.line2) {
             doc.text(sellerAddress.line2, leftBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 12
+            boxY += 10
           }
           const cityStateZip = [sellerAddress.city, sellerAddress.state, sellerAddress.postalCode].filter(Boolean).join(', ')
           if (cityStateZip) {
             doc.text(cityStateZip, leftBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 15
+            boxY += 12
           }
+        } else {
+          doc.fontSize(9).text('N/A', leftBoxX + 10, boxY)
+          boxY += 12
+        }
+
+        // Pickup Address
+        boxY += 5
+        doc.fontSize(8).font('Helvetica').text('Pickup Address:', leftBoxX + 10, boxY)
+        boxY += 10
+        if (sellerPickupAddress) {
+          doc.fontSize(9).font('Helvetica')
+          if (sellerPickupAddress.line1) {
+            doc.text(sellerPickupAddress.line1, leftBoxX + 10, boxY, { width: boxWidth - 20 })
+            boxY += 10
+          }
+          if (sellerPickupAddress.line2) {
+            doc.text(sellerPickupAddress.line2, leftBoxX + 10, boxY, { width: boxWidth - 20 })
+            boxY += 10
+          }
+          const cityStateZip = [sellerPickupAddress.city, sellerPickupAddress.state, sellerPickupAddress.postalCode].filter(Boolean).join(', ')
+          if (cityStateZip) {
+            doc.text(cityStateZip, leftBoxX + 10, boxY, { width: boxWidth - 20 })
+          }
+        } else {
+          doc.fontSize(9).text('N/A', leftBoxX + 10, boxY)
         }
 
         // PO# at bottom of box (seller gets PO)
-        doc.fontSize(9).text(`PO#: ${order.poNumber || 'TBA'}`, leftBoxX + 10, currentY + 125)
+        doc.fontSize(9).font('Helvetica').text(`PO#: ${order.poNumber || 'TBA'}`, leftBoxX + 10, currentY + boxHeight - 15)
 
         // Buyer Information
         boxY = currentY + 10
         doc
-          .fontSize(11)
+          .fontSize(9)
           .font('Helvetica-Bold')
           .text('Buyer Information', rightBoxX + 10, boxY)
 
-        boxY += 20
+        boxY += 15
         doc
-          .fontSize(10)
+          .fontSize(12)
           .font('Helvetica-Bold')
           .text(buyer?.name || 'N/A', rightBoxX + 10, boxY, { width: boxWidth - 20 })
 
-        boxY += 15
+        boxY += 18
 
-        // Address
+        // Billing Address
+        doc.fontSize(8).font('Helvetica').text('Billing Address:', rightBoxX + 10, boxY)
+        boxY += 10
         if (buyerAddress) {
-          doc.font('Helvetica')
+          doc.fontSize(9).font('Helvetica')
           if (buyerAddress.line1) {
             doc.text(buyerAddress.line1, rightBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 12
+            boxY += 10
           }
           if (buyerAddress.line2) {
             doc.text(buyerAddress.line2, rightBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 12
+            boxY += 10
           }
           const cityStateZip = [buyerAddress.city, buyerAddress.state, buyerAddress.postalCode].filter(Boolean).join(', ')
           if (cityStateZip) {
             doc.text(cityStateZip, rightBoxX + 10, boxY, { width: boxWidth - 20 })
-            boxY += 15
+            boxY += 12
           }
+        } else {
+          doc.fontSize(9).text('N/A', rightBoxX + 10, boxY)
+          boxY += 12
+        }
+
+        // Shipping Address or "Will Pick Up"
+        boxY += 5
+        doc.fontSize(8).font('Helvetica').text('Shipping Address:', rightBoxX + 10, boxY)
+        boxY += 10
+        if (buyerShippingAddress) {
+          doc.fontSize(9).font('Helvetica')
+          if (buyerShippingAddress.line1) {
+            doc.text(buyerShippingAddress.line1, rightBoxX + 10, boxY, { width: boxWidth - 20 })
+            boxY += 10
+          }
+          if (buyerShippingAddress.line2) {
+            doc.text(buyerShippingAddress.line2, rightBoxX + 10, boxY, { width: boxWidth - 20 })
+            boxY += 10
+          }
+          const cityStateZip = [buyerShippingAddress.city, buyerShippingAddress.state, buyerShippingAddress.postalCode].filter(Boolean).join(', ')
+          if (cityStateZip) {
+            doc.text(cityStateZip, rightBoxX + 10, boxY, { width: boxWidth - 20 })
+          }
+        } else {
+          doc.fontSize(9).font('Helvetica-Bold').text('Will Pick Up', rightBoxX + 10, boxY)
         }
 
         // Sales Confirmation No. at bottom of box (buyer gets sales conf)
-        doc.fontSize(9).text(`Sales Confirmation No.: ${order.contractNo || 'TBA'}`, rightBoxX + 10, currentY + 125)
+        doc.fontSize(9).font('Helvetica').text(`Sales Confirmation No.: ${order.contractNo || 'TBA'}`, rightBoxX + 10, currentY + boxHeight - 15)
 
         // Product Details section
-        currentY = 290
+        currentY = 360
         doc
           .fontSize(12)
           .font('Helvetica-Bold')
@@ -550,51 +653,78 @@ export class InvoicePDFService {
             .text(`$${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, rightBoxX + summaryBoxWidth - 110, summaryY, { align: 'right', width: 100 })
         }
 
-        // Footer disclaimer - MORE spacing to prevent overlap
-        currentY += 150
+        // PALLETS text - just above notice
+        currentY += 120
         doc
-          .strokeColor('#CCCCCC')
-          .lineWidth(1)
-          .dash(5, { space: 3 })
-          .rect(margin, currentY, tableWidth, 95)
-          .stroke()
-          .undash()
+          .fontSize(9)
+          .font('Helvetica-Bold')
+          .fillColor('#000000')
+          .text(
+            'PALLETS MUST BE PURCHASED OR EXCHANGED BY BUYER - BROKER WILL NOT BE RESPONSIBLE FOR ANY PALLET DEDUCTIONS',
+            margin,
+            currentY,
+            { width: tableWidth, align: 'center', lineGap: 1 }
+          )
 
+        // Notice text
+        currentY += 25
         doc
           .fontSize(8)
           .font('Helvetica')
-          .fillColor('#000000')
           .text(
-            'The parties acknowledge and agree that Global Crop Exchange is acting as a broker in this transaction and cannot control and shall have no liability for delivery goods, quality, or timeliness of shipments. All obligations under this agreement are between buyer and seller as principal.',
-            margin + 10,
-            currentY + 8,
-            { width: tableWidth - 20, align: 'justify', lineGap: 2 }
+            'The parties acknowledge and agree that Kadouri Connection is acting as a broker in this transaction and cannot control and shall have no liability for delivery goods, quality, or timeliness of shipments. All obligations under this agreement are between buyer and seller as principal.',
+            margin,
+            currentY,
+            { width: tableWidth, align: 'justify', lineGap: 2 }
           )
 
+        currentY += 35
         doc
-          .font('Helvetica-Bold')
-          .text(
-            'PALLETS MUST BE PURCHASED OR EXCHANGED BY BUYER-BROKER WILL NOT BE RESPONSIBLE FOR ANY PALLET DEDUCTIONS.',
-            margin + 10,
-            currentY + 35,
-            { width: tableWidth - 20, lineGap: 2 }
-          )
-
-        doc
+          .fontSize(8)
           .font('Helvetica')
           .text(
-            'This is the copy you will receive from Global Crop Exchange.',
-            margin + 10,
-            currentY + 52,
-            { width: tableWidth - 20, lineGap: 1 }
+            'This is the copy you will receive from Kadouri Connection',
+            margin,
+            currentY,
+            { width: tableWidth, lineGap: 1 }
           )
 
+        currentY += 12
         doc.text(
           'If you require an original by mail please call or FAX your request to our office',
-          margin + 10,
-          currentY + 65,
-          { width: tableWidth - 20, lineGap: 1 }
+          margin,
+          currentY,
+          { width: tableWidth, lineGap: 1 }
         )
+
+        // Company Footer
+        currentY += 30
+        doc
+          .fontSize(8)
+          .font('Helvetica-Bold')
+          .fillColor('#000000')
+          .text('Golden Nuts Inc. | dba The Kadouri Connection', 0, currentY, { align: 'center', width: pageWidth })
+
+        currentY += 12
+        doc
+          .fontSize(7)
+          .font('Helvetica')
+          .text('525 Northern Boulevard Suite 205 | Great Neck, NY 11021', 0, currentY, { align: 'center', width: pageWidth })
+
+        currentY += 10
+        doc.text('P: (516) 399-0155', 0, currentY, { align: 'center', width: pageWidth })
+
+        currentY += 10
+        doc.text('C: (516) 987-1101', 0, currentY, { align: 'center', width: pageWidth })
+
+        currentY += 10
+        doc.text('F: (516) 439-4436', 0, currentY, { align: 'center', width: pageWidth })
+
+        currentY += 10
+        doc.text('Email - support@thekadourconnection.com', 0, currentY, { align: 'center', width: pageWidth })
+
+        currentY += 10
+        doc.text('Website  -  www.thekadouriconnection.com', 0, currentY, { align: 'center', width: pageWidth })
 
         doc.end()
       } catch (error) {
