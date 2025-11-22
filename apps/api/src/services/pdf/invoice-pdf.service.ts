@@ -57,6 +57,8 @@ export class InvoicePDFService {
       ))
       .where(eq(accounts.id, order.sellerId))
 
+    console.log('🔍 Seller data:', seller)
+
     // Fetch buyer account with primary address
     const [buyer] = await db
       .select({
@@ -75,6 +77,8 @@ export class InvoicePDFService {
         eq(addresses.isPrimary, true)
       ))
       .where(eq(accounts.id, order.buyerId))
+
+    console.log('🔍 Buyer data:', buyer)
 
     // Fetch agent name
     let agentName = 'N/A'
