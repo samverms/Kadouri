@@ -407,18 +407,50 @@ export class OrdersService {
       throw new AppError('Cannot edit order - invoice has been paid in QuickBooks', 400)
     }
 
-    // Track what changed for activity log
-    const changes: string[] = []
-    if (data.sellerId && data.sellerId !== current.sellerId) changes.push('seller')
-    if (data.buyerId && data.buyerId !== current.buyerId) changes.push('buyer')
-    if (data.agentId !== undefined && data.agentId !== current.agentId) changes.push('agent')
-    if (data.brokerId !== undefined && data.brokerId !== current.brokerId) changes.push('broker')
-    if (data.contractNo && data.contractNo !== current.contractNo) changes.push('contract number')
-    if (data.poNumber !== undefined && data.poNumber !== current.poNumber) changes.push('PO number')
-    if (data.terms && data.terms !== current.terms) changes.push('terms')
-    if (data.notes && data.notes !== current.notes) changes.push('notes')
-    if (data.status && data.status !== current.status) changes.push('status')
-    if (data.lines) changes.push('line items')
+    // Track what changed for activity log with detailed before/after values
+    const changeDetails: Array<{ field: string; from: any; to: any }> = []
+    const changeDescriptions: string[] = []
+
+    if (data.sellerId && data.sellerId !== current.sellerId) {
+      changeDetails.push({ field: 'sellerId', from: current.sellerId, to: data.sellerId })
+      changeDescriptions.push('seller')
+    }
+    if (data.buyerId && data.buyerId !== current.buyerId) {
+      changeDetails.push({ field: 'buyerId', from: current.buyerId, to: data.buyerId })
+      changeDescriptions.push('buyer')
+    }
+    if (data.agentId !== undefined && data.agentId !== current.agentId) {
+      changeDetails.push({ field: 'agentId', from: current.agentId, to: data.agentId })
+      changeDescriptions.push('agent')
+    }
+    if (data.brokerId !== undefined && data.brokerId !== current.brokerId) {
+      changeDetails.push({ field: 'brokerId', from: current.brokerId, to: data.brokerId })
+      changeDescriptions.push('broker')
+    }
+    if (data.contractNo && data.contractNo !== current.contractNo) {
+      changeDetails.push({ field: 'contractNo', from: current.contractNo || '(none)', to: data.contractNo })
+      changeDescriptions.push(`contract # from "${current.contractNo || '(none)'}" to "${data.contractNo}"`)
+    }
+    if (data.poNumber !== undefined && data.poNumber !== current.poNumber) {
+      changeDetails.push({ field: 'poNumber', from: current.poNumber || '(none)', to: data.poNumber || '(none)' })
+      changeDescriptions.push(`PO # from "${current.poNumber || '(none)'}" to "${data.poNumber || '(none)'}"`)
+    }
+    if (data.terms && data.terms !== current.terms) {
+      changeDetails.push({ field: 'terms', from: current.terms || '(none)', to: data.terms })
+      changeDescriptions.push(`terms from "${current.terms || '(none)'}" to "${data.terms}"`)
+    }
+    if (data.notes && data.notes !== current.notes) {
+      changeDetails.push({ field: 'notes', from: current.notes || '(none)', to: data.notes })
+      changeDescriptions.push('notes')
+    }
+    if (data.status && data.status !== current.status) {
+      changeDetails.push({ field: 'status', from: current.status, to: data.status })
+      changeDescriptions.push(`status from "${current.status}" to "${data.status}"`)
+    }
+    if (data.lines) {
+      changeDetails.push({ field: 'lines', from: current.lines?.length || 0, to: data.lines.length })
+      changeDescriptions.push(`line items (${data.lines.length} items)`)
+    }
 
     // If lines are provided, recalculate totals
     let updateData: any = {
@@ -483,10 +515,10 @@ export class OrdersService {
 
     logger.info(`Updated order: ${updated.id}`)
 
-    // Log activity with changes
+    // Log activity with detailed changes
     try {
-      const changeDescription = changes.length > 0
-        ? `Order ${updated.orderNo} updated: ${changes.join(', ')}`
+      const changeDescription = changeDescriptions.length > 0
+        ? `Order ${updated.orderNo} updated: ${changeDescriptions.join(', ')}`
         : `Order ${updated.orderNo} updated`
 
       await OrderActivityService.recordActivity({
@@ -494,6 +526,7 @@ export class OrdersService {
         clerkUserId: userId,
         activityType: 'order_updated',
         description: changeDescription,
+        changes: changeDetails.length > 0 ? changeDetails : undefined,
       })
     } catch (err) {
       logger.error('Failed to log order update activity:', err)
