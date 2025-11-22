@@ -1,12 +1,19 @@
 import PDFDocument from 'pdfkit'
 import { db } from '../../db'
-import { orders, orderLines, accounts, products, addresses, agents } from '../../db/schema'
+import { orders, orderLines, accounts, products, addresses, agents, pdfs, orderAttachments } from '../../db/schema'
 import { eq, and } from 'drizzle-orm'
 import path from 'path'
 import fs from 'fs'
+import { S3Service } from '../storage/s3-service'
 
 export class InvoicePDFService {
-  async generateInvoicePDF(orderId: string, type: 'seller' | 'buyer'): Promise<Buffer> {
+  private s3Service: S3Service
+
+  constructor() {
+    this.s3Service = new S3Service()
+  }
+
+  async generateInvoicePDF(orderId: string, type: 'seller' | 'buyer', userId?: string): Promise<Buffer> {
     // Fetch order with all details
     const [order] = await db
       .select()
@@ -490,6 +497,39 @@ export class InvoicePDFService {
         )
 
         doc.end()
+
+        // After PDF is generated, upload to S3 and save to database
+        doc.on('end', async () => {
+          try {
+            // Upload PDF to S3
+            const fileName = `${type}-invoice-${order.orderNo}.pdf`
+            const s3Key = `invoices/${order.orderNo}/${fileName}`
+            const s3Url = await this.s3Service.uploadFile(s3Key, buffer, 'application/pdf')
+
+            // Save to pdfs table
+            await db.insert(pdfs).values({
+              orderId: order.id,
+              type,
+              url: s3Url,
+              version: 1,
+            })
+
+            // Save to orderAttachments table
+            if (userId) {
+              await db.insert(orderAttachments).values({
+                orderId: order.id,
+                fileName,
+                fileUrl: s3Url,
+                fileSize: buffer.length,
+                fileType: 'application/pdf',
+                uploadedBy: userId,
+              })
+            }
+          } catch (error) {
+            console.error('Failed to save PDF to S3/database:', error)
+            // Don't reject - still return the PDF buffer to user
+          }
+        })
       } catch (error) {
         reject(error)
       }

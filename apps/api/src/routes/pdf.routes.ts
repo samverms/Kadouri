@@ -26,12 +26,13 @@ router.get('/contract/:id', authenticate, async (req, res, next) => {
 router.get('/invoice/:orderId/:type', authenticate, async (req, res, next) => {
   try {
     const { orderId, type } = req.params
+    const userId = (req as any).auth?.userId // Get Clerk user ID from auth middleware
 
     if (type !== 'seller' && type !== 'buyer') {
       return res.status(400).json({ error: 'Type must be either "seller" or "buyer"' })
     }
 
-    const pdfBuffer = await invoicePDFService.generateInvoicePDF(orderId, type as 'seller' | 'buyer')
+    const pdfBuffer = await invoicePDFService.generateInvoicePDF(orderId, type as 'seller' | 'buyer', userId)
 
     res.setHeader('Content-Type', 'application/pdf')
     res.setHeader('Content-Disposition', `attachment; filename="invoice-${orderId}-${type}.pdf"`)
