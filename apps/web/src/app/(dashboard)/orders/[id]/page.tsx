@@ -133,7 +133,7 @@ export default function OrderDetailPage() {
     memo: '',
   }])
   const [commissionRate, setCommissionRate] = useState(0)
-  const [numPallets, setNumPallets] = useState('')
+  const [numPallets, setNumPallets] = useState('0')
   const [poNumber, setPoNumber] = useState('')
   const [contractNo, setContractNo] = useState('')
   const [conditions, setConditions] = useState('')
@@ -273,22 +273,18 @@ export default function OrderDetailPage() {
     }
   }, [orderLines.length])
 
-  // DISABLED: Memo generation now happens on the backend
   // Auto-generate memos when line data changes
-  // useEffect(() => {
-  //   if (products.length === 0) return // Wait for products to load
+  useEffect(() => {
+    if (products.length === 0) return // Wait for products to load
 
-  //   setOrderLines(prevLines =>
-  //     prevLines.map(line => {
-  //       // Only auto-generate if memo is empty or hasn't been manually edited
-  //       const newMemo = generateMemo(line)
-  //       if (!line.memo || line.memo === '') {
-  //         return { ...line, memo: newMemo }
-  //       }
-  //       return line
-  //     })
-  //   )
-  // }, [orderLines.map(l => `${l.productId}-${l.variantId}-${l.quantity}-${l.pricePerUnit}`).join(','), isPickup, products.length])
+    setOrderLines(prevLines =>
+      prevLines.map(line => {
+        // Always regenerate memo when dependencies change
+        const newMemo = generateMemo(line)
+        return { ...line, memo: newMemo }
+      })
+    )
+  }, [orderLines.map(l => `${l.productId}-${l.variantId}-${l.quantity}-${l.pricePerUnit}`).join(','), isPickup, products.length])
 
   const fetchAccounts = async () => {
     try {
@@ -2086,21 +2082,6 @@ export default function OrderDetailPage() {
                       className="w-full h-7 text-xs bg-white dark:bg-gray-800"
                     />
                   </div>
-
-                  {/* Pallet Count */}
-                  <div>
-                    <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
-                      Pallet Count
-                    </label>
-                    <Input
-                      type="number"
-                      value={numPallets}
-                      onChange={(e) => setNumPallets(e.target.value)}
-                      placeholder="Number of pallets"
-                      className="w-full h-7 text-xs bg-white dark:bg-gray-800"
-                      min="0"
-                    />
-                  </div>
                 </div>
               </div>
             </div>
@@ -2162,9 +2143,36 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
-            {/* Payment Terms Section */}
-            <div className="mt-2">
-              {/* Payment Terms */}
+            {/* Payment Terms and Pallet Count Section - 2 Column Layout */}
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              {/* Pallet Count - Left Column */}
+              <div>
+                <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                  Pallet Count
+                </label>
+                <input
+                  type="number"
+                  list="pallet-suggestions"
+                  value={numPallets}
+                  onChange={(e) => setNumPallets(e.target.value)}
+                  placeholder="0"
+                  className="w-full h-7 px-1.5 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-white"
+                  min="0"
+                />
+                <datalist id="pallet-suggestions">
+                  <option value="0" />
+                  <option value="1" />
+                  <option value="2" />
+                  <option value="3" />
+                  <option value="4" />
+                  <option value="5" />
+                  <option value="10" />
+                  <option value="15" />
+                  <option value="20" />
+                </datalist>
+              </div>
+
+              {/* Payment Terms - Right Column */}
               <div>
                 <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
                   Payment Terms
