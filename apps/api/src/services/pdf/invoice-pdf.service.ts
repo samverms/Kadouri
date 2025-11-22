@@ -327,8 +327,15 @@ export class InvoicePDFService {
 
         // Table setup - matching orders page format
         const tableWidth = pageWidth - (margin * 2)
-        // Columns: #, Product, Variant, Qty, $/lb, Total, %, Comm
-        const colWidths = [30, 150, 120, 60, 60, 80, 50, 70]
+        let colWidths: number[]
+
+        if (isSeller) {
+          // Seller: #, Product, Variant, Qty, $/lb, Total, %, Comm
+          colWidths = [30, 150, 120, 60, 60, 80, 50, 70]
+        } else {
+          // Buyer: #, Product, Variant, Qty, $/lb, Total (NO commission columns)
+          colWidths = [40, 180, 140, 70, 70, 100]
+        }
 
         // Table header
         doc
@@ -350,10 +357,14 @@ export class InvoicePDFService {
         doc.text('$/lb', colX, currentY + 6, { width: colWidths[4] - 10, align: 'right' })
         colX += colWidths[4]
         doc.text('Total', colX, currentY + 6, { width: colWidths[5] - 10, align: 'right' })
-        colX += colWidths[5]
-        doc.text('%', colX, currentY + 6, { width: colWidths[6] - 10, align: 'right' })
-        colX += colWidths[6]
-        doc.text('Comm', colX, currentY + 6, { width: colWidths[7] - 10, align: 'right' })
+
+        // Only show commission columns for seller
+        if (isSeller) {
+          colX += colWidths[5]
+          doc.text('%', colX, currentY + 6, { width: colWidths[6] - 10, align: 'right' })
+          colX += colWidths[6]
+          doc.text('Comm', colX, currentY + 6, { width: colWidths[7] - 10, align: 'right' })
+        }
 
         currentY += 20
 
@@ -408,14 +419,16 @@ export class InvoicePDFService {
 
           // Total
           doc.text(`$${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, colX, currentY + 10, { width: colWidths[5] - 10, align: 'right' })
-          colX += colWidths[5]
 
-          // Commission %
-          doc.text(commissionPct.toFixed(1), colX, currentY + 10, { width: colWidths[6] - 10, align: 'right' })
-          colX += colWidths[6]
-
-          // Commission amount
-          doc.fillColor('#10B981').text(`$${commissionAmt.toFixed(2)}`, colX, currentY + 10, { width: colWidths[7] - 10, align: 'right' })
+          // Commission columns (seller only)
+          if (isSeller) {
+            colX += colWidths[5]
+            // Commission %
+            doc.text(commissionPct.toFixed(1), colX, currentY + 10, { width: colWidths[6] - 10, align: 'right' })
+            colX += colWidths[6]
+            // Commission amount
+            doc.fillColor('#10B981').text(`$${commissionAmt.toFixed(2)}`, colX, currentY + 10, { width: colWidths[7] - 10, align: 'right' })
+          }
 
           currentY += rowHeight
         })
@@ -473,13 +486,16 @@ export class InvoicePDFService {
           .text('Total:', rightBoxX + 10, summaryY)
           .text(`$${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, rightBoxX + summaryBoxWidth - 110, summaryY, { align: 'right', width: 100 })
 
-        // Amount Due (commission - what the brokerage gets paid)
-        summaryY += 20
-        doc
-          .font('Helvetica-Bold')
-          .text('Amount Due:', rightBoxX + 10, summaryY)
-          .fillColor('#10B981')
-          .text(`$${totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, rightBoxX + summaryBoxWidth - 110, summaryY, { align: 'right', width: 100 })
+        // Amount Due (commission - what the brokerage gets paid) - SELLER ONLY
+        if (isSeller) {
+          summaryY += 20
+          doc
+            .font('Helvetica-Bold')
+            .fillColor('#000000')
+            .text('Amount Due:', rightBoxX + 10, summaryY)
+            .fillColor('#10B981')
+            .text(`$${totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, rightBoxX + summaryBoxWidth - 110, summaryY, { align: 'right', width: 100 })
+        }
 
         // Footer disclaimer - adjusted spacing to prevent overlap
         currentY += 115
