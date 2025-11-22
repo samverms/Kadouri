@@ -25,12 +25,6 @@ export const orders = pgTable('orders', {
   agentId: uuid('agent_id').references(() => agents.id),
   brokerId: uuid('broker_id').references(() => brokers.id),
 
-  // DEPRECATED fields - kept for backward compatibility during migration
-  agentUserId: varchar('agent_user_id', { length: 255 }),
-  agentName: varchar('agent_name', { length: 255 }),
-  brokerUserId: varchar('broker_user_id', { length: 255 }),
-  brokerName: varchar('broker_name', { length: 255 }),
-  salesAgentId: varchar('sales_agent_id', { length: 255 }),
   status: varchar('status', { length: 20 }).notNull().default('draft'), // draft, confirmed, posted_to_qb, paid
   poNumber: varchar('po_number', { length: 100 }), // Purchase Order number
   contractId: uuid('contract_id'), // Link to contracts table (if this order is a contract draw)
