@@ -1,5 +1,5 @@
 import { db } from '../../db'
-import { orders, orderLines, accounts, products, agents, brokers, termsOptions, orderAttachments } from '../../db/schema'
+import { orders, orderLines, accounts, products, productVariants, agents, brokers, termsOptions, orderAttachments } from '../../db/schema'
 import { eq, desc, ilike, or, inArray } from 'drizzle-orm'
 import { AppError } from '../../middleware/error-handler'
 import { logger } from '../../utils/logger'
@@ -47,12 +47,35 @@ export class OrdersService {
     }
   }
 
+  // Helper function to pluralize package types
+  private pluralizePackageType(packageType: string, quantity: number): string {
+    if (quantity === 1) return packageType
+
+    // Common pluralization rules for package types
+    const pluralMap: { [key: string]: string } = {
+      'case': 'cases',
+      'box': 'boxes',
+      'bag': 'bags',
+      'pallet': 'pallets',
+      'each': 'each',
+      'bulk': 'bulk',
+      'carton': 'cartons',
+      'container': 'containers',
+      'crate': 'crates',
+      'tray': 'trays',
+      'unit': 'units',
+    }
+
+    return pluralMap[packageType.toLowerCase()] || `${packageType}s`
+  }
+
   // Generate memo from order lines
-  // Format: "140 cases edamame beans roasted salted 22# $2.40/lbs pick up"
+  // Format: "140 cases edamame beans roasted salted 22# $2.40/lb pick up"
   private async generateMemo(orderData: { lines: any[]; isPickup?: boolean }): Promise<string> {
     try {
-      // Get all product IDs from lines
-      const productIds = orderData.lines.map(line => line.productId)
+      // Get all product and variant IDs from lines
+      const productIds = orderData.lines.map(line => line.productId).filter(Boolean)
+      const variantIds = orderData.lines.map(line => line.variantId).filter(Boolean)
 
       // Fetch product details
       const productDetails = await db
@@ -60,29 +83,65 @@ export class OrdersService {
         .from(products)
         .where(inArray(products.id, productIds))
 
-      // Create a map for quick lookup
+      // Fetch variant details if variantIds exist
+      let variantDetails = []
+      if (variantIds.length > 0) {
+        variantDetails = await db
+          .select()
+          .from(productVariants)
+          .where(inArray(productVariants.id, variantIds))
+      }
+
+      // Create maps for quick lookup
       const productMap = new Map(productDetails.map(p => [p.id, p]))
+      const variantMap = new Map(variantDetails.map(v => [v.id, v]))
 
       // Generate memo lines
       const memoLines = orderData.lines.map(line => {
         const product = productMap.get(line.productId)
         if (!product) return ''
 
-        const quantity = line.quantity
-        const packageType = line.packageType || 'units'
+        // Get variant data if available
+        const variant = line.variantId ? variantMap.get(line.variantId) : null
+
+        // Use variant data if available, otherwise fall back to line data
+        const quantity = parseInt(line.quantity?.toString() || '0', 10)
+        const packageType = variant?.packageType || line.packageType || 'unit'
+        const pluralPackageType = this.pluralizePackageType(packageType, quantity)
         const productName = product.name
-        const unitSize = line.unitSize
-        const unitPrice = line.unitPrice
-        const uom = line.uom
+
+        // Format size: remove decimal if it's a whole number (20.00 → 20, 22.5 → 22.5)
+        const unitSize = parseFloat(line.unitSize?.toString() || '0')
+        const formattedSize = unitSize % 1 === 0 ? unitSize.toFixed(0) : unitSize.toString()
+
+        // Format price: always 2 decimal places
+        const unitPrice = parseFloat(line.unitPrice?.toString() || '0')
+        const formattedPrice = unitPrice.toFixed(2)
+
+        const uom = line.uom || 'lb'
         const deliveryMethod = orderData.isPickup ? 'pick up' : 'delivery'
 
-        // Log values for debugging
-        logger.info('Generating memo line:', { quantity, packageType, productName, unitSize, unitPrice, uom, deliveryMethod })
+        const memoLine = `${quantity} ${pluralPackageType} ${productName} ${formattedSize}# $${formattedPrice}/${uom} ${deliveryMethod}`
 
-        return `${quantity} ${packageType} ${productName} ${unitSize}# $${unitPrice}/${uom} ${deliveryMethod}`
+        // Log values for debugging
+        logger.info('Generated memo line:', {
+          quantity,
+          packageType: pluralPackageType,
+          productName,
+          size: formattedSize,
+          price: formattedPrice,
+          uom,
+          deliveryMethod,
+          result: memoLine
+        })
+
+        return memoLine
       }).filter(Boolean)
 
-      return memoLines.join('\n')
+      const finalMemo = memoLines.join('\n')
+      logger.info('Final generated memo:', finalMemo)
+
+      return finalMemo
     } catch (error) {
       logger.error('Failed to generate memo:', error)
       return ''
